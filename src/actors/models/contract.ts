@@ -1,6 +1,7 @@
 /**
  * CONTRACT — character, NPC and weapon model builders (implemented in src/actors/models/*).
- * Builders only create visuals: meshes parented to rig bones/sockets. They never animate bones.
+ * Builders only create visuals: characters are skinned meshes under `rig.root` bound to the rig's bone
+ * objects (one per material); weapons are parented to sockets. Builders never animate bones.
  * All geometry is procedural (no external assets). Materials come from getMaterial().
  */
 import type * as THREE from 'three';
@@ -26,6 +27,7 @@ export interface CharacterLook {
   head: ArmorLook; body: ArmorLook; arms: ArmorLook; legs: ArmorLook;
   /** Face/hair shown when the head slot is 'none' or open-faced. */
   hair?: 'dark' | 'fair';
+  sex?: 'm' | 'f';
   /** The player's cloak (tattered, verlet cloth) — true for most body armours. */
   cloak?: boolean;
 }

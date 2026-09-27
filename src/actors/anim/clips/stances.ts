@@ -22,11 +22,11 @@ export const ESTOC_REST: HandKey = { p: [-0.24, 0.98, 0.24], dir: [0.02, 0.28, 0
 export const HAFT_REST: HandKey = { p: [-0.26, 0.9, 0.16], dir: [-0.08, 0.72, 0.69], up: [0, -0.69, 0.72] };
 export const FLAIL_REST: HandKey = { p: [-0.26, 0.98, 0.24], dir: [-0.05, -0.97, 0.22], up: [0, 0.22, 0.97], elbow: [-0.7, -0.4, -0.6] };
 /** Greatsword / hammer resting on the right shoulder, blade/head behind. */
-export const GREAT_REST: HandKey = { p: [-0.21, 1.17, 0.22], dir: [-0.12, 0.62, -0.78], up: [0.1, 0.78, 0.62], elbow: [-0.9, -0.4, 0.1] };
-export const HAMMER_REST: HandKey = { p: [-0.22, 1.12, 0.22], dir: [-0.1, 0.7, -0.7], up: [0, -0.7, -0.7], elbow: [-0.9, -0.4, 0.1] };
+export const GREAT_REST: HandKey = { p: [-0.24, 1.2, 0.24], dir: [-0.06, 0.74, -0.67], up: [-0.99, -0.05, 0.03], elbow: [-0.9, -0.4, 0.1] };
+export const HAMMER_REST: HandKey = { p: [-0.25, 1.18, 0.24], dir: [-0.06, 0.76, -0.65], up: [0, -0.65, -0.76], elbow: [-0.9, -0.4, 0.1] };
 /** Spear / halberd held upright at the side, head leaning forward. */
 export const POLE_REST: HandKey = { p: [-0.27, 0.98, 0.14], dir: [-0.03, 0.93, 0.36], up: [0, -0.36, 0.93] };
-export const BOW_REST: HandKey = { p: [-0.26, 0.92, 0.14], dir: [0.02, 0.95, 0.3], up: [0, -0.3, 0.95], elbow: [-0.6, -0.5, -0.6] };
+export const BOW_REST: HandKey = { p: [-0.28, 1.0, 0.16], dir: [0.05, 0.9, 0.42], up: [0, -0.42, 0.9], elbow: [-0.6, -0.5, -0.6] };
 export const XBOW_REST: HandKey = { p: [-0.23, 0.98, 0.24], dir: [0.04, -0.2, 0.98], up: [0, -0.98, -0.2] };
 
 export const STANCES: Record<string, Stance> = {

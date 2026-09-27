@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The Pilgrim Stair — preview</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #0d0e10; color: #cbbf9f; font: 13px/1.4 Georgia, serif; overflow: hidden; }
+    #c { display: block; width: 100vw; height: 100vh; }
+    #hud { position: fixed; left: 10px; top: 8px; pointer-events: none; text-shadow: 0 1px 2px #000; white-space: pre; }
+    #check { position: fixed; left: 10px; bottom: 8px; max-height: 60vh; overflow: auto; background: rgba(0,0,0,.72); padding: 8px 10px; white-space: pre; display: none; font: 12px/1.35 monospace; color: #d8d0c0; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <div id="hud"></div>
+  <pre id="check"></pre>
+  <script type="module" src="./cathedral.ts"></script>
+</body>
+</html>

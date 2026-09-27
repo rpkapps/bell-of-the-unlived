@@ -10,7 +10,8 @@
 import { Clip } from '../../Clip';
 import type { HandKey, Key, V3 } from '../../types';
 
-export type K = Key & { off?: number };
+/** Authoring key: `off` = per-key left-hand offset along the weapon; `hold` = keep the previous key's edge (recovery holds). */
+export type K = Key & { off?: number; hold?: boolean };
 
 export const H = (p: V3, dir: V3, x: Partial<HandKey> = {}): HandKey => ({ p, dir, ...x });
 
@@ -39,10 +40,11 @@ export function resolveEdges(keys: K[], len: number): K[] {
         if (Math.hypot(e[0], e[1], e[2]) > 1e-3) up = nrm(e);
       }
     }
+    if (!up && ks[idx[n]].hold && n > 0) up = ks[idx[n - 1]].handR!.up!;
     if (!up) up = Math.abs(d[1]) < 0.8 ? [0, -1, 0] : [0, 0, 1];
     ks[idx[n]] = { ...ks[idx[n]], handR: { ...h, up } };
   }
-  return ks;
+  return ks.map(({ hold: _h, ...k }) => k);
 }
 
 /** Add the left hand on the weapon axis (see file header). */
@@ -58,13 +60,21 @@ export function twoHand(keys: K[], off: number, len: number, elbowL: V3 = [0.7, 
 }
 
 /** Strip helper fields (one-handed variant). */
-export const oneHand = (keys: K[]): Key[] => keys.map(({ off: _o, ...k }) => k);
+export const oneHand = (keys: K[]): Key[] => keys.map(({ off: _o, hold: _h, ...k }) => k);
 
-export const clip = (name: string, keys: Key[], edgeLen = 0.9, opts: { loop?: boolean; duration?: number } = {}) => new Clip(name, keys, { edgeLen, ...opts });
+/** A rest/return key built from a stance hold. */
+export const restOf = (base: Omit<Key, 't'>) => (t: number, ease: Key['ease'] = 'inout'): K => ({ ...base, t, ease });
+
+/** One-handed clip (edges resolved here so `hold` keys work). */
+export const clip = (name: string, keys: K[], edgeLen = 0.9, opts: { loop?: boolean; duration?: number } = {}) =>
+  new Clip(name, oneHand(resolveEdges(keys, edgeLen)), { edgeLen, ...opts });
+/** Two-handed clip only. */
+export const clip2 = (name: string, keys: K[], off: number, edgeLen: number, elbowL?: V3, opts: { loop?: boolean; duration?: number } = {}) =>
+  new Clip(name, twoHand(keys, off, edgeLen, elbowL), { edgeLen, ...opts });
 
 /** A two-handed clip `name` plus its one-handed variant `name_1h` (off-hand busy with a shield). */
 export function pair(name: string, keys: K[], off: number, len: number, elbowL?: V3): Record<string, Clip> {
-  return { [name]: clip(name, twoHand(keys, off, len, elbowL), len), [name + '_1h']: clip(name + '_1h', resolveEdges(oneHand(keys) as K[], len) as Key[], len) };
+  return { [name]: clip2(name, keys, off, len, elbowL), [name + '_1h']: clip(name + '_1h', keys, len) };
 }
 
 /** Shift a key list in time (for building combined clips from existing arcs). */

@@ -125,8 +125,8 @@ function bascinetAventail(b: CharBuilder, mat: string = M.mail) {
 
 const COURT: LookDef = {
   head: (b, c) => {
-    face(b, c, { beard: c.sex === 'm' ? 'short' : 'none', style: c.sex === 'f' ? 'long' : 'short', hair: c.hair ?? (c.sex === 'f' ? 'fair' : 'dark') });
-    hood(b, { mat: 'cloth_blue|t=6a7088', trim: M.gold, emb: true, depth: c.sex === 'f' ? 1.1 : 1.28, tip: 0.07, open: c.sex === 'f' ? 1.0 : 0.85 });
+    face(b, c, { beard: c.sex === 'm' ? 'short' : 'none', style: c.sex === 'f' ? 'long' : 'short', hair: c.hair ?? (c.sex === 'f' ? 'fair' : 'dark'), shade: c.sex === 'm' ? 0.6 : 0.2 });
+    hood(b, { mat: 'cloth_blue|t=6a7088', trim: M.gold, emb: true, depth: c.sex === 'f' ? 1.12 : 1.42, tip: 0.07, open: c.sex === 'f' ? 1.0 : 0.82 });
   },
   body: (b, c) => {
     addTrunk(b, c.sex, M.black, { y0: -0.16, y1: 0.56, inflate: 0.012 });

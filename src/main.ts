@@ -88,10 +88,11 @@ async function boot() {
 
   ui.loading(0.6, 'Raising Ashbridge');
   const { bootRegion } = await import('./game/regions/boot');
-  await bootRegion(game, session);
+  (window as any).__region = await bootRegion(game, session);
   ui.loading(null);
   game.start();
   if (q.has('skipintro') || q.has('newgame')) {
+    session.skipIntro = q.has('skipintro');
     session.newGame((q.get('origin') as OriginId) ?? 'householdKnight');
   } else {
     game.mode = 'title';

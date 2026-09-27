@@ -178,7 +178,7 @@ export function addShoulders(b: CharBuilder, sex: Sex, mat: string, inflate = 0)
 
 /** Neck (neck-bone space), blending into the chest below and the head above. */
 export function addNeck(b: CharBuilder, sex: Sex, mat: string, inflate = 0) {
-  const k = sex === 'f' ? 0.85 : 1;
+  const k = sex === 'f' ? 0.88 : 1.12;
   b.loft('neck', grow([
     { y: 0.13, rx: 0.045 * k, rz: 0.05 * k, cz: 0.005 },
     { y: 0.06, rx: 0.05 * k, rz: 0.052 * k, cz: 0.005 },
@@ -337,7 +337,7 @@ export function addHead(b: CharBuilder, o: HeadOpts) {
   for (const s of [1, -1]) b.add('head', xf(ellipsoid(f ? 0.006 : 0.0075, 0.0055, 0.007, { segs: 6, rows: 4 }), { p: [s * (f ? 0.008 : 0.0095), base.y + 0.003, base.z - 0.004] }), skin);
   // lips
   const m = at(0, 0.003, f ? 0.004 : 0.003).p;
-  const lipMat = f ? 'skin|t=c07a78' : 'skin|t=b08078';
+  const lipMat = f ? 'skin|t=d8a098' : 'skin|t=d0a8a0';
   b.add('head', xf(ellipsoid(f ? 0.019 : 0.02, f ? 0.0045 : 0.0035, 0.006, { segs: 10, rows: 5 }), { p: [m.x, m.y + 0.0035, m.z - 0.002] }), o.shade ? skin : lipMat);
   b.add('head', xf(ellipsoid(f ? 0.017 : 0.018, f ? 0.005 : 0.004, 0.0065, { segs: 10, rows: 5 }), { p: [m.x, m.y - 0.004, m.z - 0.0025] }), o.shade ? skin : lipMat);
   if (o.soot) b.add('head', shell(ur, lo, 0.45, 0.95, () => 0.05, () => 0.012, () => 0.0009, 5, 3), 'cloth_black|t=4a4440|r=1');

@@ -28,6 +28,23 @@ import { setMaterialQuality, setWetness, updateMaterials } from './materials';
 
 type Graphics = Settings['graphics'];
 
+/**
+ * GTAO fed by the scene pass depth (normals reconstructed from depth — no extra scene render).
+ * three r180's setGBuffer() dereferences `normalRenderTarget` even for an external depth buffer, so
+ * we let the constructor build its own G-buffer target, switch to ours, and keep the unused
+ * target at 1x1.
+ */
+class DepthGTAOPass extends GTAOPass {
+  constructor(scene: THREE.Scene, camera: THREE.Camera, depth: THREE.DepthTexture) {
+    super(scene, camera, 1, 1);
+    this.setGBuffer(depth, undefined as unknown as THREE.Texture);
+  }
+  override setSize(w: number, h: number): void {
+    super.setSize(w, h);
+    (this as unknown as { normalRenderTarget: THREE.WebGLRenderTarget }).normalRenderTarget.setSize(1, 1);
+  }
+}
+
 const SHADOW: Record<Quality, { size: number; extent: number; type: THREE.ShadowMapType }> = {
   low: { size: 1024, extent: 22, type: THREE.PCFShadowMap },
   medium: { size: 1024, extent: 26, type: THREE.PCFSoftShadowMap },
@@ -53,7 +70,7 @@ export class GameRenderer implements IRenderer {
   private readonly canvas: HTMLCanvasElement;
   private readonly composer: EffectComposer;
   private readonly scenePass: ScenePass;
-  private readonly gtao: GTAOPass;
+  private readonly gtao: DepthGTAOPass;
   private readonly bloom: UnrealBloomPass;
   private readonly motion: MotionBlurPass;
   private readonly grade: GradePass;
@@ -123,7 +140,7 @@ export class GameRenderer implements IRenderer {
     // --- post chain
     this.composer = new EffectComposer(r, new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, depthBuffer: false }));
     this.scenePass = new ScenePass(this.scene, this.camera);
-    this.gtao = new GTAOPass(this.scene, this.camera, 1, 1, { depthTexture: this.scenePass.depthTexture } as never);
+    this.gtao = new DepthGTAOPass(this.scene, this.camera, this.scenePass.depthTexture);
     this.gtao.blendIntensity = 0.85;
     this.gtao.updateGtaoMaterial({ radius: 0.7, distanceExponent: 1.5, thickness: 1.2, scale: 1.1, samples: 12 });
     this.bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.5, 0.55, 1.0);
@@ -187,7 +204,9 @@ export class GameRenderer implements IRenderer {
 
   private pushEnv(): void {
     const e = this.env, s = this.sky.state;
-    s.zenith.copy(e.zenith); s.horizon.copy(e.horizon); s.ground.copy(e.ground); s.glow.copy(e.glow);
+    s.zenith.copy(e.zenith); s.horizon.copy(e.horizon); s.glow.copy(e.glow);
+    // below the horizon the dome dissolves into the fog so geometry edges never show
+    s.ground.copy(e.ground).lerp(e.fogColor, 0.85);
     s.glowDir.set(-e.sunDir.x, 0, -e.sunDir.z);
     s.glowStrength = e.glowStrength; s.glowPower = e.glowPower;
     s.cloudColor.copy(e.cloudColor); s.cloudLit.copy(e.cloudLit); s.cloudCover = e.cloudCover; s.cloudOpacity = e.cloudOpacity; s.cloudSpeed = e.cloudSpeed;

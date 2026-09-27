@@ -267,7 +267,10 @@ async function main() {
     const dt = Math.min(0.05, clock.getDelta());
     const t = clock.elapsedTime;
     const yaw = orbit ? yaw0 + t * 0.15 : yaw0;
-    const d = dAbs || Math.max(4.5, span * 1.05) * distK * (group === 'hands' ? 0.5 : 1);
+    // fit the lineup width to the horizontal field of view
+    const hf = Math.atan(Math.tan((camera.fov * Math.PI) / 360) * camera.aspect);
+    const fit = Math.max((span / 2 + 0.4) / Math.tan(hf), 2.6 / Math.tan((camera.fov * Math.PI) / 360) * 0.5);
+    const d = dAbs || fit * distK * (group === 'hands' ? 0.5 : 1);
     camera.position.set(target.x + Math.sin(yaw) * d, camY + (group === 'hands' ? 0.1 : 0), Math.cos(yaw) * d);
     camera.lookAt(target);
     for (const a of actors) {

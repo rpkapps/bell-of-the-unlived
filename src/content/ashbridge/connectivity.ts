@@ -78,7 +78,7 @@ export function runAshbridgeConnectivity(L: AshbridgeLayout, world: CollisionWor
   reset();
   out.push(walk(world, 'hatch closed blocks the stair', V(13, 0, -51.2), [V(13, 0, -52.6), V(13, -5, -58.5)], K, true));
   out.push(walk(world, 'raised drawbridge blocks the west gate', V(-10.5, 3, -110), [V(-16.4, 3, -110), V(-22, 3, -110)], K, true));
-  out.push(walk(world, 'raised drawbridge: ledge gap is blocked', V(-27.3, 3, -106), [V(-27.3, 3, -110), V(-24, 3, -110)], K, true));
+  out.push(walk(world, 'raised drawbridge: ledge gap is blocked', V(-27.3, 3, -106), [V(-27.3, 3, -110), V(-21, 3, -110)], K, true));
   out.push(walk(world, 'fog gate blocks the arena', V(4, 8, -147.2), [V(4, 8, -152)], K, true));
   out.push(walk(world, 'locked refuge door blocks', V(12.2, -5, -82), [V(8.5, -5, -82)], K, true));
   out.push(walk(world, 'fresh masonry blocks the escape route', V(8.9, 0, -55.6), [V(8.9, -2.3, -59.4), V(8.9, -2.4, -62)], K, true));
@@ -90,8 +90,8 @@ export function runAshbridgeConnectivity(L: AshbridgeLayout, world: CollisionWor
   L.refugeDoor.set(1);
   const s = L.playerStart.pos;
   out.push(walk(world, 'tower top → tower door (spiral stair)', s.clone(), [
-    V(-33, 14, -113.1), V(-35.2, 14, -113.1), V(-37.1, 14, -113.1), V(-37.1, 14, -112.4),
-    V(-37.1, 11.25, -107.4), V(-37.1, 11.25, -106.9), V(-32.3, 8.5, -106.9), V(-30.9, 8.5, -106.9),
+    V(-29.5, 14, -110), V(-33, 14, -113.1), V(-35.2, 14, -113.1), V(-37.1, 14, -113.1), V(-37.1, 14, -112.4),
+    V(-37.1, 11.25, -107.4), V(-37.1, 11.25, -106.9), V(-30.9, 8.5, -106.9),
     V(-30.9, 5.75, -112.3), V(-30.9, 5.75, -113.1), V(-35.7, 3, -113.1), V(-37.1, 3, -113.1),
     V(-37.1, 3, -106.9), V(-30.9, 3, -106.9), V(-30.9, 3, -110), V(-27.4, 3, -110),
   ], K));
@@ -109,10 +109,10 @@ export function runAshbridgeConnectivity(L: AshbridgeLayout, world: CollisionWor
     V(16.9, -5, -81), V(13, -5, -81), V(13, -5, -82), V(9.5, -5, -82), V(7.5, -5, -83.5), V(9.5, -5, -82), V(13, -5, -82),
   ], K));
   out.push(walk(world, 'undercroft → stair → courtyard', V(13, -5, -82), [
-    V(13, -5, -93.5), V(10.8, -5, -93.5), V(-1.2, 3, -93.5), V(-3.4, 3, -93.5), V(-3.4, 3, -97.2), V(-4, 3, -104),
+    V(13, -5, -93.5), V(10.8, -5, -93.5), V(-2.4, 3, -93.5), V(-3.4, 3, -93.5), V(-3.4, 3, -97.2), V(-4, 3, -104),
   ], K));
   out.push(walk(world, 'courtyard → lever → west gate → drawbridge → tower ledge', V(-4, 3, -104), [
-    V(-10.6, 3, -106.4), V(-11, 3, -110), V(-16.5, 3, -110), V(-22, 3.08, -110), V(-27.3, 3, -110), V(-27.3, 3, -106), V(-29.3, 3, -110),
+    V(-10.6, 3, -106.4), V(-11, 3, -110), V(-16.5, 3, -110), V(-22, 3.08, -110), V(-25, 3, -110), V(-27.3, 3, -110), V(-27.3, 3, -106), V(-29.3, 3, -110),
   ], K));
   out.push(walk(world, 'courtyard → hospice → stillbell → practice yard', V(4, 3, -110), [
     V(18, 3, -112), V(23.5, 3, -112), V(27, 3, -112), V(35, 3, -112), V(L.stillbells[1].anchor.pos.x, 3, -108), V(38.5, 3, -114.3),

@@ -103,7 +103,7 @@ void main() {
   if ( s.a < 0.5 || uOpacity < 0.01 ) discard;
   // haze thickens toward the silhouettes' feet (height fog) and with distance (far ring)
   float feet = 1.0 - smoothstep( 0.0, 0.55, vUv.y );
-  float haze = clamp( uFar * 0.55 + feet * 0.8, 0.0, 0.97 );
+  float haze = clamp( 0.35 + uFar * 0.35 + feet * 0.7 - vUv.y * 0.15, 0.0, 0.97 );
   vec3 c = mix( uColor, uHaze, haze );
   float flick = 0.8 + 0.2 * sin( uTime * 1.3 + vUv.x * 431.0 );
   c += uWin * s.g * uWindows * ( 1.0 - haze * 0.8 ) * flick;
@@ -213,8 +213,8 @@ export class Sky {
 
     // Skyline rings (near, far)
     const specs = [
-      { seed: 5, radius: 620, height: 150, far: 0.0, repeat: 3, density: 1.0 },
-      { seed: 9, radius: 820, height: 230, far: 1.0, repeat: 2, density: 0.8 },
+      { seed: 5, radius: 620, height: 95, far: 0.0, repeat: 3, density: 1.0 },
+      { seed: 9, radius: 820, height: 150, far: 1.0, repeat: 2, density: 0.8 },
     ];
     for (const s of specs.reverse()) {
       const cv = skylineCanvas(s.seed, 2048, 256, s.density);
@@ -261,7 +261,7 @@ export class Sky {
       r.mat.uniforms.uTime.value = time;
       r.mesh.visible = r.twin.visible = s.skyline > 0.01;
     }
-    this.object.position.set(camera.position.x, camera.position.y - 25, camera.position.z);
-    this.dome.position.set(0, 25, 0);
+    this.object.position.set(camera.position.x, camera.position.y - 12, camera.position.z);
+    this.dome.position.set(0, 12, 0);
   }
 }

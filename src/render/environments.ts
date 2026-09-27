@@ -40,12 +40,12 @@ export const ENVIRONMENTS: Record<EnvironmentPreset, EnvDef> = {
     fogColor: '#5b6977', fogDensity: 0.016, fogFalloff: 0.045, fogBase: 0, fogStart: 7,
     sunColor: '#b7c6de', sunIntensity: 1.7, sunAzimuth: 215, sunElevation: 34,
     rimColor: '#a8bbd4', rimIntensity: 0.9,
-    hemiSky: '#8898ad', hemiGround: '#3b3530', hemiIntensity: 0.85,
+    hemiSky: '#8898ad', hemiGround: '#3b3530', hemiIntensity: 1.2,
     ambient: '#3c4452', ambientIntensity: 0.18,
-    envIntensity: 0.85,
-    exposure: 1.0, contrast: 1.08, saturation: 0.9, shadowTint: '#e6f0ff', highlightTint: '#fff3e2', vignette: 0.32,
+    envIntensity: 1.0,
+    exposure: 1.1, contrast: 1.08, saturation: 0.9, shadowTint: '#e6f0ff', highlightTint: '#fff3e2', vignette: 0.32,
     bloomStrength: 0.5, bloomRadius: 0.55, bloomThreshold: 1.0,
-    wetness: 0.55, storm: 0,
+    wetness: 0.4, storm: 0,
   },
   // Undercroft: dark, warm torch key, short fog.
   undercroft: {

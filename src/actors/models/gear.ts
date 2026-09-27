@@ -22,7 +22,7 @@ import type { ClothCollider } from './cloth';
 /** Standard shared material keys. */
 export const M = {
   steel: 'steel_armor',
-  steelOld: 'iron_rusted',
+  steelOld: 'iron_rusted|t=8c8a88',
   iron: 'iron',
   bronze: 'bronze',
   gold: 'gold_trim',

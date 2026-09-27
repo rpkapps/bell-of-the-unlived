@@ -57,6 +57,8 @@ export class Session implements UIHost {
   private lastBreathFx: { stop(): void } | null = null;
   private lastBreathObj: THREE.Object3D | null = null;
   playing = false;
+  /** Development: skip the opening cinematic. */
+  skipIntro = false;
 
   constructor(readonly game: Game, readonly ui: IUI, readonly audio: IAudio | null, private settingsRef: Settings, private saveSettings: () => void) {
     this.journalSys = new Journal(() => this.ws);
@@ -91,7 +93,7 @@ export class Session implements UIHost {
     this.ui.closeAll();
     this.audio?.setMusic('none', 1.5);
     await this.ui.fade(1, 0.8);
-    if (fresh) {
+    if (fresh && !this.skipIntro) {
       this.game.mode = 'cinematic';
       this.ui.fade(0, 0.1);
       this.audio?.setMusic('intro', 1);
@@ -112,7 +114,12 @@ export class Session implements UIHost {
     this.ui.setHudVisible(true);
     this.input.setPointerLock(true);
     this.audio?.setMusic('ashbridge', 3);
-    if (fresh) { p.startMove({ id: 'rise', clip: 'rise', dur: 1.4, speed: 0.6 }); this.save(); }
+    if (fresh) {
+      p.startMove({ id: 'rise', clip: 'rise', dur: 1.4, speed: 0.6 });
+      // He wakes knowing what he came to prevent.
+      this.journalSys.record('betrayal', 'mem_gate');
+      this.save();
+    }
     await this.ui.fade(0, 1.6);
     if (fresh) { this.game.hint('move'); setTimeout(() => this.game.hint('camera'), 6000); }
   }

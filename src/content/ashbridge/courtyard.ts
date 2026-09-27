@@ -93,27 +93,29 @@ export function buildCourtyard(ctx: AreaCtx): CourtyardBuild {
   const G = PLAN.westGate;
   const gx0 = G.xOuter, gx1 = G.xInner, gz0 = -115, gz1 = -105;
   // tower body around the passage z ∈ [-112, -108], y ∈ [3, 7.2]
-  k.bmm('stone_wall', gx0, -12, gz0, gx1, 18, G.z0, { col: true });
-  k.bmm('stone_wall', gx0, -12, G.z1, gx1, 18, gz1, { col: true });
+  // kept low (top y=12) so the watchtower overlook sees over it; the raised deck fits its recess
+  const gTop = 12;
+  k.bmm('stone_wall', gx0, -12, gz0, gx1, gTop, G.z0, { col: true });
+  k.bmm('stone_wall', gx0, -12, G.z1, gx1, gTop, gz1, { col: true });
   k.bmm('stone_wall', gx0, -12, G.z0, gx1, Y, G.z1, { col: true });
-  wall(k, 'stone_wall', gx0 + 0.6, G.z0, gx0 + 0.6, G.z1, Y, 15, 1.2, { openings: [{ u: 0, w: G.z1 - G.z0, sill: 0, h: 3.0, kind: 'round' }] });
-  wall(k, 'stone_wall', gx1 - 0.6, G.z0, gx1 - 0.6, G.z1, Y, 15, 1.2, { openings: [{ u: 0, w: G.z1 - G.z0, sill: 0, h: 3.0, kind: 'round' }] });
-  k.bmm('stone_wall', gx0 + 1.2, Y + 5.2, G.z0, gx1 - 1.2, 18, G.z1, { col: true });
+  wall(k, 'stone_wall', gx0 + 0.6, gz0, gx0 + 0.6, gz1, Y, gTop - Y, 1.2, { openings: [{ u: 0, w: G.z1 - G.z0, sill: 0, h: 3.0, kind: 'round' }] });
+  wall(k, 'stone_wall', gx1 - 0.6, gz0, gx1 - 0.6, gz1, Y, gTop - Y, 1.2, { openings: [{ u: 0, w: G.z1 - G.z0, sill: 0, h: 3.0, kind: 'round' }] });
+  k.bmm('stone_wall', gx0 + 1.2, Y + 5.2, G.z0, gx1 - 1.2, gTop, G.z1, { col: true });
   k.bmm('flagstone', gx0, Y - 0.02, G.z0, gx1, Y + 0.005, G.z1, { cast: false });
   k.bmm('timber_dark', gx0 + 1.2, Y + 4.9, G.z0, gx1 - 1.2, Y + 5.2, G.z1, { cast: false });
   // crenellated top, machicolation, slits, a banner toward the courtyard
-  k.bmm('stone_trim', gx0 - 0.4, 17.6, gz0 - 0.4, gx1 + 0.4, 18.1, gz1 + 0.4);
-  crenellation(k, 'stone_wall', gx0 - 0.1, gz0 - 0.1, gx0 - 0.1, gz1 + 0.1, 18.1, 0.6, { col: false });
-  crenellation(k, 'stone_wall', gx1 + 0.1, gz0 - 0.1, gx1 + 0.1, gz1 + 0.1, 18.1, 0.6, { col: false });
-  crenellation(k, 'stone_wall', gx0, gz0 - 0.1, gx1, gz0 - 0.1, 18.1, 0.6, { col: false });
-  crenellation(k, 'stone_wall', gx0, gz1 + 0.1, gx1, gz1 + 0.1, 18.1, 0.6, { col: false });
-  for (const zz of [-113.6, -106.4]) { slit(k, gx0, 10, zz, -Math.PI / 2); slit(k, gx1, 12, zz, Math.PI / 2); }
-  wallBanner(k, gx1, 14.5, -110, Math.PI / 2, 1.6, 4.2);
+  k.bmm('stone_trim', gx0 - 0.4, gTop - 0.4, gz0 - 0.4, gx1 + 0.4, gTop + 0.1, gz1 + 0.4);
+  crenellation(k, 'stone_wall', gx0 - 0.1, gz0 - 0.1, gx0 - 0.1, gz1 + 0.1, gTop + 0.1, 0.6, { col: false });
+  crenellation(k, 'stone_wall', gx1 + 0.1, gz0 - 0.1, gx1 + 0.1, gz1 + 0.1, gTop + 0.1, 0.6, { col: false });
+  crenellation(k, 'stone_wall', gx0, gz0 - 0.1, gx1, gz0 - 0.1, gTop + 0.1, 0.6, { col: false });
+  crenellation(k, 'stone_wall', gx0, gz1 + 0.1, gx1, gz1 + 0.1, gTop + 0.1, 0.6, { col: false });
+  for (const zz of [-113.6, -106.4]) { slit(k, gx0, 9.5, zz, -Math.PI / 2); slit(k, gx1, 9.8, zz, Math.PI / 2); }
+  wallBanner(k, gx1, 11.3, -110, Math.PI / 2, 1.6, 2.6);
   // raised-bridge recess frame (the deck stands here when raised)
-  k.bmm('timber_dark', gx0 - 0.2, Y, G.z0 - 0.3, gx0, Y + 11, G.z0, { cast: false });
-  k.bmm('timber_dark', gx0 - 0.2, Y, G.z1, gx0, Y + 11, G.z1 + 0.3, { cast: false });
+  k.bmm('timber_dark', gx0 - 0.2, Y, G.z0 - 0.3, gx0, Y + 7.9, G.z0, { cast: false });
+  k.bmm('timber_dark', gx0 - 0.2, Y, G.z1, gx0, Y + 7.9, G.z1 + 0.3, { cast: false });
   // chain holes (iron eyes) where the chains enter the tower
-  for (const zz of [G.z0 + 0.1, G.z1 - 0.1]) k.add('iron', new THREE.TorusGeometry(0.22, 0.06, 6, 10), { x: gx0 - 0.05, y: Y + 12, z: zz, ry: Math.PI / 2 }, { cast: false });
+  for (const zz of [G.z0 + 0.1, G.z1 - 0.1]) k.add('iron', new THREE.TorusGeometry(0.22, 0.06, 6, 10), { x: gx0 - 0.05, y: Y + 8.2, z: zz, ry: Math.PI / 2 }, { cast: false });
   // foundation buttresses down into the ravine
   for (const zz of [-126, -118, -101]) k.bmm('stone_dark', -17.2, -12, zz - 1, -15.8, 1, zz + 1);
 
@@ -187,8 +189,9 @@ export function buildCourtyard(ctx: AreaCtx): CourtyardBuild {
  * otherwise so nobody walks into the ravine through the gap.
  */
 function buildDrawbridge(ctx: AreaCtx, hingeX: number, y: number, z0: number, z1: number): DynamicPiece {
-  const L = 10.6, W = z1 - z0, T = 0.3, top = 0.08;
-  const RAIL = 8.6; // rails stop at the ravine edge so the ledge end can be stepped off sideways
+  // spans the ravine from the gate (x=-17) to the landing pier (x=-24.4; pier edge at -24)
+  const L = 7.4, W = z1 - z0, T = 0.3, top = 0.08;
+  const RAIL = 6.9; // rails stop at the pier edge
   const root = new THREE.Group();
   root.name = 'drawbridge';
   ctx.dynamicRoot.add(root);
@@ -202,13 +205,13 @@ function buildDrawbridge(ctx: AreaCtx, hingeX: number, y: number, z0: number, z1
     const zz = -W / 2 + (W * (i + 0.5)) / nP;
     deck.bmm('planks', -L, -0.1, zz - W / nP / 2 + 0.012, 0, 0, zz + W / nP / 2 - 0.012, { variant: i % 3 });
   }
-  for (let i = 0; i < 7; i++) deck.bmm('timber_dark', -0.4 - i * 1.65 - 0.2, -T, -W / 2, -0.4 - i * 1.65 + 0.2, -0.1, W / 2);
+  for (let i = 0; i < 5; i++) deck.bmm('timber_dark', -0.4 - i * 1.6 - 0.2, -T, -W / 2, -0.4 - i * 1.6 + 0.2, -0.1, W / 2);
   for (const zz of [-W / 2 + 0.25, W / 2 - 0.25]) deck.bmm('timber_dark', -L, -T - 0.05, zz - 0.15, 0, -0.1, zz + 0.15);
   for (const xx of [-0.6, -L / 2, -L + 0.6]) deck.bmm('iron', xx - 0.06, 0, -W / 2, xx + 0.06, 0.012, W / 2, { cast: false });
   for (const s of [-1, 1]) {
     const zz = s * (W / 2 - 0.06);
     deck.bmm('timber_dark', -RAIL, 0.85, zz - 0.06, -0.1, 0.97, zz + 0.06, { cast: false });
-    for (let i = 0; i < 5; i++) deck.bmm('timber_dark', -0.3 - i * 2, 0, zz - 0.06, -0.18 - i * 2, 0.95, zz + 0.06, { cast: false });
+    for (let i = 0; i < 4; i++) deck.bmm('timber_dark', -0.3 - i * 2.1, 0, zz - 0.06, -0.18 - i * 2.1, 0.95, zz + 0.06, { cast: false });
   }
   deck.bmm('iron', -L, -0.2, -W / 2, -L + 0.12, 0.02, W / 2, { cast: false });
   deck.finish(pivot);
@@ -226,7 +229,7 @@ function buildDrawbridge(ctx: AreaCtx, hingeX: number, y: number, z0: number, z1
   for (let i = 0; i < 2; i++) {
     const g = new THREE.Mesh(cyl(0.035, 0.035, 2.3, 5), chainMat);
     g.rotation.x = Math.PI / 2 + (i ? -0.18 : 0.18);
-    g.position.set(-26.1, y + 0.95 - 0.1, (z0 + z1) / 2 + (i ? 1.12 : -1.12));
+    g.position.set(-24.15, y + 0.95 - 0.1, (z0 + z1) / 2 + (i ? 1.12 : -1.12));
     gap.add(g);
   }
   root.add(gap);
@@ -246,9 +249,9 @@ function buildDrawbridge(ctx: AreaCtx, hingeX: number, y: number, z0: number, z1
     blockGate = col.addDynamicBox('ashbridge:drawbridgeGateBlock', [0.6, 5, W + 0.4], 'wood');
     blockGate.setMatrix(new THREE.Matrix4().makeTranslation(hingeX - 0.1, y + 2.5, (z0 + z1) / 2));
     blockLedge = col.addDynamicBox('ashbridge:drawbridgeLedgeBlock', [0.5, 1.4, W + 0.6], 'stone');
-    blockLedge.setMatrix(new THREE.Matrix4().makeTranslation(-26.1, y + 0.7, (z0 + z1) / 2));
+    blockLedge.setMatrix(new THREE.Matrix4().makeTranslation(-24.15, y + 0.7, (z0 + z1) / 2));
   }
-  const eyes = [new THREE.Vector3(hingeX - 0.05, y + 12, z0 + 0.1), new THREE.Vector3(hingeX - 0.05, y + 12, z1 - 0.1)];
+  const eyes = [new THREE.Vector3(hingeX - 0.05, y + 8.2, z0 + 0.1), new THREE.Vector3(hingeX - 0.05, y + 8.2, z1 - 0.1)];
   const tip = new THREE.Vector3();
   const up = new THREE.Vector3(0, 1, 0);
   const piece: DynamicPiece = {

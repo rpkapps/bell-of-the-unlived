@@ -99,7 +99,16 @@ export function buildTower(ctx: AreaCtx): TowerBuild {
   crenellation(k, 'stone_wall', cX0, cZ0 + pt / 2, cX1, cZ0 + pt / 2, topY, pt);
   crenellation(k, 'stone_wall', cX0, cZ1 - pt / 2, cX1, cZ1 - pt / 2, topY, pt);
   crenellation(k, 'stone_wall', cX0 + pt / 2, cZ0 + pt, cX0 + pt / 2, cZ1 - pt, topY, pt);
-  crenellation(k, 'stone_wall', cX1 - pt / 2, cZ0 + pt, cX1 - pt / 2, cZ1 - pt, topY, pt);
+  // east side: crenellations either side of a projecting balcony (the overlook)
+  const bz0 = T.z - 3.0, bz1 = T.z + 3.0, bx1 = cX1 + 2.4;
+  crenellation(k, 'stone_wall', cX1 - pt / 2, cZ0 + pt, cX1 - pt / 2, bz0, topY, pt);
+  crenellation(k, 'stone_wall', cX1 - pt / 2, bz1, cX1 - pt / 2, cZ1 - pt, topY, pt);
+  floor(k, 'flagstone', cX1 - pt - 0.05, bz0, bx1, bz1, topY, 0.5);
+  k.bmm('stone_wall', cX1, topY - 1.3, bz0, bx1, topY - 0.5, bz1, { receive: false });
+  for (let i = 0; i < 4; i++) k.box('stone_trim', cX1 + 0.3 + i * 0.5, topY - 1.3 - (3 - i) * 0.35, T.z, 0.5, 0.35 + (3 - i) * 0.1, bz1 - bz0 - 0.4, { cast: false });
+  parapet(k, 'stone_wall', bx1 - 0.2, bz0, bx1 - 0.2, bz1, topY, 0.4, 1.0);
+  parapet(k, 'stone_wall', cX1 - pt, bz0 + 0.2, bx1, bz0 + 0.2, topY, 0.4, 1.0);
+  parapet(k, 'stone_wall', cX1 - pt, bz1 - 0.2, bx1, bz1 - 0.2, topY, 0.4, 1.0);
   // caphouse over the stair head (NW): walls, east door, pyramid roof
   const hX0 = cX0 + pt, hX1 = cx0 + 0.2, hZ0 = cZ0 + pt, hZ1 = cz1 + 0.6, hH = 3.2, ht = 0.4;
   wall(k, 'stone_wall', hX0 + ht / 2, hZ0, hX0 + ht / 2, hZ1, topY, hH, ht);
@@ -114,8 +123,9 @@ export function buildTower(ctx: AreaCtx): TowerBuild {
   // a flagpole with a tattered banner on the roof (seen from the town)
   k.box('timber_dark', cX0 + 1.2, topY + 3.5, cZ1 - 1.2, 0.12, 7, 0.12);
 
-  // the Watchtower Stillbell, NE corner, facing west toward the platform
-  const shrine = stillbellShrine(k, cX1 - pt - 1.0, topY, cZ0 + pt + 1.1, -Math.PI / 2, 7);
+  // the Watchtower Stillbell stands on the balcony (north side, facing south) — the concept-art
+  // foreground: bell shrine at the parapet, the town and gatehouse beyond
+  const shrine = stillbellShrine(k, cX1 + 0.9, topY, T.z - 2.0, 0, 7);
   // weathered roof clutter
   rubble(k, cX0 + 1.4, topY, cZ1 - 2.2, 0.7, false);
   crate(k, hX1 + 0.7, topY, hZ1 + 0.9, 0.2, 0.7);
@@ -124,11 +134,18 @@ export function buildTower(ctx: AreaCtx): TowerBuild {
   const L = PLAN.ledge;
   floor(k, 'flagstone', L.x0 - 0.2, L.z0, L.x1, L.z1, L.y, 0.5);
   k.bmm('stone_dark', L.x0, -12, L.z0, L.x1, L.y - 0.5, L.z1, { cast: true });
-  // ravine-side parapet with a gap for the drawbridge (z ∈ [-112.4, -107.6])
+  // ravine-side parapet with a gap (z ∈ [-112.4, -107.6]) onto the drawbridge landing pier
   parapet(k, 'stone_wall', L.x1 - 0.2, L.z0, L.x1 - 0.2, -112.4, L.y, 0.4, 1.0);
   parapet(k, 'stone_wall', L.x1 - 0.2, -107.6, L.x1 - 0.2, L.z1, L.y, 0.4, 1.0);
-  // gap posts (the drawbridge piece hangs its chain between these)
-  for (const z of [-112.5, -107.5]) k.bmm('stone_trim', L.x1 - 0.45, L.y, z - 0.25, L.x1 + 0.05, L.y + 1.4, z + 0.25, { col: true });
+  // landing pier projecting into the ravine (the lowered deck rests on its end)
+  const px1 = -23.95;
+  floor(k, 'flagstone', L.x1 - 0.3, -112.4, px1, -107.6, L.y, 0.5);
+  k.bmm('stone_dark', L.x1 - 0.3, -12, -112.6, px1, L.y - 0.5, -107.4, { cast: true });
+  for (let i = 0; i < 3; i++) k.bmm('stone_trim', px1 - 0.1, L.y - 1.6 - i * 0.9, -112.7 + i * 0.1, px1 + 0.3 - i * 0.1, L.y - 0.8 - i * 0.9, -107.3 - i * 0.1, { cast: false });
+  parapet(k, 'stone_wall', L.x1 - 0.4, -112.6, px1 + 0.05, -112.6, L.y, 0.4, 1.0);
+  parapet(k, 'stone_wall', L.x1 - 0.4, -107.4, px1 + 0.05, -107.4, L.y, 0.4, 1.0);
+  // chain posts at the pier end (the drawbridge piece hangs its warning chain between them)
+  for (const z of [-112.55, -107.45]) k.bmm('stone_trim', px1 - 0.35, L.y, z - 0.25, px1 + 0.05, L.y + 1.4, z + 0.25, { col: true });
   // north end: rock shoulder closes the ledge
   k.bmm('rock_cliff', L.x0 - 0.5, L.y - 1, L.z0 - 1.6, L.x1 + 0.3, L.y + 5, L.z0 + 0.05, { col: true });
   rockProp(k, L.x0 + 0.5, L.y + 3, L.z0 - 1, 2.6, 5, 1.2);
@@ -186,7 +203,8 @@ export function buildTower(ctx: AreaCtx): TowerBuild {
   }
   fallenBeam(k, [RV.x0 + 4, RV.floor + 0.3, -70], [RV.x0 + 8, RV.floor + 1.2, -73], 0.3, 'timber_dark');
 
-  return { playerStart: anchor(-31.6, topY, -110.2, YAW_E), shrine };
+  // start on the balcony, looking east over the ravine, the raised drawbridge and the town
+  return { playerStart: anchor(cX1 + 1.1, topY, T.z + 0.6, YAW_E), shrine };
 }
 
 export const TOWER_ZONE = new THREE.Box3(new THREE.Vector3(-41, -3, -118), new THREE.Vector3(-24.5, 24, -100));

@@ -27,9 +27,9 @@ declare global { interface Window { __ready?: boolean; __stats?: unknown; __chec
 
 type View = { pos: [number, number, number]; target: [number, number, number]; env?: EnvironmentPreset; open?: string; reveal?: number; fov?: number };
 const VIEWS: Record<string, View> = {
-  overlook: { pos: [-35.4, 16.6, -109.6], target: [0, 5, -106], fov: 62 },
+  overlook: { pos: [-29.9, 16.4, -109.0], target: [0, 4.5, -108], fov: 62 },
   overlookWide: { pos: [-37.5, 17.4, -113], target: [10, 2, -95], fov: 70 },
-  shrine: { pos: [-33.2, 15.6, -111.4], target: [-29.5, 15.2, -114.4] },
+  shrine: { pos: [-29.8, 15.8, -108.6], target: [-26.8, 15.2, -112] },
   street: { pos: [-27, 1.8, -32.5], target: [10, 2.2, -33] },
   relief: { pos: [-17.6, 1.7, -32.8], target: [-18.2, 2.1, -38.6] },
   alley: { pos: [-12.2, 1.7, -30.5], target: [-14, 1.2, -9] },

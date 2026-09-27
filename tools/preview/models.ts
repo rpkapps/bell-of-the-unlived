@@ -272,6 +272,15 @@ async function main() {
   else if (group === 'weapons') addWeapons();
   else if (group === 'hands') addHands();
   else addCharacters((GROUPS[group] ?? GROUPS.player)());
+  // fx=dissolve|flash|ward|burn|iframes|buff : apply the effect with increasing strength across the lineup
+  const fx = qs.get('fx');
+  actors.forEach((a, i) => {
+    if (!fx) return;
+    const t = (i + 1) / actors.length;
+    if (fx === 'dissolve') a.model.setDissolve(t * 0.9);
+    else if (fx === 'flash') a.model.setFlash(t);
+    else a.model.setStatusGlow(fx as 'ward', t);
+  });
   for (const a of actors) {
     a.solver.apply(a.pose);
     a.rig.root.updateMatrixWorld(true);

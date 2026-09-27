@@ -1022,5 +1022,3 @@ export function cloak(b: CharBuilder, style: CloakStyle, o: { mat?: string; pad?
   }
 }
 
-export { sm, angDiff, lerp };
-export type { SkinFn };

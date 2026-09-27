@@ -11,6 +11,7 @@
  *   t=RRGGBB   multiply the base colour (tint; keeps textures)
  *   c=RRGGBB   replace the base colour
  *   ds         double-sided
+ *   nomap      drop the colour map (pure colour, keeps normal/roughness maps)
  *   po         polygon offset (decals lying on another surface)
  *   a=arms|arms2|army|emb|bell|cath   alpha-tested decal mask (see textures.ts); ar=N repeats along U
  *   tat=seed:depth:holes          tattered-hem alpha mask (cloth sims)
@@ -43,7 +44,7 @@ export function makeFxUniforms(height: number): FxUniforms {
     uBotuPulse: { value: 0 },
     uBotuTime: { value: 0 },
     uBotuHeight: { value: height },
-    uBotuEdge: { value: new THREE.Color(3.2, 2.1, 0.7) },
+    uBotuEdge: { value: new THREE.Color(2.6, 1.6, 0.45) },
     uBotuGhostColor: { value: new THREE.Color(0.55, 0.62, 0.7) },
     uBotuGhostMin: { value: 0.12 },
   };
@@ -79,7 +80,7 @@ if (uBotuDissolve > 0.0) {
   float bf = bn * 0.62 + (1.0 - bh) * 0.38;
   float bt = uBotuDissolve * 1.12 - 0.04;
   if (bf < bt) discard;
-  botuEdge = 1.0 - smoothstep(0.0, 0.07, bf - bt);
+  botuEdge = 1.0 - smoothstep(0.0, 0.035, bf - bt);
 }
 `;
 const FRAG_EMISSIVE = /* glsl */ `
@@ -89,7 +90,7 @@ const FRAG_EMISSIVE = /* glsl */ `
   float bR = bF * bF;
   totalEmissiveRadiance += uBotuFlash * vec3(1.0, 0.88, 0.7) * (0.3 + 2.2 * bR);
   float bP = uBotuPulse > 0.0 ? 0.75 + 0.25 * sin(uBotuTime * uBotuPulse + vBotuPos.y * 14.0) : 1.0;
-  totalEmissiveRadiance += uBotuRim * (bR * 1.8 + 0.06) * bP;
+  totalEmissiveRadiance += uBotuRim * (bR * 1.3 + 0.015) * bP;
   totalEmissiveRadiance += uBotuEdge * botuEdge;
 #ifdef BOTU_GHOST
   diffuseColor.a *= mix(uBotuGhostMin, 0.85, bR * bR);
@@ -163,6 +164,7 @@ export function materialFromKey(key: string): THREE.Material {
       case 't': if (std.color) std.color.multiply(new THREE.Color(parseInt(v, 16))); break;
       case 'c': if (std.color) std.color.set(parseInt(v, 16)); break;
       case 'ds': m.side = THREE.DoubleSide; break;
+      case 'nomap': std.map = null; break;
       case 'po': m.polygonOffset = true; m.polygonOffsetFactor = -2; m.polygonOffsetUnits = -4; break;
       case 'a': alphaName = v; break;
       case 'ar': rep = parseFloat(v); break;

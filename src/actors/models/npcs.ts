@@ -5,14 +5,14 @@
 import * as THREE from 'three';
 import type { Rig } from '../Rig';
 import type { NpcLook } from './contract';
-import { CharBuilder, trunkSkin, skirtSkin, type BuiltModel } from './builder';
-import { addTrunk, addArms, addLegs, addShoulders, addNeck, addHead, addHands, addFeet, quilted, ringAtY, trunkRings, forearmSkin, upperArmSkin } from './anatomy';
+import { CharBuilder, trunkSkin, type BuiltModel } from './builder';
+import { addTrunk, addArms, addLegs, addShoulders, addNeck, addHead, addHands, addFeet, quilted, ringAtY, forearmSkin, upperArmSkin } from './anatomy';
 import {
   M, tabard, belt, bandolier, robeSkirt, mantle, kettleHelm, cuirass, mailSkirt, pauldrons, armPlates, legPlates, gorget,
-  drapeChain, shackle, bellGeom, beads, trunkZ, cloak, bellSleeves,
+  drapeChain, bellGeom, beads, trunkZ, cloak, bellSleeves,
 } from './gear';
 import { buildLook, LOOKS } from './character';
-import { loft, sweep, xf, cyl, box, torus, ellipsoid, merge, panel, extrude, type G, type V3, lerp, TAU } from './parts';
+import { loft, sweep, xf, cyl, box, torus, ellipsoid, merge, type G, type V3, lerp, TAU } from './parts';
 
 const WOOL = 'cloth_brown|t=a08870';
 
@@ -66,7 +66,11 @@ function hesper(b: CharBuilder) {
   // leather apron: neck strap, bib and long skirt to below the knees
   tabard(b, sex, { mat: 'leather|t=b09080', top: 0.44, hem: -0.62, over: 0.03, w: [0.1, 0.16, 0.19], back: false, tatter: 0.03 });
   const ay = 0.44, az = trunkZ(sex, b.shoulder, 0.08, ay, 1, 0.03);
-  for (const s of [1, -1]) b.add('hips', sweep([[s * 0.08, ay, az], [s * 0.075, 0.52, 0.03], [s * 0.05, 0.575, -0.04]], { w: 0.01, h: 0.003, up: [0, 0, 1], sides: 4, segs: 6 }), M.leather, { skin: trunkSkin });
+  for (const s of [1, -1]) {
+    // neck straps lying on the shirt, over the collarbones to the nape
+    const pts: V3[] = [[s * 0.08, ay, az + 0.002], [s * 0.075, 0.5, trunkZ(sex, b.shoulder, s * 0.075, 0.5, 1, 0.022)], [s * 0.07, 0.55, trunkZ(sex, b.shoulder, s * 0.07, 0.55, 1, 0.018)], [s * 0.065, 0.585, 0.0], [s * 0.04, 0.58, -0.05]];
+    b.add('hips', sweep(pts, { w: 0.011, h: 0.003, up: [1, 0, 0], sides: 4, p: 6, segs: 10 }), M.leather, { skin: trunkSkin });
+  }
   belt(b, sex, { y: 0.08, over: 0.045, pouches: 1, mat: M.leatherDark });
   // hammer hanging at the hip and gloves tucked in the belt
   const hz = trunkZ(sex, b.shoulder, -0.16, 0.0, 1, 0.05) - 0.02;
@@ -87,7 +91,7 @@ function hesper(b: CharBuilder) {
     // leather wrist guard
     b.loft(F, [{ y: -0.2, rx: 0.033, rz: 0.028 }, { y: -0.26, rx: 0.032, rz: 0.027 }], M.leatherDark, { segs: 12, inflate: 0.004 }, { skin: forearmSkin(side) });
   }
-  addHands(b, 'bare', 'skin|t=9a8a80');
+  addHands(b, 'relaxed', 'skin|t=9a8a80');
   addLegs(b, sex, 'cloth_brown|t=6a5a4a', { inflate: 0.012 });
   addFeet(b, sex, 'boot', M.leatherDark);
 }
@@ -201,10 +205,9 @@ function aldren(b: CharBuilder) {
   belt(b, sex, { y: 0.1, over: 0.04, pouches: 0, mat: M.gold, buckle: M.gold, strapEnd: false });
   addArms(b, sex, 'cloth_red|t=8a6a80', { inflate: 0.016, foreY1: -0.12 });
   bellSleeves(b, sex, { mat: 'cloth_red|t=8a6a80', trim: M.gold, emb: true, flare: 0.1, len: 0.28 });
-  addHands(b, 'bare', 'skin_pale');
+  addHands(b, 'relaxed', 'skin_pale');
   addLegs(b, sex, 'cloth_black', { inflate: 0.01 });
   addFeet(b, sex, 'boot', M.leatherDark);
   cloak(b, 'heavy', { mat: 'cloth_red|t=7a5a70', pad: 0.03, heraldry: true, fur: true });
 }
 
-export { panel, extrude, skirtSkin, shackle, mailSkirt, legPlates, addTrunk };

@@ -268,7 +268,7 @@ function sculpt(sex: Sex, old: boolean): (th: number, v: number) => number {
 }
 
 const HAIR: Record<string, string> = {
-  dark: 'hair_dark', fair: 'hair_fair', grey: 'hair_fair|t=b4aea6', auburn: 'hair_dark|t=d08a60', none: 'hair_dark',
+  dark: 'hair_dark', fair: 'hair_fair', grey: 'hair_fair|nomap|c=8c8884', auburn: 'hair_dark|t=d08a60', none: 'hair_dark',
 };
 
 /** Hairline height around the head (a = |θ|: 0 front … π back). */
@@ -340,7 +340,12 @@ export function addHead(b: CharBuilder, o: HeadOpts) {
   const lipMat = f ? 'skin|t=d8a098' : 'skin|t=d0a8a0';
   b.add('head', xf(ellipsoid(f ? 0.019 : 0.02, f ? 0.0045 : 0.0035, 0.006, { segs: 10, rows: 5 }), { p: [m.x, m.y + 0.0035, m.z - 0.002] }), o.shade ? skin : lipMat);
   b.add('head', xf(ellipsoid(f ? 0.017 : 0.018, f ? 0.005 : 0.004, 0.0065, { segs: 10, rows: 5 }), { p: [m.x, m.y - 0.004, m.z - 0.0025] }), o.shade ? skin : lipMat);
-  if (o.soot) b.add('head', shell(ur, lo, 0.62, 0.95, (th) => 0.03 - (th - 0.62) * 0.02, () => 0.008, () => 0.0007, 4, 2), 'skin|t=8a7c74');
+  if (o.soot) {
+    // a smear of forge soot along the left cheekbone
+    const sm: V3[] = [];
+    for (let i = 0; i <= 4; i++) { const p = at(0.55 + i * 0.1, 0.032 - i * 0.004, 0.0006).p; sm.push([p.x, p.y, p.z]); }
+    b.add('head', sweep(sm, { w: (t) => 0.005 * Math.sin(Math.PI * (0.15 + t * 0.7)), h: 0.0006, up: [0, 1, 0], sides: 4, segs: 6 }), 'skin|t=9a8a82');
+  }
   if (o.unlived) {
     const seam: V3[] = [];
     for (let i = 0; i <= 6; i++) { const p = at(-0.55 - i * 0.04, 0.09 - i * 0.02, 0.001).p; seam.push([p.x, p.y, p.z]); }
@@ -427,7 +432,7 @@ const TAU_ = Math.PI * 2;
 
 // ------------------------------------------------------------------------------------ hands
 
-export type HandStyle = 'bare' | 'glove' | 'gauntlet' | 'wrapped';
+export type HandStyle = 'bare' | 'glove' | 'gauntlet' | 'wrapped' | 'relaxed';
 
 /**
  * A fist closed around the weapon socket's grip axis (hand-local: axis along +Z through
@@ -454,14 +459,17 @@ export function fist(side: 1 | -1, style: HandStyle): { g: G; mat: 'main' | 'cuf
   for (let i = 0; i < 4; i++) {
     const z = gz + zs[i];
     const r = fr * rs[i];
-    const pts: V3[] = [
-      [s * 0.03, -0.086, z], [s * 0.016, -0.1, z], [s * -0.006, -0.1, z], [s * -0.024, -0.084, z], [s * -0.026, -0.062, z], [s * -0.014, -0.05, z],
-    ];
+    const pts: V3[] = style === 'relaxed'
+      // loosely curled fingers hanging at rest
+      ? [[s * 0.028, -0.088, z], [s * 0.024, -0.112, z * 0.95], [s * 0.012, -0.135, z * 0.9], [s * 0.0, -0.148, z * 0.85], [s * -0.008, -0.15, z * 0.85]]
+      : [[s * 0.03, -0.086, z], [s * 0.016, -0.1, z], [s * -0.006, -0.1, z], [s * -0.024, -0.084, z], [s * -0.026, -0.062, z], [s * -0.014, -0.05, z]];
     out.push({ g: sweep(pts, { r, sides: steel ? 4 : 6, segs: 7, caps: true, p: steel ? 3 : 2, up: [0, 0, 1] }), mat: 'main' });
   }
   // thumb over the front of the grip
   out.push({
-    g: sweep([[s * 0.022, -0.02, gz + 0.036], [s * 0.012, -0.044, gz + 0.05], [s * -0.008, -0.058, gz + 0.052], [s * -0.022, -0.066, gz + 0.042]], { r: fr * 1.1, sides: 6, segs: 6, caps: true }),
+    g: sweep(style === 'relaxed'
+      ? [[s * 0.022, -0.02, gz + 0.036], [s * 0.014, -0.05, gz + 0.052], [s * 0.004, -0.08, gz + 0.05], [s * -0.004, -0.098, gz + 0.042]]
+      : [[s * 0.022, -0.02, gz + 0.036], [s * 0.012, -0.044, gz + 0.05], [s * -0.008, -0.058, gz + 0.052], [s * -0.022, -0.066, gz + 0.042]], { r: fr * 1.1, sides: 6, segs: 6, caps: true }),
     mat: 'main',
   });
   if (steel) {
@@ -560,4 +568,3 @@ export function addFeet(b: CharBuilder, sex: Sex, style: FootStyle, mat = 'leath
   }
 }
 
-export { lerp };

@@ -10,18 +10,18 @@
  * cloak, hood, robe), then layering (plate over mail over gambeson), then trims and wear.
  */
 import type { ArmorLook, CharacterLook } from './contract';
-import type { CharBuilder } from './builder';
 import {
   type Sex, addTrunk, addArms, addLegs, addShoulders, addNeck, addHead, addHands, addFeet, quilted, type HeadOpts,
+  ringAtY, trunkRings,
 } from './anatomy';
 import {
   M, cuirass, gorget, fauld, tassets, mailSkirt, tabard, belt, bandolier, robeSkirt, bellSleeves, mantle, pauldrons,
-  armPlates, legPlates, bracers, greatHelm, kettleHelm, sallet, bevor, bascinet, nasalHelm, hood, wideHat, veil,
+  armPlates, legPlates, bracers, greatHelm, sallet, bevor, bascinet, hood, wideHat, veil,
   drapeChain, shackle, bellGeom, beads, cloak, trunkZ, type CloakStyle,
 } from './gear';
-import { ellipsoid, loft, sweep, xf, rivet, scatter, torus, merge, type V3, lerp, TAU } from './parts';
 import * as THREE from 'three';
-import { trunkSkin } from './builder';
+import { loft, sweep, xf, rivet, scatter, torus, merge, panel, type V3, lerp } from './parts';
+import { trunkSkin, type CharBuilder } from './builder';
 
 /** CharacterLook plus the optional body type (requested as a contract addition). */
 export interface CharacterLookExt extends CharacterLook {
@@ -307,8 +307,6 @@ function panelSide(b: CharBuilder, sex: Sex, s: 1 | -1) {
   };
   return panelTattered(b, f, 10, 9, 0.15);
 }
-import { ringAtY, trunkRings } from './anatomy';
-import { panel } from './parts';
 function trunkRingR(sex: Sex, sh: number, y: number): [number, number, number, number, number] {
   const r = ringAtY(trunkRings(sex, sh), y);
   return [r.rx, r.rz ?? r.rx, r.cz ?? 0, r.front ?? 1, r.back ?? 1];
@@ -448,7 +446,7 @@ const HOSPICE: LookDef = {
   arms: (b, c) => {
     addArms(b, c.sex, WOOL, { inflate: 0.016, foreY1: -0.14 });
     addArms(b, c.sex, 'cloth_linen|t=b0a898', { upper: false, inflate: 0.006 });
-    addHands(b, 'bare', 'skin', 'skin');
+    addHands(b, 'relaxed', 'skin', 'skin');
   },
   legs: (b, c) => {
     addLegs(b, c.sex, 'cloth_brown|t=6a5a4a', { inflate: 0.008 });
@@ -491,7 +489,7 @@ const BELLKEEPER: LookDef = {
   arms: (b, c) => {
     addArms(b, c.sex, SOOT, { inflate: 0.016 });
     bellSleeves(b, c.sex, { mat: SOOT, trim: null, flare: 0.09, len: 0.24 });
-    addHands(b, 'bare', 'skin|t=8a7a70', 'skin|t=8a7a70');
+    addHands(b, 'relaxed', 'skin|t=8a7a70', 'skin|t=8a7a70');
     for (const s of [1, -1] as const) shackle(b, s > 0 ? 'forearmL' : 'forearmR', -0.235, 0.036);
   },
   legs: (b, c) => {
@@ -557,4 +555,3 @@ export function buildLook(b: CharBuilder, look: CharacterLookExt, o: { unlived?:
   }
 }
 
-export { TAU, ellipsoid };

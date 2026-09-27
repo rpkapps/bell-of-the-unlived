@@ -21,7 +21,7 @@ import {
   loft, sweep, ellipsoid, extrude, curvedPlate, box, rivet, scatter, torus, chain, merge, xf, cyl, dent, norm,
   type Ring, type G, type V3, lerp, TAU, triCount,
 } from './parts';
-import { bellGeom, inside, ridge } from './gear';
+import { bellGeom, inside } from './gear';
 import { Rng } from '../../core/rng';
 
 export interface WeaponModelExt extends WeaponModel {
@@ -533,6 +533,7 @@ const BUILDERS: Record<string, Build> = {
     return finish(wb, 'throwing_knife', { hit: { from: 0.03, to: 0.17, radius: 0.015 }, trail: { from: 0.05, to: 0.17 } });
   },
   arrow: () => missile('arrow', 0.74, 0.0045, 'timber', 'iron', 'cloth_linen|t=a09888'),
+  bone_arrow: () => missile('bone_arrow', 0.74, 0.0045, 'timber_dark', 'bone', 'cloth_black|t=a0a0a0'),
   iron_bolt: () => missile('iron_bolt', 0.36, 0.006, 'timber_dark', 'iron', 'leather'),
   condemned_chain: () => {
     const wb = new WB();

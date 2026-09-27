@@ -15,6 +15,7 @@ Aldmoor, the Bell-Appointed Commander.
 npm install
 npm run dev        # http://127.0.0.1:5173
 npm run build      # typecheck + production build in dist/ (+ dist/licenses)
+npm run play       # build, then serve dist/ on 127.0.0.1:4173 and open it (fully offline)
 npm test           # unit tests (combat timing, saves, journal, balance, input)
 ```
 

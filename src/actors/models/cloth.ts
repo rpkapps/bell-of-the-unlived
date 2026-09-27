@@ -119,7 +119,7 @@ export class Cloth {
   private readonly margin: number;
   private readonly iterations = 3;
 
-  constructor(private readonly spec: ClothSpec, private readonly ctx: ClothContext, material: THREE.Material, decalMaterial?: THREE.Material) {
+  constructor(spec: ClothSpec, private readonly ctx: ClothContext, material: THREE.Material, decalMaterial?: THREE.Material) {
     const { cols, rows } = spec;
     this.cols = cols; this.rows = rows;
     const n = (this.n = cols * rows);
@@ -430,8 +430,8 @@ export class Cloth {
     this.mesh.geometry.dispose();
     if (this.decalMesh) {
       this.decalMesh.removeFromParent();
-      // position/normal/index are shared with the main geometry
-      this.decalMesh.geometry.deleteAttribute('uv');
+      // position/normal/index are shared with the main geometry (disposing twice is harmless)
+      this.decalMesh.geometry.dispose();
     }
   }
 }

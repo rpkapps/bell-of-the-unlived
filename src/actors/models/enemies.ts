@@ -14,10 +14,10 @@ import { CharBuilder, trunkSkin, type BuiltModel } from './builder';
 import { addTrunk, addArms, addLegs, addShoulders, addNeck, addHead, addHands, addFeet, quilted } from './anatomy';
 import {
   M, cuirass, gorget, fauld, tassets, mailSkirt, tabard, belt, bandolier, robeSkirt, pauldrons, armPlates, legPlates, bracers,
-  greatHelm, kettleHelm, sallet, bevor, bascinet, nasalHelm, hood, mantle, cloak, bellGeom, trunkZ, drapeChain,
+  kettleHelm, sallet, bevor, bascinet, nasalHelm, hood, mantle, bellGeom, trunkZ, 
 } from './gear';
 import { buildLook } from './character';
-import { loft, sweep, xf, cyl, torus, merge, type G, type V3, lerp } from './parts';
+import { loft, sweep, xf, cyl, torus, merge, type G } from './parts';
 import { Rng } from '../../core/rng';
 
 const PALE = 'skin_pale|t=b8b0a8';
@@ -149,8 +149,9 @@ export function buildEnemy(rig: Rig, look: EnemyLook, seed: number): BuiltModel 
     case 'commander':
     case 'commander2': {
       const p2 = look === 'commander2';
-      b.cracks = p2 ? 1.6 : 0.35;
-      buildLook(b, { head: 'commander', body: 'commander', arms: 'commander', legs: 'commander', cloak: !p2 }, { unlived: true, cloak: !p2 });
+      // phase 1: the living, bell-appointed commander; phase 2: armour split by golden light
+      b.cracks = p2 ? 1.6 : 0;
+      buildLook(b, { head: 'commander', body: 'commander', arms: 'commander', legs: 'commander', cloak: !p2 }, { unlived: p2, cloak: !p2 });
       bellStandard(b);
       if (p2) {
         // armour split open: glowing seams along the plates
@@ -171,5 +172,3 @@ export function buildEnemy(rig: Rig, look: EnemyLook, seed: number): BuiltModel 
   return b.build();
 }
 
-export { lerp, drapeChain, cloak, greatHelm };
-export type { V3 };

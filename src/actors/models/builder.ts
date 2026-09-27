@@ -21,7 +21,7 @@ import type { Rig } from '../Rig';
 import { BONES, BONE_PARENT, type BoneName } from '../rigDefs';
 import type { CharacterModel } from './contract';
 import { Rng } from '../../core/rng';
-import { norm, xf, type G, type V3, type Xf, type Ring, type LoftOpts, loft, cracks, triCount } from './parts';
+import { norm, xf, type G, type Xf, type Ring, type LoftOpts, loft, cracks, triCount } from './parts';
 import { MatLib, makeFxUniforms, type FxUniforms } from './charMaterials';
 import { Cloth, type ClothSpec, type ClothContext } from './cloth';
 
@@ -313,4 +313,3 @@ export function parentSkin(bone: BoneName, parent: BoneName, y0: number, y1: num
   };
 }
 
-export type { V3 };

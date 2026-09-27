@@ -61,7 +61,7 @@ registerMoves({
 
   // ---------------------------------------------------------------- coin-mimics
   tr_mim_bite: M({ id: 'tr_mim_bite', clip: 'trMimBite', dur: 1.45, hits: [{ start: 0.62, end: 0.72, source: 'sphere', sphere: { bone: 'hips', offset: [0, 0.3, 0.5], radius: 0.55 }, dmg: 260, posture: 0, poise: 60, kind: 'strike', knock: 3 }], motion: [[0.55, -0.1], [0.72, 1.8]], track: [0.58, 5], events: [sfx(0.1, 'chest_open'), sfx(0.62, 'swing_heavy')] }),
-  tr_mim_slam: M({ id: 'tr_mim_slam', clip: 'trMimSlam', dur: 1.65, hits: [{ start: 0.76, end: 0.86, source: 'sphere', sphere: { bone: 'handR', offset: [0, -0.05, 0], radius: 0.36 }, dmg: 240, posture: 0, poise: 60, kind: 'strike', knock: 3, group: 0 }, { start: 0.76, end: 0.86, source: 'sphere', sphere: { bone: 'handL', offset: [0, -0.05, 0], radius: 0.36 }, dmg: 240, posture: 0, poise: 60, kind: 'strike', knock: 3, group: 0 }], track: [0.68, 4], events: [sfx(0.15, 'chain_rattle'), sfx(0.76, 'swing_heavy'), { t: 0.82, e: { type: 'shake', amount: 0.2 } }] }),
+  tr_mim_slam: M({ id: 'tr_mim_slam', clip: 'trMimSlam', dur: 1.65, motion: [[0.7, 0], [0.82, 0.6]], hits: [{ start: 0.76, end: 0.86, source: 'sphere', sphere: { bone: 'handR', offset: [0, -0.05, 0], radius: 0.36 }, dmg: 240, posture: 0, poise: 60, kind: 'strike', knock: 3, group: 0 }, { start: 0.76, end: 0.86, source: 'sphere', sphere: { bone: 'handL', offset: [0, -0.05, 0], radius: 0.36 }, dmg: 240, posture: 0, poise: 60, kind: 'strike', knock: 3, group: 0 }, { start: 0.78, end: 0.86, source: 'sphere', sphere: { bone: 'root', offset: [0, 0.5, 1.0], radius: 0.75 }, dmg: 240, posture: 0, poise: 60, kind: 'strike', knock: 3, group: 0 }], track: [0.68, 4], events: [sfx(0.15, 'chain_rattle'), sfx(0.76, 'swing_heavy'), { t: 0.82, e: { type: 'shake', amount: 0.2 } }] }),
   tr_mim_rise: M({ id: 'tr_mim_rise', clip: 'trMimicRise', dur: 1.0, events: [sfx(0.02, 'chest_open'), sfx(0.2, 'enemy_alert')] }),
   tr_mim_death: M({ id: 'tr_mim_death', clip: 'trMimDeath', dur: 1.3, events: [sfx(0.4, 'chest_open')] }),
 
@@ -153,7 +153,7 @@ registerEnemyDefs({
     stance: { handR: MIM_R, handL: MIM_L, head: [-8, 0, 0] },
     attacks: [
       { move: 'tr_mim_bite', range: [0, 3.4], weight: 3, cooldown: 2 },
-      { move: 'tr_mim_slam', range: [0, 2.2], weight: 2 },
+      { move: 'tr_mim_slam', range: [0, 1.7], weight: 2 },
     ],
     reactions: { death: 'tr_mim_death' },
     recover: [0.7, 1.3], aggression: 0.7,

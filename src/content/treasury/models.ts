@@ -225,12 +225,6 @@ function mimic(rig: Rig, seed: number, o: MimicOpts): CharacterModel {
   b.addLR('forearmL', 'forearmR', () => merge([0, 1, 2, 3, 4].map((i) => xf(cyl(0.028, 0.028, -0.004, 0.004, 10), { p: [0, -0.02 - i * 0.05, 0], r: [Math.PI / 2, 0, i * 0.7] }))), GILT);
   b.addLR('forearmL', 'forearmR', () => cyl(0.012, 0.012, -0.26, 0, 5), iron);
   b.addLR('handL', 'handR', () => merge([-1, 0, 1].map((k) => xf(loft([{ y: 0.12, rx: 0.003 }, { y: 0, rx: 0.016 }], { segs: 5, capBottom: true }), { p: [k * 0.025, -0.03, 0.02], r: [Math.PI, 0, k * 0.25] }))), iron);
-  if (o.crown) {
-    const crown: G[] = [loft([{ y: 0.12, rx: w * 0.26, rz: d * 0.3 }, { y: 0, rx: w * 0.27, rz: d * 0.31 }], { segs: 20 })];
-    for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; crown.push(xf(loft([{ y: 0.2, rx: 0.004 }, { y: 0, rx: 0.04, rz: 0.012 }], { segs: 4, capBottom: true }), { p: [Math.sin(a) * w * 0.26, 0.1, Math.cos(a) * d * 0.3], r: [0, a, 0] })); }
-    // the crown sits on the lid: parented with it below
-    void crown;
-  }
   const model = b.build();
   // ---- the lid (separate object on the hips bone)
   const s = rig.proportions.height, k = rig.proportions.bulk;
@@ -255,8 +249,7 @@ function mimic(rig: Rig, seed: number, o: MimicOpts): CharacterModel {
     const cr: THREE.BufferGeometry[] = [new THREE.CylinderGeometry(w * 0.24, w * 0.25, 0.14, 20, 1, true).translate(0, d * 0.28 + 0.07, d / 2)];
     for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; cr.push(new THREE.ConeGeometry(0.04, 0.22, 4).translate(Math.sin(a) * w * 0.245, d * 0.28 + 0.24, d / 2 + Math.cos(a) * w * 0.245)); }
     mk(mergeBuf(cr), GILT);
-    const gem = mk(new THREE.OctahedronGeometry(0.06).translate(0, d * 0.28 + 0.1, d / 2 + w * 0.25), 'bell_light');
-    void gem;
+    mk(new THREE.OctahedronGeometry(0.06).translate(0, d * 0.28 + 0.1, d / 2 + w * 0.25), 'bell_light');
   }
   rig.bones.hips.add(pivot);
   const head = rig.bones.head;
@@ -531,7 +524,7 @@ const tallyRod = (id: string, scale: number, catalyst: boolean) => () => {
   wb.add('bronze_bell', xf(bellGeom(0.07), { p: [0, c - 0.16, 0] }));
   wb.add(GILT, xf(loft([{ y: 0.14, rx: 0.002 }, { y: 0, rx: 0.024 }], { segs: 6, capBottom: true }), { p: [0, c + 0.16, 0] }));
   if (catalyst) wb.add('bell_light', xf(ellipsoid(0.02, 0.02, 0.02, { segs: 8, rows: 6 }), { p: [0, c + 0.035, 0] }));
-  return wb.build(id, { hit: { from: c - 0.24, to: c + 0.3, radius: 0.13 }, trail: { from: c - 0.2, to: c + 0.28 }, castPoint: new THREE.Vector3(0, c + 0.04, 0), offhandGrip: -0.4 * scale });
+  return wb.build(id, { hit: { from: 0.35 * scale, to: c + 0.3, radius: 0.12 }, trail: { from: c - 0.2, to: c + 0.28 }, castPoint: new THREE.Vector3(0, c + 0.04, 0), offhandGrip: -0.4 * scale });
 };
 registerWeaponModel('aurel_rod', tallyRod('aurel_rod', 1.15, false));
 registerWeaponModel('tally_staff', tallyRod('tally_staff', 1.0, true));

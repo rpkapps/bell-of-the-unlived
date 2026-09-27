@@ -39,17 +39,18 @@ page.on('pageerror', (e) => console.log('pageerror:', e.message));
 await page.goto(base + `?region=treasury&quality=${quality}`, { waitUntil: 'load' });
 await page.waitForFunction(() => window.__ready === true && window.__game?.mode === 'play', null, { timeout: 300000 });
 await page.waitForTimeout(3000);
-await page.evaluate(() => { const ui = document.querySelectorAll('.hud, .toast, .banner'); ui.forEach((e) => (e.style.opacity = '0')); });
+await page.addStyleTag({ content: '#ui { display: none !important; }' });
 const names = only.length ? only : Object.keys(VIEWS);
-for (const [n, t] of [['lineup', -1], ['windup', 0.52], ['strike', 0.75]]) {
+for (const [n, t, grp] of [['lineupA', -1, 0], ['lineupB', -1, 1], ['windupA', 0.5, 0], ['windupB', 0.5, 1], ['strikeA', 0.72, 0], ['strikeB', 0.72, 1]]) {
   if (!names.includes(n)) continue;
-  await page.evaluate(({ LINEUP, ATTACK, t }) => {
+  await page.evaluate(({ LINEUP, ATTACK, t, grp }) => {
     const g = window.__game, T = window.THREE, M = window.__region.debugMoves();
     g.player.teleport(new T.Vector3(10, -3.2, -114), Math.PI);
     const picked = [];
-    for (const k of LINEUP) { const e = g.enemies.find((x) => x.def.kind === k && !x.dead); if (e) picked.push(e); }
+    for (const e of g.enemies) e.object.visible = true;
+    for (const k of LINEUP.slice(grp * 5, grp * 5 + 5)) { const e = g.enemies.find((x) => x.def.kind === k && !x.dead); if (e) picked.push(e); }
     picked.forEach((e, i) => {
-      const x = 1.2 + i * 2.0;
+      const x = 5.2 + i * 2.4;
       e.engaged = false; e.aware = false; e.target = null; e.patrol = null; e.def.sight = 0; e.def.aggression = 0;
       e.home.set(x, -3.2, -125); e.homeYaw = 0;
       e.teleport(new T.Vector3(x, -3.2, -125), 0);
@@ -57,11 +58,11 @@ for (const [n, t] of [['lineup', -1], ['windup', 0.52], ['strike', 0.75]]) {
       if (t >= 0 && M && M[ATTACK[e.def.kind]]) { e.startMove(M[ATTACK[e.def.kind]]); e.move.t = t; }
     });
     for (const e of g.enemies) if (!picked.includes(e) && e.pos.distanceTo(new T.Vector3(10, -3.2, -124)) < 16) e.object.visible = false;
-    const c = new T.Vector3(10, -1.2, -115.5), l = new T.Vector3(10, -2.0, -125);
+    const c = new T.Vector3(10, -1.5, -119.3), l = new T.Vector3(10, -2.1, -125);
     g.cameraOverride = (_dt, cam) => { cam.position.copy(c); cam.lookAt(l); cam.updateMatrixWorld(); return true; };
     g.deps.renderer.setFocus(l);
-    if (t >= 0) { const tick = () => { for (const e of picked) if (e.move) e.move.t = t; }; window.__freeze = setInterval(tick, 16); }
-  }, { LINEUP, ATTACK, t });
+    if (t >= 0) { const tick = () => { for (const e of picked) if (e.move) { e.move.t = t; e.anim.clipT = t; e.anim.clipSpeed = 0; } }; tick(); window.__freeze = setInterval(tick, 16); }
+  }, { LINEUP, ATTACK, t, grp });
   await page.waitForTimeout(3000);
   await page.screenshot({ path: `tools/out/treasury-${n}.png` });
   console.log(`tools/out/treasury-${n}.png`);

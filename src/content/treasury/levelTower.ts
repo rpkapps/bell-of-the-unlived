@@ -55,7 +55,12 @@ export function buildTower(ctx: AreaCtx): TowerBuild {
   wall(k, 'stone_wall', T.x0 + t / 2, T.z0, T.x0 + t / 2, T.z1, Y.canal, shaftTop - Y.canal, t);
   wall(k, 'stone_wall', T.x1 - t / 2, T.z0, T.x1 - t / 2, T.z1, Y.canal, shaftTop - Y.canal, t);
   // exterior dressing: plinth, string courses, buttresses, the treasury plate on every face
-  for (const yy of [4.4, 14, 24, shaftTop - 0.4]) k.bmm('stone_trim', T.x0 - 0.35, yy, T.z0 - 0.35, T.x1 + 0.35, yy + 0.45, T.z1 + 0.35, { cast: false });
+  for (const yy of [4.4, 14, 24, shaftTop - 0.4]) {
+    k.bmm('stone_trim', T.x0 - 0.35, yy, T.z0 - 0.35, T.x1 + 0.35, yy + 0.45, T.z0 + 0.3, { cast: false });
+    k.bmm('stone_trim', T.x0 - 0.35, yy, T.z1 - 0.3, T.x1 + 0.35, yy + 0.45, T.z1 + 0.35, { cast: false });
+    k.bmm('stone_trim', T.x0 - 0.35, yy, T.z0 - 0.35, T.x0 + 0.3, yy + 0.45, T.z1 + 0.35, { cast: false });
+    k.bmm('stone_trim', T.x1 - 0.3, yy, T.z0 - 0.35, T.x1 + 0.35, yy + 0.45, T.z1 + 0.35, { cast: false });
+  }
   for (const [x, z, yaw] of [[T.x0 + 3, T.z1, YAW_S], [T.x1 - 3, T.z1, YAW_S], [T.x0 + 3, T.z0, YAW_N], [T.x1 - 3, T.z0, YAW_N]] as const) buttress(k, 'stone_wall', x, 4.4, z, yaw, 22, 2.2, 1.6);
   for (const [x, z, yaw] of [[midX, T.z1 + 0.05, 0], [midX, T.z0 - 0.05, Math.PI], [T.x0 - 0.05, midZ, -Math.PI / 2], [T.x1 + 0.05, midZ, Math.PI / 2]] as const) {
     k.push(x, 19, z, yaw);

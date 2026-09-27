@@ -10,10 +10,13 @@ import { Projectiles } from '../../combat/Projectiles';
 import { regionInfo } from './catalog';
 import { registeredLights, unregisterLight } from '../../render/lights';
 
-let owned: { objects: THREE.Object3D[]; lights: THREE.PointLight[] } | null = null;
+let owned: { objects: THREE.Object3D[]; lights: THREE.PointLight[]; before: Set<THREE.Object3D> } | null = null;
 
 function unloadCurrent(game: Game) {
   if (!owned) return;
+  // Everything the region added to the scene, including effects its controller added after the build.
+  const before = owned.before;
+  for (const c of game.scene.children) if (!before.has(c) && c !== game.player?.object && !owned.objects.includes(c)) owned.objects.push(c);
   for (const o of owned.objects) {
     o.removeFromParent();
     o.traverse((c) => { const m = c as THREE.Mesh; if (m.isMesh) m.geometry?.dispose(); });
@@ -49,6 +52,7 @@ export async function loadRegion(game: Game, session: Session, id: string): Prom
   owned = {
     objects: game.scene.children.filter((c) => !before.has(c) && c !== game.player?.object),
     lights: registeredLights().filter((l) => !lightsBefore.has(l)),
+    before,
   };
   const region = mod.create(game, session, layout);
   session.region = region;
@@ -61,7 +65,7 @@ export async function loadRegion(game: Game, session: Session, id: string): Prom
 }
 
 /** Initial boot: Ashbridge (the title vista), or the region of the latest save. */
-export async function bootRegion(game: Game, session: Session) {
+export async function bootRegion(game: Game, session: Session, override?: string) {
   const save = session.saves.load();
-  return loadRegion(game, session, save?.world.region ?? 'ashbridge');
+  return loadRegion(game, session, override ?? save?.world.region ?? 'ashbridge');
 }

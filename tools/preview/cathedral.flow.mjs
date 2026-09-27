@@ -3,7 +3,7 @@
 // Drives interactables directly (teleport + action), answers dialogues/confirms, forces boss HP to
 // thresholds, and checks journal entries, flags, NPC fates, the region mechanics and persistence.
 import { chromium } from 'playwright-core';
-const base = process.argv[2] ?? 'http://127.0.0.1:5213/';
+const base = process.argv[2] ?? 'http://127.0.0.1:5191/';
 const branch = process.argv[3] ?? 'returned';
 const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
 const ctx = await browser.newContext({ viewport: { width: 960, height: 540 } });

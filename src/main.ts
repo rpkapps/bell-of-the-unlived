@@ -90,9 +90,9 @@ async function boot() {
     return;
   }
 
-  ui.loading(0.6, 'Raising Ashbridge');
+  ui.loading(0.6, q.get('region') ? 'Raising the region' : 'Raising Ashbridge');
   const { bootRegion } = await import('./game/regions/boot');
-  await bootRegion(game, session);
+  await bootRegion(game, session, q.get('region') ?? undefined);
   Object.defineProperty(window, '__region', { get: () => session.region, configurable: true });
   ui.loading(null);
   game.start();

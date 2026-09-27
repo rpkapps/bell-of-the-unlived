@@ -3,3 +3,4 @@ dist
 *.log
 tools/out
 .DS_Store
+dist-artifact

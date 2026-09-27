@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "smoke": "node tools/smoke.mjs",
-    "play": "npm run build && node tools/serve.mjs"
+    "play": "npm run build && node tools/serve.mjs",
+    "build:artifact": "tsc --noEmit && node tools/build-artifact.mjs"
   },
   "license": "UNLICENSED",
   "dependencies": {

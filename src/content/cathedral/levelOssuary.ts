@@ -8,6 +8,7 @@
 import * as THREE from 'three';
 import type { Anchor, DynamicPiece, EnemySpawn } from '../../world/levelTypes';
 import { getMaterial } from '../../render/materials';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { stairs, floor, wall, barrelVault, candles, stillbellShrine, sphere, cyl, type Kit, type StillbellShrine, type Opening } from '../../world/kit';
 import { type AreaCtx, newKit, anchor, PLAN, YAW_N, YAW_S, YAW_E, YAW_W, plaqueWall, candleField } from './levelCommon';
 
@@ -214,7 +215,7 @@ function buildGrate(ctx: AreaCtx, x: number, y: number, z: number, w: number): D
   for (let i = 0; i <= 8; i++) bars.push(new THREE.BoxGeometry(0.07, h, 0.07).translate(-w / 2 + (w * i) / 8, h / 2, 0));
   for (const yy of [0.4, 1.4, 2.4, 3.2]) bars.push(new THREE.BoxGeometry(w, 0.07, 0.08).translate(0, yy, 0));
   const g = new THREE.Group();
-  for (const b of bars) g.add(new THREE.Mesh(b, getMaterial('iron')));
+  g.add(new THREE.Mesh(mergeGeometries(bars.map((x) => x.toNonIndexed()), false)!, getMaterial('iron')));
   g.position.set(x, y, z);
   root.add(g);
   const c = ctx.shared.collision?.addDynamicBox('cathedral:grate', [w, h, 0.5], 'metal');

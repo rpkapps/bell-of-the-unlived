@@ -122,7 +122,42 @@ export function buildCathedralLevel(ctx: LevelContext): CathedralLayout {
   cath.arenas[1].onDefeat!.push(stair.greatBell);
   const pieces = { ...stair.pieces, ...oss.pieces, ...cath.pieces };
 
+  // ---------------------------------------------------------------- visibility by where the camera is ("portal-light")
+  const kitGroup = (n: string) => actx.kits.find((k) => k.name === n)?.group;
+  const G = {
+    town: kitGroup('town'), backdrop: kitGroup('backdrop'), stair: kitGroup('stair'), ossuary: kitGroup('ossuary'),
+    nave: kitGroup('nave'), naveExterior: kitGroup('naveExterior'), cloister: kitGroup('cloister'),
+  };
+  const ossInst = [inst.get('skull'), inst.get('bone')];
+  const reliquary = dynamicRoot.getObjectByName('reliquaryBell');
+  const NAVE_BOX = box3(-15.8, 10, -140, 17.8, 60, -41.6), OSS_BOX = box3(6.6, -2, -66.4, 36.2, 11.7, 14.8), ANTE_BOX = box3(19.2, 11, -66.4, 27.8, 18, -61.4), CLOISTER_BOX = box3(15.8, 10, -95.2, 47.2, 40, -65.6);
+  const cam = new THREE.Vector3();
+  const setVis = (v: Partial<Record<keyof typeof G, boolean>>, inside: 'out' | 'oss' | 'nave' | 'cloister') => {
+    for (const k of Object.keys(G) as (keyof typeof G)[]) { const g = G[k]; if (g) g.visible = v[k] ?? false; }
+    for (const im of ossInst) if (im) im.visible = inside === 'oss';
+    if (reliquary) reliquary.visible = inside === 'nave';
+    processions[0].group.visible = processions[1].group.visible = v.town ?? false;
+    processions[2].group.visible = inside === 'nave';
+    stair.greatBell.object.visible = v.stair ?? false;
+  };
+  const visibility = (camera: THREE.Camera) => {
+    camera.getWorldPosition(cam);
+    if (OSS_BOX.containsPoint(cam) || ANTE_BOX.containsPoint(cam)) {
+      const nearOut = cam.x < 12.5 || cam.z > 7;
+      setVis({ ossuary: true, town: nearOut, stair: nearOut, cloister: cam.y > 9.5 }, 'oss');
+    } else if (NAVE_BOX.containsPoint(cam)) {
+      const front = cam.z > -64;
+      setVis({ nave: true, stair: front, town: front, backdrop: front, cloister: cam.x > 5 }, 'nave');
+    } else if (CLOISTER_BOX.containsPoint(cam)) {
+      setVis({ cloister: true, naveExterior: true, backdrop: true, nave: cam.x < 22 }, 'cloister');
+    } else {
+      const byDoors = cam.z < -30 && cam.y > 10 && Math.abs(cam.x) < 10;
+      setVis({ town: true, backdrop: true, stair: true, naveExterior: true, cloister: true, nave: byDoors }, byDoors ? 'nave' : 'out');
+    }
+  };
+
   const update = (dt: number, time: number, camera: THREE.Camera) => {
+    visibility(camera);
     for (const u of shared.updaters) u(dt, time, camera);
     flicker?.(time);
     for (const p of processions) p.animate(time);

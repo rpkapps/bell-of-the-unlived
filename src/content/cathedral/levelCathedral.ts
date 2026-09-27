@@ -8,6 +8,7 @@
 import * as THREE from 'three';
 import type { Anchor, ArenaLayout, DynamicPiece, EnemySpawn } from '../../world/levelTypes';
 import { getMaterial } from '../../render/materials';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { registerLight } from '../../render/lights';
 import { stairs, floor, wall, parapet, barrelVault, column, candles, candelabrum, stillbellShrine, brazier, bellPost, lathe, cyl, gableRoof, shedRoof, archPoints, extrudeXY, type Kit, type StillbellShrine } from '../../world/kit';
 import { Rng } from '../../core/rng';
@@ -353,8 +354,9 @@ function buildGreatDoors(ctx: AreaCtx): DynamicPiece & { anchor?: Anchor } {
     const leaf = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.3).translate(-sx * w / 2, h / 2, 0), wood);
     leaf.castShadow = true;
     g.add(leaf);
-    for (const yy of [1.0, 3.2, 5.4]) g.add(new THREE.Mesh(new THREE.BoxGeometry(w * 0.96, 0.14, 0.36).translate(-sx * w / 2, yy, 0), iron));
-    g.add(new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.04, 5, 10).translate(-sx * 0.5, 3.0, -0.2), iron));
+    const bands = [1.0, 3.2, 5.4].map((yy) => new THREE.BoxGeometry(w * 0.96, 0.14, 0.36).translate(-sx * w / 2, yy, 0).toNonIndexed());
+    bands.push(new THREE.TorusGeometry(0.2, 0.04, 5, 10).translate(-sx * 0.5, 3.0, -0.2).toNonIndexed());
+    g.add(new THREE.Mesh(mergeGeometries(bands, false)!, iron));
     root.add(g);
     leaves.push(g);
   }
@@ -432,14 +434,13 @@ function buildReliquaryBell(ctx: AreaCtx, x: number, hangY: number, z: number): 
   }
   const cage = new THREE.Group();
   cage.position.set(x, hangY, z);
+  const cageParts: THREE.BufferGeometry[] = [];
   for (let i = 0; i < 6; i++) {
     const a = (i / 6) * Math.PI * 2;
-    const bar = new THREE.Mesh(new THREE.BoxGeometry(0.06, H * 1.05, 0.06), getMaterial('gold_trim'));
-    bar.position.set(Math.sin(a) * R * 1.12, -H * 0.5, Math.cos(a) * R * 1.12);
-    bar.rotation.set(Math.cos(a) * 0.12, 0, -Math.sin(a) * 0.12);
-    cage.add(bar);
+    cageParts.push(new THREE.BoxGeometry(0.06, H * 1.05, 0.06).rotateX(Math.cos(a) * 0.12).rotateZ(-Math.sin(a) * 0.12).translate(Math.sin(a) * R * 1.12, -H * 0.5, Math.cos(a) * R * 1.12).toNonIndexed());
   }
-  cage.add(new THREE.Mesh(new THREE.TorusGeometry(R * 1.14, 0.05, 5, 24).rotateX(Math.PI / 2).translate(0, -H, 0), getMaterial('gold_trim')));
+  cageParts.push(new THREE.TorusGeometry(R * 1.14, 0.05, 5, 24).rotateX(Math.PI / 2).translate(0, -H, 0).toNonIndexed());
+  cage.add(new THREE.Mesh(mergeGeometries(cageParts, false)!, getMaterial('gold_trim')));
   const ribbon = new THREE.Mesh(new THREE.TorusGeometry(R * 0.75, 0.12, 4, 24).rotateX(Math.PI / 2 - 0.2).translate(0, -H * 0.45, 0), getMaterial('cloth_linen'));
   cage.add(ribbon);
   root.add(cage);

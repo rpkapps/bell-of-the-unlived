@@ -54,7 +54,24 @@ interface State {
   cullT: number;
   twicePos: THREE.Vector3;
   wennaTalking: boolean;
+  homeZone: Map<Enemy, string>;
 }
+
+/** Which zones' enemies can be seen from a zone (the camera's). */
+const VISIBLE_FROM: Record<string, string[]> = {
+  cathGate: ['cathGate', 'candleStreet'],
+  candleStreet: ['cathGate', 'candleStreet', 'masonsYard', 'pilgrimStair'],
+  masonsYard: ['masonsYard', 'candleStreet'],
+  pilgrimStair: ['candleStreet', 'pilgrimStair', 'parvis'],
+  parvis: ['pilgrimStair', 'parvis', 'chapelNames'],
+  chapelNames: ['chapelNames', 'parvis'],
+  ossuary: ['ossuary', 'graveStair'],
+  graveStair: ['ossuary', 'graveStair', 'cloister'],
+  cloister: ['cloister', 'graveStair'],
+  nave: ['nave', 'triforium', 'parvis'],
+  triforium: ['nave', 'triforium'],
+  choir: ['choir', 'nave'],
+};
 
 const RING_MAT = () => new THREE.MeshBasicMaterial({ color: 0xffd98a, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
 const BEAM_MAT = () => new THREE.MeshBasicMaterial({ color: 0xffe0a0, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false });
@@ -86,7 +103,7 @@ export class CathedralRegion extends RegionBase {
     }
     this.S = {
       links: [], beams, rings: [], fx, healCd: new Map(), barkT: 0, procHitT: 0, procSoundT: this.L.processions.map((_, i) => i * 1.3),
-      grab: null, adds: [], cantor: null, hymnCd: 4, cantorFellSaid: false, cullT: 0, twicePos: new THREE.Vector3(), wennaTalking: false,
+      grab: null, adds: [], cantor: null, hymnCd: 4, cantorFellSaid: false, cullT: 0, twicePos: new THREE.Vector3(), wennaTalking: false, homeZone: new Map(),
     };
 
     // ---- pickups
@@ -595,17 +612,33 @@ export class CathedralRegion extends RegionBase {
     }
     S.links = links;
 
-    // ---- far, unaware enemies are hidden (saves draw calls; they wake by perception as usual)
+    // ---- unaware enemies the camera cannot see (other rooms, far) are hidden: draw calls, not logic
     S.cullT -= dt;
     if (S.cullT <= 0) {
-      S.cullT = 0.5;
-      const cam = this.game.deps.renderer.camera.position;
+      S.cullT = 0.15;
+      const camera = this.game.deps.renderer.camera;
+      const cam = camera.position;
+      const fwd = camera.getWorldDirection(new THREE.Vector3());
+      const rel = new THREE.Vector3();
+      const cz = this.zoneAt(cam) ?? this.zoneAt(p.pos) ?? '';
+      const seen = VISIBLE_FROM[cz] ?? [cz];
       for (const e of this.game.enemies) {
         if (e.dead) continue;
-        const far = !e.aware && e.pos.distanceTo(cam) > 58;
-        e.object.visible = !far;
+        let ez = S.homeZone.get(e);
+        if (ez === undefined) { ez = this.zoneAt(e.home) ?? ''; S.homeZone.set(e, ez); }
+        rel.subVectors(e.pos, cam);
+        const d = rel.length();
+        // far, in a room the camera cannot see into, or well behind the camera (shadow pass included)
+        const hide = !e.aware && !e.isBoss && (d > 42 || !seen.includes(ez) || (d > 8 && rel.dot(fwd) < -0.35 * d));
+        e.object.visible = !hide;
       }
     }
+  }
+
+  private zoneAt(pos: THREE.Vector3) {
+    const probe = new THREE.Vector3(pos.x, pos.y + 0.9, pos.z);
+    for (const z of this.L.zones) if (z.box.containsPoint(probe)) return z.id;
+    return null;
   }
 
   // ================================================================== visuals

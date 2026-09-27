@@ -102,7 +102,11 @@ export class UI implements IUI, UICtx {
     if (!this.host) return;
     const d = Math.min(0.1, Math.max(0, dt));
     for (const ev of this.host.input.consumeUi()) this.route(ev);
-    this.hudView?.tick(d);
+    if (this.hudView) {
+      const talking = this.dialogueView.open || this.cine.open;
+      if (talking !== this.hudView.el.classList.contains('talking')) this.hudView.el.classList.toggle('talking', talking);
+      this.hudView.tick(d);
+    }
     this.subs.tick(d);
     this.toasts.tick(d);
     this.hints.tick(d);

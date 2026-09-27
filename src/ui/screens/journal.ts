@@ -222,11 +222,14 @@ function sketchMap(lit: Set<string>, known: Set<string> | null): SVGElement {
     s += `<path class="area${k ? '' : ' unknown'}" d="M${a.x - hw} ${a.y - 16} Q${a.x} ${a.y - 21} ${a.x + hw} ${a.y - 15} L${a.x + hw + 3} ${a.y + 15} Q${a.x} ${a.y + 19} ${a.x - hw - 2} ${a.y + 16} Z"/>`;
     s += `<text x="${a.x}" y="${a.y + 4}" font-size="${k ? 12 : 11}" text-anchor="middle" letter-spacing="1" ${k ? '' : 'opacity=".45"'}>${k ? a.name.toUpperCase() : '?'}</text>`;
   }
-  // stillbells
+  // stillbells: a small bell hanging in an arch, filled when lit
   for (const id of ['watchtower', 'hospice']) {
     const a = A[id]!;
-    const cx = a.x + a.w / 2 - 6, cy = a.y - 24;
-    s += `<path class="bellmark${lit.has(id) || lit.has(`${id}_stillbell`) ? '' : ' unlit'}" d="M${cx - 7} ${cy + 9} L${cx - 6} ${cy + 6} C${cx - 5} ${cy + 1} ${cx - 5} ${cy - 5} ${cx} ${cy - 6} C${cx + 5} ${cy - 5} ${cx + 5} ${cy + 1} ${cx + 6} ${cy + 6} L${cx + 7} ${cy + 9} Z"/>`;
+    const x = a.x + a.w / 2 - 4, y = a.y - 40;
+    const litB = lit.has(id) || lit.has(`${id}_stillbell`);
+    s += `<path d="M${x - 10} ${y + 22}V${y + 4}Q${x} ${y - 6} ${x + 10} ${y + 4}V${y + 22}" fill="#d9c79d" stroke="#4a3218" stroke-width="1.3"/>`;
+    s += `<path class="bellmark${litB ? '' : ' unlit'}" d="M${x - 6} ${y + 18}L${x - 5} ${y + 15}C${x - 4.5} ${y + 10} ${x - 4.5} ${y + 5} ${x} ${y + 4.5}C${x + 4.5} ${y + 5} ${x + 4.5} ${y + 10} ${x + 5} ${y + 15}L${x + 6} ${y + 18}Z"/>`;
+    s += `<circle cx="${x}" cy="${y + 20}" r="1.3" fill="#4a3218"/>`;
   }
   // arena veil and compass
   s += `<path d="M280 30 Q330 18 380 30" fill="none" stroke="#8b5a2b" stroke-width="2" stroke-dasharray="1 4"/>`;

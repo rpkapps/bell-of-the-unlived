@@ -187,6 +187,7 @@ uniform vec3 uC0, uC1, uC2, uC3;
 uniform vec4 uP0, uP1;
 uniform sampler2D uMask;
 uniform float uHasMask;
+uniform float uAspect;
 in vec2 vUv;
 layout(location = 0) out vec4 outA;
 layout(location = 1) out vec4 outB;

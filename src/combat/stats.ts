@@ -16,7 +16,7 @@ export function saturation(a: number): number {
 export const hpFor = (v: number) => Math.round(v <= 25 ? 280 + 26 * (v - 6) : v <= 40 ? 774 + 18 * (v - 25) : 1044 + 6 * (v - 40));
 export const focusFor = (m: number) => Math.round(50 + 6 * (m - 6) - Math.max(0, m - 30) * 3);
 export const staminaFor = (e: number) => Math.round(Math.min(80 + 3.5 * (e - 6), 80 + 3.5 * 34 + (e - 40) * 0.8));
-export const loadFor = (e: number) => Math.round((40 + 1.25 * (e - 6)) * 10) / 10;
+export const loadFor = (e: number) => Math.round((45 + 1.4 * (e - 6)) * 10) / 10;
 
 export function levelOf(a: Attributes): number {
   return a.vigor + a.mind + a.endurance + a.strength + a.dexterity + a.intellect + a.devotion - 69;

@@ -20,7 +20,7 @@ export class OriginScreen extends Screen {
   private resolve: (id: OriginId | null) => void;
 
   constructor(ctx: UICtx, resolve: (id: OriginId | null) => void) {
-    super(ctx, 'opaque');
+    super(ctx, 'opaque origin-screen');
     this.resolve = resolve;
     this.onClosed = () => this.resolve(null);
   }
@@ -59,7 +59,7 @@ export class OriginScreen extends Screen {
     for (const a of ATTRIBUTES) {
       const v = o.attributes[a];
       attrs.append(h('span.icw', { html: icon(a) }), h('span', null, ATTRIBUTE_LABELS[a]), h('span.v', null, String(v)),
-        h('div.bar', null, h('i', { style: `transform:scaleX(${Math.min(1, v / 20)})` })));
+        h('div.abar', null, h('i', { style: `transform:scaleX(${Math.min(1, v / 20)})` })));
     }
     const kit = h('div.kit-list');
     const seen = new Set<string>();

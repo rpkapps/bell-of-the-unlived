@@ -171,7 +171,8 @@ export class Hud {
 
     this.tollBell.innerHTML = `<svg viewBox="0 0 40 50" class="ic">
       <path d="M20 0V5" class="t"/><circle cx="20" cy="6.5" r="2"/>
-      <path d="M6 40L8 34C10 26 11 18 12 13Q20 6 28 13C29 18 30 26 32 34L34 40Z" class="f"/>
+      <defs><linearGradient id="tlb" x1="0" x2="1"><stop offset="0" stop-color="#2a1f14"/><stop offset=".45" stop-color="#6b5232"/><stop offset="1" stop-color="#1c150e"/></linearGradient></defs>
+      <path d="M6 40L8 34C10 26 11 18 12 13Q20 6 28 13C29 18 30 26 32 34L34 40Z" style="fill:url(#tlb)"/>
       <path d="M6 40L8 34C10 26 11 18 12 13Q20 6 28 13C29 18 30 26 32 34L34 40Z"/>
       <path d="M9 36H31" class="t"/><circle cx="20" cy="44" r="2.4" class="s"/>
       <g class="tb" style="opacity:0"><path d="M6 40L8 34C10 26 11 18 12 13Q20 6 28 13C29 18 30 26 32 34L34 40Z" style="fill:#ffd894;fill-opacity:.55;stroke:#ffe3ad"/></g></svg>`;

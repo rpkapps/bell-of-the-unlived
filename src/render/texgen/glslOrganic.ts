@@ -29,8 +29,8 @@ S leather(vec2 uv) {
 // Woven cloth. uP0 = (threads, twill, fade, threadbare)  uP1 = (darns, stains, fuzz, _)
 // uC0 dye, uC1 faded, uC2 stain, uC3 darning thread
 S cloth(vec2 uv) {
-  float N = uP0.x;
-  vec2 g = uv * N; vec2 cell = floor(g); vec2 f = fract(g);
+  float N = uP0.x, NV = floor(uP0.x * uAspect + 0.5);
+  vec2 g = uv * vec2(N, NV); vec2 cell = floor(g); vec2 f = fract(g);
   float over = uP0.y > 0.5 ? step(1.5, imodf(cell.x - cell.y, 4.0)) : imodf(cell.x + cell.y, 2.0);
   float warpP = 1.0 - pow(abs(f.x - 0.5) * 2.0, 2.0);
   float weftP = 1.0 - pow(abs(f.y - 0.5) * 2.0, 2.0);
@@ -38,7 +38,7 @@ S cloth(vec2 uv) {
   float hf2 = weftP * mix(1.0, 0.5, over) * (0.75 + 0.25 * sin(f.x * PI));
   float isWarp = step(hf2, hw);
   float th = max(hw, hf2);
-  float tv = isWarp > 0.5 ? h1(ivec2(int(imodf(cell.x, N)), 0), uSeed) : h1(ivec2(0, int(imodf(cell.y, N))), uSeed + 1.0);
+  float tv = isWarp > 0.5 ? h1(ivec2(int(imodf(cell.x, N)), 0), uSeed) : h1(ivec2(0, int(imodf(cell.y, NV))), uSeed + 1.0);
   float fuzz = gnoise(uv * N * 2.0, vec2(N * 2.0), uSeed + 2.0);
   float fade = smoothstep(0.35, 0.85, fbm1(uv, 3.0, 4, uSeed + 3.0)) * uP0.z;
   float bare = smoothstep(0.66, 0.82, fbm1(uv, 5.0, 4, uSeed + 4.0)) * uP0.w;
@@ -47,7 +47,7 @@ S cloth(vec2 uv) {
   vec4 dw = worley(uv, vec2(3.0), 0.8, uSeed + 6.0);
   float darn = (1.0 - smoothstep(0.17, 0.2, dw.x)) * step(dw.z, uP1.x);
   float ring = (smoothstep(0.15, 0.18, dw.x) - smoothstep(0.19, 0.22, dw.x)) * step(dw.z, uP1.x);
-  vec2 g2 = uv * N * 1.6; vec2 f2 = fract(g2);
+  vec2 g2 = uv * vec2(N, NV) * 1.6; vec2 f2 = fract(g2);
   float dth = max(1.0 - pow(abs(f2.x - 0.5) * 2.0, 2.0), 1.0 - pow(abs(f2.y - 0.5) * 2.0, 2.0));
   vec3 c = uC0 * (0.82 + 0.3 * tv) * (0.72 + 0.32 * th) * (0.94 + 0.12 * fuzz);
   c = mix(c, uC1 * (0.85 + 0.25 * tv), fade);

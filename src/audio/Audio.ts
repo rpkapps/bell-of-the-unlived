@@ -55,6 +55,8 @@ const BEDS: Record<AmbienceId, ReadonlyArray<readonly [AnyLoopId, number]>> = {
 
 /** Minimum gap between identical cues (s). */
 const THROTTLE = 0.03;
+/** Distance-gain floor per priority (trivial sounds are culled sooner). */
+const CULL = [0.03, 0.008, 0.003, 0.0015] as const;
 /** Minimum gap between identical captions (ms). */
 const CAPTION_THROTTLE_MS = 450;
 
@@ -383,7 +385,8 @@ export class Audio implements IAudio, LoopHost {
     let distGain = 1;
     if (pos) {
       distGain = inverseGain(this.listener.distance(pos), def.ref ?? 2, def.rolloff ?? 1.2);
-      if (distGain < 0.002) return; // inaudible: no sound, no caption
+      // Inaudible (below the floor for its importance): no sound, no caption.
+      if (distGain < CULL[Math.min(3, def.priority)]!) return;
     }
 
     const live = this.live;

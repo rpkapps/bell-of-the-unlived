@@ -24,7 +24,7 @@ import { SPELLS } from '../../src/content/spells';
 import { ORIGINS } from '../../src/content/origins';
 import { LEADS } from '../../src/content/journal';
 import { PRACTICE_TOPICS } from '../../src/content/practice';
-import { MEMORY_REWARDS, WARNINGS, DEATH_TEXT, HINTS } from '../../src/content/text';
+import { MEMORY_REWARDS, WARNINGS, DEATH_TEXT, HINTS, formatActions } from '../../src/content/text';
 import { DIALOGUE, INTRO_CARDS } from '../../src/content/dialogue';
 import { AttributesScreen } from '../../src/ui/screens/attributes';
 import { EquipmentScreen } from '../../src/ui/screens/equipment';
@@ -309,7 +309,7 @@ switch (screen) {
     ui.caption('Attack winding up', 'left');
     ui.toast('Bellbronze Shard', 'item', 'bellbronze_shard');
     ui.toast('Forememory updated: The Refugee Road', 'journal');
-    ui.hint('demo', HINTS[Object.keys(HINTS)[0]!]?.replace(/\{(\w+)\}/g, '') ?? 'Hold guard to block.', ['guard', 'parry']);
+    ui.hint('demo', formatActions(HINTS.guard ?? HINTS[Object.keys(HINTS)[0]!] ?? '', (a) => input.glyph(a), input.device), ['guard', 'parry']);
     ui.fps(60);
     break;
   case 'icons': {

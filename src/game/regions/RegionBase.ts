@@ -24,6 +24,9 @@ import { DIALOGUE } from '../../content/dialogue';
 import { INSPECT, WARNINGS, BOSS, BOSS_DEFEATED_TEXT, STILLBELL_NAMES } from '../../content/text';
 import type { HudState, DialogueLine } from '../types';
 import { angleDiff, yawOf } from '../../core/math';
+import { SPIRITS } from './hub';
+import { Ally } from '../../actors/Ally';
+import { ENEMY_DEFS } from '../../content/enemies';
 import type { AmbienceId, MusicState } from '../../audio/contract';
 import type { RegionInfo } from './catalog';
 import type { EnemyLook, NpcLook } from '../../actors/models/contract';
@@ -54,7 +57,16 @@ export abstract class RegionBase implements Region {
 
   constructor(protected game: Game, protected session: Session, readonly L: RegionLayout, readonly info: RegionInfo) {
     for (const b of L.stillbells) this.add('bell:' + b.id, b.anchor, 2.2, () => (this.ws.stillbells[b.id] ? 'Rest at the Stillbell' : 'Kindle the Stillbell'), () => this.rest(b.id));
-    for (const a of L.arenas) this.add('fog:' + a.bossId, a.fogGate.anchor, 2.4, () => (this.flag('boss.' + a.bossId) || this.fight ? null : 'Pass through the veil'), () => this.enterArena(a));
+    for (const a of L.arenas) {
+      this.add('fog:' + a.bossId, a.fogGate.anchor, 2.4, () => (this.flag('boss.' + a.bossId) || this.fight ? null : 'Pass through the veil'), () => this.enterArena(a));
+      // A spirit bell beside the veil (only when a spirit has answered the Returned before).
+      const spot = a.fogGate.anchor.pos.clone().add(new THREE.Vector3(Math.cos(a.fogGate.anchor.yaw) * 2.2, 0, -Math.sin(a.fogGate.anchor.yaw) * 2.2));
+      this.add('spirit:' + a.bossId, spot, 2.0, () => {
+        if (this.flag('boss.' + a.bossId) || this.fight || this.summoned.length) return null;
+        const s = SPIRITS.find((x) => x.available(this.ws));
+        return s ? `Ring the spirit bell (${s.name})` : null;
+      }, () => this.summonSpirit());
+    }
     this.setup();
   }
 
@@ -178,7 +190,7 @@ export abstract class RegionBase implements Region {
   protected inArena(a: ArenaLayout, p: THREE.Vector3) { return p.distanceTo(a.center) < a.radius + 1.5 && Math.abs(p.y - a.center.y) < 6; }
   safeToResume(p: THREE.Vector3) { return !this.fight && !this.L.arenas.some((a) => this.inArena(a, p)); }
   onRest(_id: string) {}
-  onPlayerDeath() { if (this.fight) this.fight.boss.engaged = false; this.fight = null; }
+  onPlayerDeath() { if (this.fight) this.fight.boss.engaged = false; this.fight = null; this.dismissSpirits(); }
 
   // ------------------------------------------------------------------ helpers for subclasses
 
@@ -285,6 +297,36 @@ export abstract class RegionBase implements Region {
     const id = setInterval(() => { t += 0.05; r.setGrade({ memory: Math.max(0, Math.sin(Math.min(1, t / 2.5) * Math.PI)) }); if (t > 2.5) { clearInterval(id); r.setGrade({ memory: 0 }); } }, 50);
   }
 
+  // ------------------------------------------------------------------ spirit allies
+
+  protected summoned: Ally[] = [];
+  protected summonSpirit() {
+    const s = SPIRITS.find((x) => x.available(this.ws));
+    const def = s && ENEMY_DEFS[s.kind];
+    if (!s || !def) return;
+    const g = this.game;
+    const al = new Ally(def, g, g.player, 13);
+    al.spawnId = 'spirit:' + s.id;
+    if (g.deps.models) al.model = g.deps.models.buildEnemy(al.rig, def.look, 3);
+    if (def.weaponR && g.deps.models) { const w = g.deps.models.buildWeapon(def.weaponR); al.weaponR = { id: def.weaponR, model: w }; al.rig.sockets.weaponR.add(w.object); }
+    al.object.traverse((c) => { if ((c as THREE.Mesh).isMesh) c.castShadow = true; });
+    g.scene.add(al.object);
+    const p = g.player;
+    al.appear(p.pos.clone().add(new THREE.Vector3(Math.sin(p.yaw + 2.2) * 1.8, 0, Math.cos(p.yaw + 2.2) * 1.8)), p.yaw);
+    g.enemies.push(al);
+    this.summoned.push(al);
+    g.deps.ui?.toast(`${s.name} answers the bell`, 'info');
+  }
+  protected dismissSpirits() {
+    for (const a of this.summoned) {
+      this.game.fx('bellMotes', a.chest, { count: 40 });
+      a.object.removeFromParent();
+      const i = this.game.enemies.indexOf(a);
+      if (i >= 0) this.game.enemies.splice(i, 1);
+    }
+    this.summoned = [];
+  }
+
   // ------------------------------------------------------------------ Stillbells
 
   private rest(id: string) {
@@ -315,6 +357,7 @@ export abstract class RegionBase implements Region {
     await ui.fade(1, 0.35);
     const p = this.player;
     p.teleport(a.fogGate.enterTo.pos.clone(), a.fogGate.enterTo.yaw);
+    for (const [i, al] of this.summoned.entries()) al.teleport(a.fogGate.enterTo.pos.clone().add(new THREE.Vector3((i + 1) * 1.6, 0, 0.5)), a.fogGate.enterTo.yaw);
     this.game.cam.snapBehind(p);
     this.fight = { arena: a, boss };
     await ui.fade(0, 0.5);
@@ -340,6 +383,7 @@ export abstract class RegionBase implements Region {
   private async bossDefeated(a: ArenaLayout, b: Boss) {
     const g = this.game;
     this.fight = null;
+    setTimeout(() => this.dismissSpirits(), 4000);
     this.setFlag('boss.' + a.bossId);
     (g as any).onEnemyKilled(b);
     for (const l of DIALOGUE[a.bossId + '_death'] ?? []) g.deps.ui?.subtitle(l);

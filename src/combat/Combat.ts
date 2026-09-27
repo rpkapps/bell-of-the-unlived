@@ -139,6 +139,7 @@ export class Combat {
       if (chip > 0.5) { tgt.hp = Math.max(0, tgt.hp - Math.round(chip)); res.damage = Math.round(chip); }
       // guard pressure also builds posture on enemies
       tgt.posture += postureDmg * 0.6;
+      if ((att as { owner?: unknown }).owner) tgt.posture = Math.min(tgt.posture, tgt.postureMax * 0.9);
       tgt.postureDelay = 2.2;
       if (tgt.stamina <= 0) {
         res.outcome = 'guardBroken';
@@ -163,6 +164,8 @@ export class Combat {
     tgt.flash = 1;
     // posture
     tgt.posture += postureDmg;
+    // Spirit allies can never fill posture past 90 % (the opening stays the player's to earn).
+    if ((att as { owner?: unknown }).owner && tgt.posture > tgt.postureMax * 0.9) tgt.posture = Math.max(tgt.postureMax * 0.9, tgt.posture - postureDmg);
     tgt.postureDelay = 2.2;
     tgt.aware = true;
     const stopT = Math.min(0.11, 0.05 + dmg / 3000);

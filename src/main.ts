@@ -13,6 +13,7 @@ import { Audio } from './audio/Audio';
 import { UI } from './ui/UI';
 import { Session } from './game/Session';
 import './content/meta';
+import './content/spirits';
 import type { OriginId } from './game/types';
 
 const SETTINGS_KEY = 'botu.settings.v1';

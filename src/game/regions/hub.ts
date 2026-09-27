@@ -36,3 +36,17 @@ export const alliesSaved = (ws: WorldState) => Object.values(ws.npcs).filter((f)
 /** The Unlived Muster: `muster.<region>` flags for the five institutions. */
 export const MUSTER_REGIONS = ['army', 'academy', 'cathedral', 'treasury', 'household'] as const;
 export const musterComplete = (ws: WorldState) => MUSTER_REGIONS.every((r) => ws.flags['muster.' + r]);
+
+/** Spirit allies that can be summoned at boss veils (GDD §8). */
+export interface SpiritAlly {
+  id: string;
+  name: string;
+  /** Enemy definition id (registered in ENEMY_DEFS) used for the spirit's body and moveset. */
+  kind: string;
+  available(ws: WorldState): boolean;
+}
+export const SPIRITS: SpiritAlly[] = [];
+export function registerSpirit(s: SpiritAlly) {
+  const i = SPIRITS.findIndex((x) => x.id === s.id);
+  if (i >= 0) SPIRITS[i] = s; else SPIRITS.push(s);
+}

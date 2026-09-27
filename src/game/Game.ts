@@ -14,6 +14,7 @@ import { Combat, type Combatant, type HitResult } from '../combat/Combat';
 import { Projectiles, type ProjectileSpec, type Projectile } from '../combat/Projectiles';
 import { Player } from '../actors/Player';
 import { Enemy } from '../actors/Enemy';
+import { Ally } from '../actors/Ally';
 import type { Actor } from '../actors/Actor';
 import { CameraRig } from './CameraRig';
 import type { Services } from './services';
@@ -237,12 +238,25 @@ export class Game implements Services {
     const blocked = this.mode !== 'play' || !!ui?.blocking;
     // lock-on
     if (!blocked) {
-      if (inp.pressed('lockOn')) this.cam.toggleLock(this.player, this.enemies);
+      if (inp.pressed('lockOn')) this.cam.toggleLock(this.player, this.enemies.filter((e) => e.team !== 'player'));
       if (inp.pressed('pause')) this.openPause();
       else if (inp.pressed('journal') && ui) { this.mode = 'menu'; inp.releaseAll(); inp.setPointerLock(false); this.deps.audio?.setMenuMuffle(true); ui.showJournal(); }
     }
     this.player.control(dt, { input: inp, camYaw: this.cam.yaw, camForward: this.cam.forward, lock: this.cam.lock as Combatant | null, blocked });
-    if (playing) for (const e of this.enemies) e.think(dt, this.player);
+    if (playing) {
+      const allies = this.enemies.filter((e): e is Ally => e instanceof Ally && !e.dead);
+      for (const e of this.enemies) {
+        if (e instanceof Ally) { e.tickAlly(dt, this.enemies); continue; }
+        let tgt: Actor = this.player;
+        if (allies.length && e.aware && !this.player.dead) {
+          // aggro goes to whoever is nearest (sticky toward the current target)
+          let bd = e.distTo(this.player) * (e.target === this.player ? 0.8 : 1);
+          for (const a of allies) { const d = e.distTo(a) * (e.target === a ? 0.8 : 1); if (d < bd) { bd = d; tgt = a; } }
+          e.target = tgt;
+        }
+        e.think(dt, tgt);
+      }
+    }
     // physics + animation
     const trackT = this.cam.lock ? this.cam.lock.pos : null;
     this.player.stepPhysics(dt, this.world, trackT, trackT ? null : this.playerTrackYaw());
@@ -302,7 +316,7 @@ export class Game implements Services {
     } else if (this.player) {
       const lk = this.input.look();
       const sw = this.input.targetSwitch();
-      if (sw && this.cam.lock) this.cam.switchTarget(sw, this.player, this.enemies);
+      if (sw && this.cam.lock) this.cam.switchTarget(sw, this.player, this.enemies.filter((e) => e.team !== 'player'));
       const blocked = this.mode !== 'play' || !!this.deps.ui?.blocking;
       this.loop.frameCap = this.settings.graphics.frameCap;
       const pl = this.player;
@@ -315,6 +329,7 @@ export class Game implements Services {
       for (const e of this.enemies) if (e.object.visible) { e.model?.setStatusGlow(e.buffs.has('burn') ? 'burn' : 'none', 1); e.renderPose(alpha, SIM_DT, realDt); }
       for (const x of this.extras) x.renderPose(alpha, SIM_DT, realDt);
       this.cam.shakeScale = this.settings.graphics.cameraShake;
+      this.cam.baseFov = this.settings.graphics.fov;
       this.cam.autoRecenter = this.settings.gameplay.cameraAutoRecenter;
       const mv = this.input.move();
       if (!(this.cameraOverride && this.cameraOverride(realDt, r.camera))) {
@@ -476,7 +491,7 @@ export class Game implements Services {
     const bars = [];
     for (const e of this.enemies) {
       const tell = e.telegraph !== 'none' ? e.telegraph : null;
-      if (e.dead || !e.aware || e.def.passive && e.hp >= e.hpMax) continue;
+      if (e.dead || !e.aware || e.team === 'player' || e.def.passive && e.hp >= e.hpMax) continue;
       if (!tell && (e.isBoss || (e.hp >= e.hpMax && e.posture <= 0 && this.cam.lock !== e))) continue;
       if (e.distTo(p) > 18) continue;
       const head = e.chest.clone(); head.y += e.height * 0.42;

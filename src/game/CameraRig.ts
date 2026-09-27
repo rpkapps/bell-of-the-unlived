@@ -24,6 +24,9 @@ export class CameraRig {
   private pivotS = new THREE.Vector3();
   readonly forward = new THREE.Vector3(0, 0, 1);
   shakeScale = 1;
+  /** Over-the-shoulder aiming (bows/crossbows): 0..1 blend. */
+  private aimW = 0;
+  baseFov = 60;
   autoRecenter = true;
   private recenterT = 0;
 
@@ -71,6 +74,8 @@ export class CameraRig {
   }
 
   update(dt: number, player: Actor, look: { x: number; y: number }, moving: boolean) {
+    const aiming = !!(player as unknown as { aiming?: boolean }).aiming && !this.lock;
+    this.aimW = damp(this.aimW, aiming ? 1 : 0, 10, dt);
     // pivot follows the player smoothly (vertical smoothing hides stair steps)
     const target = new THREE.Vector3(player.object.position.x, player.object.position.y + 1.55, player.object.position.z);
     this.pivotS.x = target.x; this.pivotS.z = target.z;
@@ -105,11 +110,19 @@ export class CameraRig {
     // camera position
     const cp = Math.cos(this.pitch), sp = Math.sin(this.pitch);
     const back = new THREE.Vector3(-Math.sin(this.yaw) * cp, sp, -Math.cos(this.yaw) * cp);
-    const want = this.lock ? this.dist + 0.3 : this.dist;
+    const want = (this.lock ? this.dist + 0.3 : this.dist) * (1 - 0.55 * this.aimW);
     const hit = this.world.raycast(this.pivot, back, want + 0.3);
     const allowed = hit ? Math.max(0.6, hit.distance - 0.3) : want;
     this.curDist = allowed < this.curDist ? allowed : damp(this.curDist, allowed, 3, dt);
     const pos = this.pivot.clone().addScaledVector(back, this.curDist);
+    // shoulder offset while aiming (to the character's right = camera right)
+    if (this.aimW > 0.001) {
+      const right = new THREE.Vector3(Math.cos(this.yaw) * -1, 0, Math.sin(this.yaw));
+      pos.addScaledVector(right, 0.55 * this.aimW);
+      pos.y += 0.1 * this.aimW;
+    }
+    const fov = this.baseFov * (1 - 0.28 * this.aimW);
+    if (Math.abs(this.camera.fov - fov) > 0.01) { this.camera.fov = fov; this.camera.updateProjectionMatrix(); }
     // shake
     if (this.shakeAmt > 0.001) {
       this.shakeT += dt * 40;
@@ -120,6 +133,7 @@ export class CameraRig {
     this.camera.position.copy(pos);
     const lookAt = this.pivot.clone();
     if (this.lock) lookAt.lerp(this.lock.chest, 0.18);
+    if (this.aimW > 0.001) lookAt.addScaledVector(new THREE.Vector3(Math.cos(this.yaw) * -1, 0, Math.sin(this.yaw)), 0.55 * this.aimW).addScaledVector(new THREE.Vector3(Math.sin(this.yaw), 0, Math.cos(this.yaw)), 2 * this.aimW);
     this.camera.lookAt(lookAt);
     this.camera.getWorldDirection(this.forward);
   }

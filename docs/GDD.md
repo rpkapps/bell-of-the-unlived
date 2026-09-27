@@ -326,3 +326,42 @@ capsule controller. Save: versioned JSON in two rotating slots with checksum; au
 persistent world change. Performance budget: ≤ 350 draw calls, ≤ 1.5 M triangles on screen,
 one shadow-casting directional light + baked/fake lights elsewhere; target 60 fps at 1440p
 high on an RTX 4080 with large headroom.
+
+---
+
+## 12. Arsenal (data in `src/content/items.ts`, `spells.ts`)
+
+Phase 1 (Ashbridge) places only the slice set: Retainer Sword, Household Shield, Court Staff,
+Parrying Dirk, the Retainer and Court armour, Cinder Bolt, Glinting Shard, Stilling Chime, Ember
+Blessing, Ashen Veil, the Warden's Talisman, the Bellbronze Shard, throwing knives, the Greyford
+Sabre (Brannoc's gift) and the Commander's reward memory. Everything below is defined and balanced
+on paper and is placed as later regions ship.
+
+* **Weapon classes:** straight sword, curved sword, greatsword, dagger, estoc, axe, mace, hammer,
+  flail, spear, halberd, staff, hand bell, censer, bow, crossbow. Each class has one moveset
+  archetype (light chain, charged heavy, class technique).
+* **Shields:** Household Shield, Mint Buckler (parry-focused), Greyford Tower Shield, Pilgrim
+  Roundshield.
+* **Armour sets (4 pieces):** Retainer, Court, Oath, Funeral, Huntsman, Condemned, Commander,
+  Greyford, Mint Warden, Hospice, Bellkeeper, Gatewarden.
+* **Spells (11):** sorceries: Glinting Shard, Cinder Bolt, Shard Volley, Bellglass Lance, Falling Hour;
+  rites: Stilling Chime, Ashen Veil, Knell of Rest, Ember Blessing, Vigil of Ash, Toll of Warding.
+* **Imprint Techniques (16):** transferable between compatible weapon classes at a Stillbell via
+  imprint scrolls (Oathbound Lunge, Bulwark Toll, Bellglass Ward, Measured Cut, Riposte Stance,
+  Bell Breaker, Rending Sweep, Greyford Flourish, Grave Knell, Unbroken Links, Pinning Shot,
+  Impaling Charge, Ember Edge, Vow Parry, Vow Pursuit, Stilled Breath).
+
+## 13. Bestiary & bosses (full campaign plan)
+
+Monsters use the humanoid rig (with proportion variants for giants and husks) or a quadruped rig
+for hounds and beasts.
+
+| Region | Enemies | Mid-boss | Keeper |
+|---|---|---|---|
+| Ashbridge | Unlived infantry, sentry, shield bearer, archer | — | Ser Corvane Aldmoor |
+| Royal Army | Pike wall (3-man formation), crossbowman, sapper (fire pots), war hound (quadruped), siege knight, twice-slain (revives unless posture-broken), cannon crew | The Ram-Knight Oderic | Marshal Ysolde Varr |
+| Royal Academy | Glass acolyte, lens warden, echo construct (mimics the player's last technique), ritual choir (interrupt), homunculus swarm, suspended golem | Aberrant Experiment No. 9 (optional) | Keeper Ilsabet Orrow |
+| Cathedral | Pilgrim, healer-priest (kill order matters), procession bearer (moving hazard), flagellant, mourner giant | The Procession (group boss) | Saint Vessaline of the Hundred Names |
+| Royal Treasury | Vault guardian (animated armour), coin-mimic, starving militia, debt collector (grab), clockwork sentry | Mimic Sovereign (optional) | Treasurer Aurel Mask |
+| Royal Household | Elite retainer (parry-heavy), court duellist, gardener with shears, hunting hound, masked courtier (caster), succession ghost | The Twin Heirs (duo) | Dame Celwyn Ardent |
+| Finale | — | The Condemned Bellkeeper (secret) | King Aldren (three reigns) |

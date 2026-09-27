@@ -248,6 +248,13 @@ async function gallery(): Promise<void> {
   trail.setActive(true);
   const swordBase = new THREE.Vector3(), swordTip = new THREE.Vector3();
 
+  // debug: strip parts of the weathering extension (?nowx=WX_WEATHER,WX_TRIPLANAR)
+  const strip = (params.get('nowx') ?? '').split(',').filter(Boolean);
+  if (strip.length) scene.traverse((o) => {
+    const m = (o as THREE.Mesh).material as THREE.Material | undefined;
+    const d = m && (m as unknown as { defines?: Record<string, string> }).defines;
+    if (d) { for (const k of strip) delete d[k]; m!.needsUpdate = true; }
+  });
   const shot = SHOTS[params.get('shot') ?? 'overview'] ?? SHOTS.overview;
   R.camera.position.set(...shot.pos);
   R.camera.lookAt(new THREE.Vector3(...shot.target));

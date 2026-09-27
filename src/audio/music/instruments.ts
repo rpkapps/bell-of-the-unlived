@@ -90,11 +90,14 @@ export function choir(out: MusicOut, t: number, freqs: readonly number[], dur: n
     const per = vel * 0.1 / Math.sqrt(freqs.length);
     const end = ar(g.gain, t, o.attack ?? 1.2, per, dur, o.release ?? 2);
     v.hold(end);
+    // Two vibrato LFOs shared across the chord (one per ensemble half) keep the node count low
+    // while the halves still drift against each other.
+    const vib = [v.modulator(rand(4.6, 5.1), rand(8, 12), 'sine', t + 0.3), v.modulator(rand(5.1, 5.6), rand(9, 14), 'sine', t + 0.3)];
     for (const f of freqs) {
       for (let k = 0; k < 2; k++) {
         const s = v.osc('sawtooth', f, t);
         s.detune.value = k ? rand(4, 9) : rand(-9, -4);
-        v.lfo(rand(4.6, 5.6), rand(8, 14), s.detune, 'sine', t + 0.3);
+        vib[k]!.connect(s.detune);
         s.connect(mix);
       }
     }
@@ -130,10 +133,12 @@ export function strings(out: MusicOut, t: number, f: number, dur: number, vel: n
     lp.frequency.linearRampToValueAtTime(Math.min(8000, f * 6 * bright), t + (o.attack ?? 0.4) + 0.2);
     const g = v.gain(0);
     v.hold(ar(g.gain, t, o.attack ?? 0.4, vel * 0.06, dur, o.release ?? 0.9));
+    // One vibrato LFO per note (only for notes long enough to hear it).
+    const vib = dur > 0.3 ? v.modulator(rand(5.2, 5.9), 7, 'sine', t + 0.35) : null;
     for (const d of [-10, 0, 9]) {
       const s = v.osc('sawtooth', f, t);
       s.detune.value = d + rand(-2, 2);
-      v.lfo(rand(5.2, 5.9), 7, s.detune, 'sine', t + 0.35);
+      vib?.connect(s.detune);
       s.connect(lp);
     }
     lp.connect(g).connect(v.out);
@@ -151,11 +156,12 @@ export function brass(out: MusicOut, t: number, f: number, dur: number, vel: num
     lp.frequency.setTargetAtTime(Math.min(7000, f * 3.2), t + 0.08, 0.25);
     const g = v.gain(0);
     v.hold(ar(g.gain, t, 0.035, vel * 0.09, dur, 0.22));
+    const vib = dur > 0.4 ? v.modulator(5.3, 5, 'sine', t + 0.25) : null;
     for (const d of [-6, 5]) {
       const s = v.osc('sawtooth', f, t);
       s.detune.setValueAtTime(d - 35, t);
       s.detune.linearRampToValueAtTime(d, t + 0.05);
-      v.lfo(5.3, 5, s.detune, 'sine', t + 0.25);
+      vib?.connect(s.detune);
       s.connect(lp);
     }
     lp.connect(g).connect(v.out);
@@ -252,7 +258,7 @@ export function drone(out: MusicOut, t: number, f: number, dur: number, vel: num
 /** Reverse-style swell: filtered noise + a tone rising into a downbeat (then cut). */
 export function riser(out: MusicOut, t: number, dur: number, vel: number, f = 0): void {
   note(out, t, 0.8, (v) => {
-    const src = v.noise('pink', t, t + dur + 0.1);
+    const src = v.noise('pink', t, t + dur + 0.3);
     const bp = v.filter('bandpass', 300, 0.9);
     sweep(bp.frequency, t, 300, 3500, dur);
     const g = v.gain(0);
@@ -261,7 +267,7 @@ export function riser(out: MusicOut, t: number, dur: number, vel: number, f = 0)
     g.gain.setTargetAtTime(0, t + dur, 0.03);
     src.connect(bp).connect(g).connect(v.out);
     if (f > 0) {
-      const o = v.osc('sawtooth', f, t, t + dur + 0.1);
+      const o = v.osc('sawtooth', f, t, t + dur + 0.3);
       const lp = v.filter('lowpass', 400, 1);
       sweep(lp.frequency, t, 300, 2500, dur);
       const og = v.gain(0);
@@ -270,7 +276,7 @@ export function riser(out: MusicOut, t: number, dur: number, vel: number, f = 0)
       og.gain.setTargetAtTime(0, t + dur, 0.03);
       o.connect(lp).connect(og).connect(v.out);
     }
-    v.hold(t + dur + 0.2);
+    v.hold(t + dur + 0.35);
   });
 }
 

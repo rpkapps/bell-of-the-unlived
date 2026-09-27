@@ -183,7 +183,7 @@ export class Game implements Services {
     if (opts.patrol) e.patrol = opts.patrol;
     if (opts.idle) e.idleAnim = opts.idle;
     const m = this.deps.models;
-    if (m) e.model = m.buildEnemy(e.rig, def.look, opts.seed ?? this.enemies.length);
+    if (m) e.model = def.kind === 'dummy' ? m.buildNpc(e.rig, 'dummy') : m.buildEnemy(e.rig, def.look, opts.seed ?? this.enemies.length);
     else buildMannequin(e.rig, 0x7a6a50);
     const mk = (id: string) => (m ? m.buildWeapon(id) : { object: id.includes('shield') ? debugShield() : debugSword(id.includes('spear') ? 1.6 : 0.95), hit: id.includes('shield') || id.includes('bow') ? null : { from: 0.12, to: id.includes('spear') ? 1.7 : 1.05, radius: 0.05 } });
     if (def.weaponR) { e.weaponR = { id: def.weaponR, model: mk(def.weaponR) }; e.rig.sockets.weaponR.add(e.weaponR.model.object); }

@@ -75,11 +75,11 @@ S steelBright(vec2 uv) {
 // Bronze (funerary) and bell bronze.
 // uP0 = (verdigris, drips, oxide, rubbed)  uC0 bronze, uC1 oxide, uC2 verdigris, uC3 rubbed bright
 S bronze(vec2 uv, bool bell) {
-  float cast = fbm1(uv, 6.0, 5, uSeed);
+  float castN = fbm1(uv, 6.0, 5, uSeed);
   float det = fbm1(uv, 40.0, 3, uSeed + 1.0);
   float fine = gnoise(uv * 160.0, vec2(160.0), uSeed + 9.0);
   float pits = smoothstep(0.68, 0.82, gnoise(uv * 70.0, vec2(70.0), uSeed + 2.0));
-  float h = 0.5 + 0.28 * (cast - 0.5) + 0.05 * (det - 0.5) - 0.1 * pits;
+  float h = 0.5 + 0.28 * (castN - 0.5) + 0.05 * (det - 0.5) - 0.1 * pits;
   float recess = sat01((0.52 - h) * 5.0 + pits * 0.9);
   float patN = fbm1(uv, 10.0, 4, uSeed + 3.0);
   float verd = smoothstep(0.5, 0.72, recess * 0.75 + patN * 0.55 - 0.18 + uP0.x * 0.25) * uP0.x;
@@ -102,13 +102,13 @@ S bronze(vec2 uv, bool bell) {
 
 // Worn gilt. uP0 = (wearThrough, grime, tooling, _)  uC0 gold, uC1 bole, uC2 grime
 S gilt(vec2 uv) {
-  float cast = fbm1(uv, 5.0, 4, uSeed);
+  float castN = fbm1(uv, 5.0, 4, uSeed);
   float det = fbm1(uv, 32.0, 3, uSeed + 1.0);
   vec2 g = uv * vec2(48.0, 48.0);
   float row = floor(g.y);
   vec2 f = fract(vec2(g.x + 0.5 * imodf(row, 2.0), g.y)) - 0.5;
   float punch = (1.0 - smoothstep(0.12, 0.22, length(f))) * uP0.z;
-  float h = 0.5 + 0.25 * (cast - 0.5) + 0.04 * (det - 0.5) - 0.06 * punch;
+  float h = 0.5 + 0.25 * (castN - 0.5) + 0.04 * (det - 0.5) - 0.06 * punch;
   float worn = smoothstep(0.58, 0.74, h + fbm1(uv, 12.0, 3, uSeed + 2.0) * 0.3 - 0.1) * uP0.x;
   float grime = smoothstep(0.45, 0.25, h) * uP0.y + punch * 0.5 * uP0.y;
   vec3 c = uC0 * (0.85 + 0.3 * det);

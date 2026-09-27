@@ -28,7 +28,7 @@ export const REVERB_PRESETS = {
   },
   /** Music: a large, dark cathedral-like hall. */
   music: {
-    duration: 5.0, rt60: 4.2, preDelay: 0.03, damping: 0.45,
+    duration: 4.2, rt60: 3.6, preDelay: 0.03, damping: 0.45,
     early: [[0.023, 0.3], [0.037, 0.22], [0.051, 0.18], [0.077, 0.12]],
   },
 } as const satisfies Record<string, ReverbPreset>;

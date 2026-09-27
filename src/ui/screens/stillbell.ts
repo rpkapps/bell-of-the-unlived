@@ -286,7 +286,8 @@ export class ImprintScreen extends Screen {
     for (const t of options) {
       const row = navItem(h('div', { class: `row${t.id === current ? ' equipped' : ''}`, 'data-key': `tq:${t.id}`, 'data-tech': t.id },
         h('span.icw', { html: icon(t.icon) }),
-        h('div.row-main', null, h('div.row-title', null, t.name), h('div.row-sub', null, `${t.focus} focus · ${t.stamina} stamina`))));
+        h('div.row-main', null, h('div.row-title', null, t.name), h('div.row-sub', null, `${t.focus} focus · ${t.stamina} stamina`)),
+        h('span.row-right')));
       row.addEventListener('click', () => void this.imprint(e, t.id, t.name));
       this.techBox.appendChild(row);
     }

@@ -1,12 +1,14 @@
 /**
  * Cue table: CueId → synth + mix routing. `gain` values are trims from the offline level check
- * (tools/preview/audio.html → "Level check") so cues sit in a consistent loudness hierarchy:
- *   combat-critical (parry, guard break, posture break, crit) ≈ -3…-5 dBFS peak
- *   hits / blocks / tells                                 ≈ -6…-9 dBFS
- *   bells: Great Bell ≈ -4, Stillbell ≈ -9, Unfinished Toll ≈ -16
- *   swings, magic, world                                   ≈ -9…-14
- *   footsteps, cloth, armour                               ≈ -20…-26
- *   UI                                                     ≈ -20…-26 (levelup ≈ -15)
+ * (tools/preview/audio.html → "Render all cues"; dynamics bypassed, volumes at 1). Targets are the
+ * loudest 50 ms RMS window ("stRms"), with every raw peak kept below ≈ -1.5 dBFS:
+ *   combat-critical: parry, guard/posture break, crit stab, Great Bell   ≈ -9…-12 dB
+ *   hits, blocks, tells (windup -14, unparryable -12), boss roar -10     ≈ -12…-17 dB
+ *   swings, magic, player/enemy voices, world interactions               ≈ -16…-24 dB
+ *   Stillbell -16, Unfinished Toll -21 (far away by design)
+ *   footsteps, armour, cloth                                             ≈ -30…-37 dB
+ *   UI                                                                   ≈ -30…-36 dB (levelup -22)
+ * Music states sit at ≈ -24…-26 dB integrated RMS (boss peaks ≈ -5), ambience beds ≈ -29…-35 dB.
  */
 import type { CueId } from './contract';
 import type { BusId } from './engine/Mixer';
@@ -73,11 +75,11 @@ export const CUE_DEFS: Record<CueId, CueDef> = {
   hit_wood: c(I.hitWood, 'combat', 1.16, 0.12, 2, { duck: DUCK_SMALL }),
   hit_stone: c(I.hitStone, 'combat', 0.643, 0.12, 2, { duck: DUCK_SMALL }),
   hit_heavy: c(I.hitHeavy, 'combat', 0.477, 0.15, 2, { duck: DUCK }),
-  guard_block: c(I.guardBlock, 'combat', 0.705, 0.15, 2, { duck: DUCK }),
+  guard_block: c(I.guardBlock, 'combat', 0.6, 0.15, 2, { duck: DUCK }),
   guard_break: c(I.guardBreak, 'combat', 0.425, 0.2, 3, { duck: DUCK_BIG }),
   parry_attempt: c(I.parryAttempt, 'sfx', 1.81, 0.08, 1),
-  parry_success: c(I.parrySuccess, 'combat', 0.447, 0.35, 3, { duck: DUCK_BIG }),
-  posture_break: c(B.postureBreak, 'combat', 0.523, 0.3, 3, { duck: DUCK_BIG }),
+  parry_success: c(I.parrySuccess, 'combat', 0.56, 0.35, 3, { duck: DUCK_BIG }),
+  posture_break: c(B.postureBreak, 'combat', 0.42, 0.3, 3, { duck: DUCK_BIG }),
   critical_ready: c(B.criticalReady, 'combat', 0.922, 0.3, 3, { duck: DUCK }),
   critical_stab: c(I.criticalStab, 'combat', 0.673, 0.2, 3, { duck: DUCK_BIG }),
   stagger: c(I.stagger, 'combat', 0.643, 0.1, 2, { duck: DUCK_SMALL }),
@@ -115,7 +117,7 @@ export const CUE_DEFS: Record<CueId, CueDef> = {
   // ---- world ----
   stillbell_ring: c(B.stillbellRing, 'sfx', 0.519, 0.6, 3, { ref: 4, rolloff: 1 }),
   stillbell_rest: c(B.stillbellRest, 'sfx', 0.525, 0.6, 3),
-  great_bell_toll: c(B.greatBellToll, 'sfx', 0.951, 0.7, 3, { ref: 80, rolloff: 0.6, duck: [4, 3] }),
+  great_bell_toll: c(B.greatBellToll, 'sfx', 0.68, 0.7, 3, { ref: 80, rolloff: 0.6, duck: [4, 3] }),
   unfinished_toll: c(B.unfinishedToll, 'sfx', 0.371, 1.2, 3, { ref: 40, rolloff: 0.6, randomPan: true }),
   door_open: c(W.doorOpen, 'sfx', 1.15, 0.2, 1, { ref: 3 }),
   gate_open: c(W.gateOpen, 'sfx', 0.472, 0.25, 2, { ref: 4 }),

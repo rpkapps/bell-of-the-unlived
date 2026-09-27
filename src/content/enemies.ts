@@ -60,6 +60,11 @@ export const ENEMY_DEFS: Record<string, EnemyDef> = {
     guard: { physical: 100, magic: 60, stability: 70, stamina: 110, chance: 1 },
     recover: [0.8, 1.6], aggression: 0.45,
   },
+  dummy: {
+    kind: 'dummy', name: 'Practice Dummy', look: 'infantry', props: { height: 1, bulk: 1.1, shoulder: 1 }, radius: 0.35, height: 1.8,
+    hp: 5000, poise: 0, postureMax: 200, postureRegen: 20, defense: 40, absorb: { physical: 0, magic: 0, fire: 0 }, hours: 0, walk: 0, run: 0, sight: 0,
+    stance: { handR: null, handL: null }, attacks: [], recover: [1, 1], aggression: 0, passive: true,
+  },
   archer: {
     kind: 'archer', name: 'Unlived Archer', look: 'archer', props: { height: 0.98, bulk: 0.9, shoulder: 0.95 }, radius: 0.35, height: 1.76,
     hp: 150, poise: 8, postureMax: 110, postureRegen: 24, defense: 45, absorb: UNLIVED_ABSORB, hours: 70, walk: 1.7, run: 3.8, sight: 24,

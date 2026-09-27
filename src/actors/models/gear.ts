@@ -880,12 +880,12 @@ export function veil(b: CharBuilder, o: { mat?: string; face?: boolean; y?: numb
 // ------------------------------------------------------------------------------------ chains & props
 
 /** Loose chains draped on the body (bone-local points). */
-export function drapeChain(b: CharBuilder, bone: BoneName, pts: V3[], mat = M.iron, link = 0.03, skin?: SkinFn) {
+export function drapeChain(b: CharBuilder, bone: BoneName, pts: V3[], mat: string = M.iron, link = 0.03, skin?: SkinFn) {
   b.add(bone, chain(pts, link, link * 0.16), mat, skin ? { skin } : undefined);
 }
 
 /** Shackle ring around a limb. */
-export function shackle(b: CharBuilder, bone: BoneName, y: number, r: number, mat = M.iron) {
+export function shackle(b: CharBuilder, bone: BoneName, y: number, r: number, mat: string = M.iron) {
   b.loft(bone, [{ y: y + 0.022, rx: r, rz: r * 0.95 }, { y: y - 0.022, rx: r, rz: r * 0.95 }], mat, { segs: 12, inflate: 0.004 });
   b.add(bone, xf(rivet(0.008), { p: [0, y, r + 0.004], r: [Math.PI / 2, 0, 0] }), mat);
 }

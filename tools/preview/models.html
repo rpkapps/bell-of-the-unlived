@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Model Lineup</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #1d1f24; overflow: hidden; font: 12px/1.4 ui-monospace, monospace; color: #cfc6b4; }
+    canvas { display: block; }
+    #info { position: absolute; left: 8px; top: 6px; white-space: pre; pointer-events: none; text-shadow: 0 1px 2px #000; }
+    #nav { position: absolute; right: 8px; top: 6px; }
+    #nav a { color: #d8b878; margin-left: 8px; }
+  </style>
+</head>
+<body>
+  <div id="info"></div>
+  <div id="nav">
+    <a href="?group=player">player</a><a href="?group=player&sex=f">player♀</a><a href="?group=player2">more looks</a>
+    <a href="?group=enemies">enemies</a><a href="?group=npcs">npcs</a><a href="?group=weapons">weapons</a><a href="?group=hands">grip check</a>
+  </div>
+  <script type="module" src="./models.ts"></script>
+</body>
+</html>

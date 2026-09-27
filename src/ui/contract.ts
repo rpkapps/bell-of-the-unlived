@@ -93,6 +93,17 @@ export interface UIHost {
   // pause
   resume(): void;
   playtime(): number;
+
+  // optional extras
+  /** Menu sounds. */
+  uiSound?(cue: 'ui_move' | 'ui_confirm' | 'ui_back' | 'ui_error' | 'ui_open' | 'ui_close' | 'ui_levelup' | 'ui_tab'): void;
+  /** Hints are shown once per save. */
+  hintSeen?(id: string): boolean;
+  markHintSeen?(id: string): void;
+  /** Area ids (AREA_NAMES keys) the player has discovered, for the sketched map. */
+  discoveredAreas?(): string[];
+  /** Display name of the player's current area (pause header). */
+  currentArea?(): string;
 }
 
 export type ToastKind = 'item' | 'info' | 'journal' | 'warning' | 'hours';

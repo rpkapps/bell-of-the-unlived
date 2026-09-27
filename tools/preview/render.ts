@@ -1,7 +1,11 @@
 /**
  * Render preview: `?view=heraldry` (comparison board) | `?view=gallery` (material gallery, default).
  */
+import * as THREE from 'three';
 import { HERALDRY_KINDS, drawHeraldry, heraldryTexture } from '../../src/render/heraldry';
+import { MATERIAL_IDS } from '../../src/render/materialIds';
+import { initMaterials, getTextureSet, materialStats } from '../../src/render/materials';
+import type { Quality } from '../../src/game/settings';
 
 const params = new URLSearchParams(location.search);
 const view = params.get('view') ?? 'gallery';
@@ -46,4 +50,47 @@ async function heraldryBoard(): Promise<void> {
   window.__ready = true;
 }
 
+/** Flat sheet of every generated texture set: albedo | normal | ORM (+ emissive in ORM alpha). */
+async function textureSheet(): Promise<void> {
+  const canvas = document.getElementById('c') as HTMLCanvasElement;
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: false });
+  renderer.setSize(innerWidth, innerHeight, false);
+  const q = (params.get('q') ?? 'medium') as Quality;
+  const t0 = performance.now();
+  await initMaterials(renderer, q);
+  const ms = performance.now() - t0;
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color('#202020');
+  const ids = MATERIAL_IDS.filter((id) => getTextureSet(id));
+  const channel = params.get('ch') ?? 'map';
+  const cols = 10, rows = Math.ceil(ids.length / cols);
+  const cam = new THREE.OrthographicCamera(0, cols, 0, -rows, -1, 1);
+  const aspect = innerWidth / innerHeight;
+  cam.right = Math.max(cols, rows * aspect); cam.bottom = -Math.max(rows, cols / aspect); cam.updateProjectionMatrix();
+  ids.forEach((id, i) => {
+    const ts = getTextureSet(id)!;
+    const tex = channel === 'normal' ? ts.normalMap : channel === 'orm' ? ts.orm : ts.map;
+    const mat = new THREE.ShaderMaterial({
+      uniforms: { t: { value: tex }, mode: { value: channel === 'emis' ? 1 : channel === 'height' ? 2 : 0 } },
+      vertexShader: 'varying vec2 vUv; void main(){ vUv = uv * 2.0; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+      fragmentShader: `uniform sampler2D t; uniform int mode; varying vec2 vUv; void main(){ vec4 c = texture2D(t, vUv);
+        vec3 o = mode == 1 ? vec3(c.a) : mode == 2 ? vec3(c.a) : c.rgb; gl_FragColor = vec4(o, 1.0);
+        #include <colorspace_fragment>
+      }`,
+    });
+    if (channel === 'emis') mat.uniforms.t.value = ts.orm;
+    if (channel === 'height') mat.uniforms.t.value = ts.normalMap;
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(0.96, 0.96), mat);
+    mesh.position.set((i % cols) + 0.5, -Math.floor(i / cols) - 0.5, 0);
+    scene.add(mesh);
+  });
+  renderer.render(scene, cam);
+  const st = materialStats();
+  document.getElementById('hud')!.textContent = `${channel}  q=${q}  gen ${ms.toFixed(0)} ms  sets ${st.textureSets}  ~${st.approxMB.toFixed(0)} MB\n` +
+    ids.map((id, i) => `${i}:${id}`).join('  ');
+  (document.getElementById('hud') as HTMLElement).style.cssText += ';bottom:6px;top:auto;white-space:normal;font-size:11px;max-width:98vw';
+  window.__ready = true;
+}
+
 if (view === 'heraldry') void heraldryBoard();
+else if (view === 'textures') void textureSheet();

@@ -496,7 +496,7 @@ const BUILDERS: Record<string, Build> = {
     wb.add('bronze', xf(loft([{ y: 0.022, rx: 0.1 }, { y: 0.018, rx: 0.108 }, { y: -0.018, rx: 0.108 }, { y: -0.022, rx: 0.1 }], { segs: 28, capTop: true, capBottom: true }), { p: [0, c, 0], r: [Math.PI / 2, 0, 0] }));
     // die face relief: raised rim, crown and bell
     for (const s of [1, -1]) {
-      wb.add('gold_trim', xf(torus(0.085, 0.004, 4, 28), { p: [0, c, s * 0.022] }), { r: [Math.PI / 2, 0, 0] });
+      wb.add('gold_trim', xf(torus(0.085, 0.004, 4, 28), { p: [0, c, s * 0.022], r: [Math.PI / 2, 0, 0] }));
       wb.add('gold_trim', xf(bellGeom(0.07), { p: [0, c + 0.035, s * 0.022], s: [1, 1, 0.3] }));
       const crown: [number, number][] = [[-0.035, 0], [-0.035, 0.02], [-0.02, 0.01], [0, 0.03], [0.02, 0.01], [0.035, 0.02], [0.035, 0]];
       wb.add('gold_trim', extrude(crown, 0.004, 0), { p: [0, c + 0.045, s * 0.024] });

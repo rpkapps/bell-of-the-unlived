@@ -173,7 +173,7 @@ export const MATERIAL_DEFS: Record<MaterialId, MatDef> = {
   },
   water: {
     gen: g('special', SK.water, ['#1a2226', '#000000', '#000000', '#000000'], [1, 0, 0, 0.88], [0, 0, 0, 0], 43, 'std', 0.6),
-    mapping: 'triplanar', scale: 6, transparent: true, envMapIntensity: 1.6,
+    mapping: 'triplanar', scale: 6, transparent: true, envMapIntensity: 1.6, variation: 0,
   },
   fire: { mapping: 'uv', scale: 1, special: 'fire' },
   ember_glow: {

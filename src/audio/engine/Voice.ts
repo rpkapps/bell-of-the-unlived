@@ -168,11 +168,18 @@ export class Voice {
     return c;
   }
 
-  /** LFO: oscillator → depth gain → target param. Returns the depth gain for further automation. */
-  lfo(freq: number, depth: number, target: AudioParam, type: OscillatorType = 'sine', start = this.t): GainNode {
+  /** Unconnected modulator (oscillator → depth gain); connect the result to any number of params. */
+  modulator(freq: number, depth: number, type: OscillatorType = 'sine', start = this.t): GainNode {
     const o = this.osc(type, freq, start);
     const g = this.gain(depth);
-    o.connect(g).connect(target);
+    o.connect(g);
+    return g;
+  }
+
+  /** LFO: oscillator → depth gain → target param. Returns the depth gain for further automation. */
+  lfo(freq: number, depth: number, target: AudioParam, type: OscillatorType = 'sine', start = this.t): GainNode {
+    const g = this.modulator(freq, depth, type, start);
+    g.connect(target);
     return g;
   }
 

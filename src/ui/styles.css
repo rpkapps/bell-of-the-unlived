@@ -459,7 +459,7 @@
 .mem-group { margin-bottom: 1.4rem; }
 .reward-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
 .reward { display: flex; flex-direction: column; gap: 0.5rem; padding: 1.2rem; min-height: 14rem; border: 1px solid var(--line-faint); background: linear-gradient(180deg, rgba(26, 20, 14, 0.92), rgba(9, 8, 7, 0.95)); }
-.reward .ricon { width: 4.2rem; height: 4.2rem; color: var(--gold); }
+.reward .ricon { width: 5rem; height: 5rem; color: var(--gold); }
 .reward .rname { font-family: 'Cinzel', serif; font-size: 1rem; letter-spacing: 0.1em; color: var(--text); }
 .reward .rkind { font-family: 'Cinzel', serif; font-size: 0.62rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); }
 .reward .rdesc { font-size: 1.05rem; color: var(--text-dim); line-height: 1.35; }
@@ -558,7 +558,7 @@
 .hud-br .hdelta.on { animation: delta-up 1.8s ease-out; }
 @keyframes delta-up { 0% { opacity: 0; transform: translateY(0.4rem); } 12% { opacity: 1; transform: translateY(0); } 75% { opacity: 1; } 100% { opacity: 0; transform: translateY(-0.4rem); } }
 
-.hud-boss { position: absolute; left: 50%; bottom: 3.6rem; width: 50rem; margin-left: -25rem; }
+.hud-boss { position: absolute; left: 50%; bottom: 3.6rem; width: min(50rem, calc(100vw - 48rem)); transform: translateX(-50%); }
 .hud-boss .bname { display: flex; align-items: baseline; gap: 0.9rem; margin-bottom: 0.3rem; }
 .hud-boss .bn { font-family: 'Cinzel', serif; font-size: 1.15rem; letter-spacing: 0.14em; color: var(--text); text-shadow: 0 0 0.5rem #000, 0 0 1rem #000; }
 .hud-boss .bt { font-style: italic; font-size: 1.05rem; color: var(--text-dim); text-shadow: 0 0 0.5rem #000; }
@@ -590,16 +590,16 @@
 @keyframes crit-core { 50% { transform: scale(1.08); } }
 .crit .ck { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 0.2rem; font-family: 'Cinzel', serif; font-size: 0.6rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold-hi); white-space: nowrap; text-shadow: 0 0 0.3rem #000, 0 0 0.5rem #000; }
 .reticle { position: absolute; left: 50%; top: 50%; width: 1.4rem; height: 1.4rem; margin: -0.7rem 0 0 -0.7rem; color: rgba(224, 192, 136, 0.85); }
-.hud-prompt { position: absolute; left: 50%; bottom: 27%; transform: translateX(-50%); display: flex; align-items: center; gap: 0.8rem; padding: 0.55rem 1.4rem 0.55rem 0.9rem; font-size: 1.2rem; white-space: nowrap; animation: scr-in 0.15s ease-out; }
+.hud-prompt { position: absolute; left: 50%; bottom: max(27%, 16rem); transform: translateX(-50%); display: flex; align-items: center; gap: 0.8rem; padding: 0.55rem 1.4rem 0.55rem 0.9rem; font-size: 1.2rem; white-space: nowrap; animation: scr-in 0.15s ease-out; }
 .hud-prompt .glyph { transform: scale(1.1); }
-.vignette { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 50%, transparent 52%, rgba(110, 10, 8, 0.28) 78%, rgba(70, 4, 3, 0.7) 100%); opacity: 0; }
+.vignette { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 50%, transparent 45%, rgba(120, 12, 8, 0.38) 74%, rgba(80, 4, 3, 0.85) 100%); opacity: 0; }
 .vignette.on { animation: vig 1.2s ease-in-out infinite; }
 @keyframes vig { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
 .iframe-edge { position: absolute; inset: 0; box-shadow: inset 0 0 2.6rem rgba(214, 170, 96, 0.4), inset 0 0 0 2px rgba(214, 170, 96, 0.35); opacity: 0; transition: opacity 0.08s; }
 .iframe-edge.on { opacity: 1; }
 
 /* ------------------------------------------------------------------ subtitles, captions, dialogue */
-.subs { position: absolute; left: 50%; bottom: 15%; width: 64rem; max-width: 86vw; margin-left: min(-32rem, -43vw); display: flex; flex-direction: column; align-items: center; gap: 0.35rem; }
+.subs { position: absolute; left: 50%; bottom: max(15%, 9.5rem); width: min(64rem, 86vw); transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 0.35rem; }
 .sub-line { background: rgba(5, 4, 3, 0.68); padding: 0.35rem 1.1rem 0.4rem; font-size: 1.35rem; text-align: center; line-height: 1.3; text-shadow: 0 0 0.4rem #000; transition: opacity 0.35s; }
 .sub-line .spk { font-family: 'Cinzel', serif; font-size: 0.78rem; letter-spacing: 0.16em; color: var(--gold-hi); margin-right: 0.6rem; font-variant: small-caps; text-transform: uppercase; }
 .sub-line.cap { font-style: italic; color: var(--text-dim); font-size: 1.15rem; display: flex; align-items: center; gap: 0.6rem; }
@@ -648,13 +648,14 @@
 .cine .lb { position: absolute; left: 0; right: 0; height: 11vh; background: #000; transition: transform 0.8s ease; }
 .cine .lb.t { top: 0; }
 .cine .lb.b { bottom: 0; }
-.cine .card-text { position: absolute; left: 50%; top: 50%; width: 60rem; max-width: 84vw; transform: translate(-50%, -50%); text-align: center; opacity: 0; transition: opacity 1s ease; }
+.cine .card-text::before { content: ''; position: absolute; inset: -5rem -8rem; z-index: -1; background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0.45) 45%, transparent 72%); }
+.cine .card-text { position: absolute; z-index: 0; left: 50%; top: 50%; width: 60rem; max-width: 84vw; transform: translate(-50%, -50%); text-align: center; opacity: 0; transition: opacity 1s ease; }
 .cine .card-text.on { opacity: 1; }
-.cine .ct { font-size: 1.8rem; line-height: 1.5; color: var(--text); text-shadow: 0 0 1rem #000; }
+.cine .ct { font-size: 2rem; line-height: 1.5; color: var(--text); text-shadow: 0 0 1rem #000; }
 .cine .card-text.memory .ct { font-style: italic; color: #d9bf8f; }
 .cine .card-text.title .ct { font-family: 'Cinzel', serif; font-size: 3rem; letter-spacing: 0.26em; color: var(--gold-hi); }
 .cine .cs { font-family: 'Cinzel', serif; font-size: 0.86rem; letter-spacing: 0.22em; color: var(--gold); text-transform: uppercase; margin-top: 1rem; }
-.cine .cbell { width: 2.2rem; height: 2.2rem; margin: 0 auto 1rem; color: var(--gold); opacity: 0.8; }
+.cine .cbell { width: 2.4rem; height: 2.8rem; margin: 0 auto 1rem; color: var(--gold); opacity: 0.8; }
 .cine .prompts { position: absolute; right: 3rem; bottom: calc(11vh + 1.2rem); }
 .loading { position: absolute; right: 3rem; bottom: 3rem; display: flex; align-items: center; gap: 1rem; }
 .loading .lbell { width: 2.4rem; height: 2.8rem; color: var(--gold); transform-origin: 50% 0; animation: swing 1.6s ease-in-out infinite; }
@@ -675,3 +676,7 @@
 .btn.is-focus::after { right: -0.24rem; }
 /* during conversations the world prompt and markers step aside */
 .hud.talking .hud-prompt, .hud.talking .hud-dyn { opacity: 0; }
+.hud-boss .bname { white-space: nowrap; min-width: 0; }
+.hud-boss .bn { flex: none; }
+.hud-boss .bt { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.hud-boss .bphase { flex: none; }

@@ -302,7 +302,7 @@ export class Cinematic {
     if (this.i >= this.cards.length) { setTimeout(() => this.stop(), 700); this.cardEl = null; return; }
     const c = this.cards[this.i]!;
     const el = h('div', { class: `card-text ${c.style ?? 'plain'}` },
-      c.style === 'memory' ? h('div.cbell', { html: icon('remembered') }) : null,
+      c.style === 'memory' ? h('div.cbell', { html: icon('hand_bell') }) : null,
       h('div.ct', null, c.text),
       c.speaker ? h('div.cs', null, `— ${c.speaker}`) : null);
     this.root.appendChild(el);

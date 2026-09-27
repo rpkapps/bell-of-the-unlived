@@ -6,12 +6,11 @@
  */
 import type { LoopCueId } from '../contract';
 import type { NoiseBank } from '../engine/noise';
-import { rand, pick, swell, Voice } from '../engine/Voice';
+import { pick, rand, swell, Voice } from '../engine/Voice';
 import { bell, tinyBell } from './bells';
 import { metal } from './impacts';
 import { formantVoice } from './voices';
-import { creak } from './world';
-import { forgeHammer } from './world';
+import { creak, forgeHammer } from './world';
 
 /** Internal bed layers that are not public LoopCueIds. */
 export type InternalLoopId = 'far_tolls' | 'embers_far';

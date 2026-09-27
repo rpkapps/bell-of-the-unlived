@@ -115,7 +115,7 @@ export const enemyWindup: Synth = (v, p) => {
   const t = v.t;
   const dur = 0.42;
   const r = p.rate * vary(1, 0.03);
-  const src = v.noise('pink', t, t + dur + 0.1);
+  const src = v.noise('pink', t, t + dur + 0.3);
   const bp = v.filter('bandpass', 250, 2.2);
   sweep(bp.frequency, t, 250 * r, 2700 * r, dur);
   const g = v.gain(0);
@@ -125,7 +125,7 @@ export const enemyWindup: Synth = (v, p) => {
   g.gain.setTargetAtTime(0, t + dur, 0.03);
   src.connect(bp).connect(g).connect(v.out);
   // Rising whistle: the signature element.
-  const w = v.osc('sine', 520 * r, t, t + dur + 0.15);
+  const w = v.osc('sine', 520 * r, t, t + dur + 0.3);
   sweep(w.frequency, t, 520 * r, 1500 * r, dur);
   const wg = v.gain(0);
   wg.gain.setValueAtTime(0, t);
@@ -133,7 +133,7 @@ export const enemyWindup: Synth = (v, p) => {
   wg.gain.setTargetAtTime(0, t + dur, 0.03);
   w.connect(wg).connect(v.out);
   formantVoice(v, { f0: 92 * r, f0End: 120 * r, dur: dur + 0.05, from: 'uh', to: 'a', peak: 0.2, breath: 0.35, a: 0.15, at: t + 0.05 });
-  v.hold(t + dur + 0.25);
+  v.hold(t + dur + 0.35);
 };
 
 /** Unstoppable attack: a jagged, dissonant ring over a distorted growl. */

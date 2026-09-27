@@ -61,6 +61,8 @@ export interface EnemyDef {
   recover: [number, number];
   aggression: number; // 0..1 how eagerly it attacks when in range
   boss?: boolean;
+  /** Never moves or attacks; refills health (practice dummies). */
+  passive?: boolean;
 }
 
 type AiState = 'idle' | 'patrol' | 'alert' | 'engage' | 'return';
@@ -122,6 +124,13 @@ export class Enemy extends Actor implements Combatant {
   think(dt: number, player: Actor) {
     this.guarding = false;
     if (this.dead) { this.wish.set(0, 0, 0); return; }
+    if (this.def.passive) {
+      this.wish.set(0, 0, 0);
+      this.aware = false; this.target = null;
+      if (this.recentDamageT <= 0 && this.hp < this.hpMax) this.hp = this.hpMax;
+      if (this.hp < this.hpMax * 0.2) this.hp = this.hpMax;
+      return;
+    }
     for (const [k, v] of this.cds) if (v > 0) this.cds.set(k, v - dt);
     if (this.attackCd > 0) this.attackCd -= dt;
     if (this.recoverT > 0) this.recoverT -= dt;

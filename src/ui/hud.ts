@@ -230,7 +230,11 @@ export class Hud {
         return rem;
       });
     }
-    s.statuses.forEach((st, i) => { const el = this.statusEls[i]; if (el) el.style.transform = `scaleX(${clamp01(st.remaining01).toFixed(3)})`; });
+    s.statuses.forEach((st, i) => {
+      const el = this.statusEls[i];
+      const v = clamp01(st.remaining01).toFixed(3);
+      if (el && el.dataset.v !== v) { el.dataset.v = v; el.style.transform = `scaleX(${v})`; }
+    });
 
     // equipment slots
     for (const [view, slot] of [[this.quick, s.quick], [this.spell, s.spell], [this.left, s.left], [this.right, s.right]] as const) {

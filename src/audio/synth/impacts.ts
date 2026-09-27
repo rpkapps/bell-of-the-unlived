@@ -49,7 +49,8 @@ export function whoosh(v: Voice, o: {
   dur: number; f0: number; f1: number; peak: number; q?: number; at?: number; dest?: AudioNode; panFrom?: number; panTo?: number;
 }): number {
   const at = o.at ?? v.t;
-  const src = v.noise('pink', at, at + o.dur + 0.05);
+  const end = at + o.dur * 1.9; // release (tc = 0.18·dur) has decayed > 60 dB by here
+  const src = v.noise('pink', at, end);
   const bp = v.filter('bandpass', o.f0, o.q ?? 1.4);
   const g = v.gain(0);
   const pan = v.pan(o.panFrom ?? -0.25);
@@ -66,7 +67,6 @@ export function whoosh(v: Voice, o: {
   pan.pan.setValueAtTime(o.panFrom ?? -0.25, at);
   pan.pan.linearRampToValueAtTime(o.panTo ?? 0.25, at + o.dur);
   src.connect(bp).connect(g).connect(pan).connect(o.dest ?? v.out);
-  const end = at + o.dur + o.dur * 0.9;
   v.hold(end);
   return end;
 }
@@ -304,8 +304,8 @@ export const parryAttempt: Synth = (v, p) => {
 export const parrySuccess: Synth = (v, p) => {
   const r = p.rate * vary(1, 0.015);
   const t = v.t;
-  v.burst({ type: 'highpass', freq: 2500, peak: 0.8, d: 0.03 }); // contact
-  thump(v, 190 * r, 0.45, 0.12);
+  v.burst({ type: 'highpass', freq: 2500, peak: 0.4, d: 0.03 }); // contact
+  thump(v, 190 * r, 0.3, 0.12);
   // Bright clang.
   metal(v, { f: 1380 * r, peak: 0.34, decay: 1.4, ratios: [1, 1.47, 2.09, 2.56, 3.14, 3.9, 4.7], bright: 0.78, beat: 3.5 });
   // Long shimmer: a beating pair high up, plus a gently rising sparkle.
@@ -337,7 +337,7 @@ export const criticalStab: Synth = (v, p) => {
   v.burst({ color: 'pink', type: 'bandpass', freq: 1500 * r, q: 2.5, peak: 0.75, d: 0.28, sweepTo: 280, sweepDur: 0.25 });
   // Metal scrape: narrow resonant noise sweeping up, with a sliding inharmonic pair.
   const ts = t + 0.18;
-  const src = v.noise('white', ts, ts + 0.6);
+  const src = v.noise('white', ts, ts + 0.85);
   const bp = v.filter('bandpass', 2300, 9);
   sweep(bp.frequency, ts, 2300 * r, 5200 * r, 0.45);
   const g = v.gain(0);
@@ -376,7 +376,7 @@ export const bowDraw: Synth = (v, p) => {
   const t = v.t;
   const dur = 0.75;
   // Creak: slow pulse train through a narrow resonance = stick-slip wood creak.
-  const pulse = v.osc('sawtooth', 38, t, t + dur + 0.1);
+  const pulse = v.osc('sawtooth', 38, t, t + dur + 0.3);
   pulse.frequency.linearRampToValueAtTime(70, t + dur);
   const bp = v.filter('bandpass', 1100 * p.rate, 7);
   sweep(bp.frequency, t, 900 * p.rate, 1500 * p.rate, dur);
@@ -387,14 +387,14 @@ export const bowDraw: Synth = (v, p) => {
   g.gain.setTargetAtTime(0, t + dur, 0.04);
   pulse.connect(bp).connect(g).connect(v.out);
   // String tension tone rising.
-  const s = v.osc('triangle', 180 * p.rate, t, t + dur + 0.1);
+  const s = v.osc('triangle', 180 * p.rate, t, t + dur + 0.3);
   sweep(s.frequency, t, 180 * p.rate, 240 * p.rate, dur);
   const sg = v.gain(0);
   sg.gain.setValueAtTime(0, t);
   sg.gain.linearRampToValueAtTime(0.03, t + dur);
   sg.gain.setTargetAtTime(0, t + dur, 0.04);
   s.connect(sg).connect(v.out);
-  v.hold(t + dur + 0.25);
+  v.hold(t + dur + 0.35);
 };
 
 export const bowRelease: Synth = (v, p) => {

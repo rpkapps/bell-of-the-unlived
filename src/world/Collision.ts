@@ -25,19 +25,37 @@ export class Collider {
   inverse = new THREE.Matrix4();
   enabled = true;
   surface: Surface = 'stone';
-  constructor(public id: string, public geometry: THREE.BufferGeometry) {}
-  setMatrix(m: THREE.Matrix4) { this.matrix.copy(m); this.inverse.copy(m).invert(); }
+  /** World-space bounds (kept in sync by `setMatrix`); used to skip far colliders cheaply. */
+  readonly worldBox = new THREE.Box3();
+  constructor(public id: string, public geometry: THREE.BufferGeometry) {
+    geometry.computeBoundingBox();
+    this.worldBox.copy(geometry.boundingBox!);
+  }
+  setMatrix(m: THREE.Matrix4) {
+    this.matrix.copy(m); this.inverse.copy(m).invert();
+    this.worldBox.copy(this.geometry.boundingBox!).applyMatrix4(m);
+  }
   /** Convenience for dynamic colliders driven by a scene object. */
   syncTo(obj: THREE.Object3D) { obj.updateWorldMatrix(true, false); this.setMatrix(obj.matrixWorld); }
 }
 
 export interface MoveResult { grounded: boolean; groundNormal: THREE.Vector3; hitWall: boolean; wallNormal: THREE.Vector3; surface: Surface }
 
+/** Contacts whose push direction is at least this vertical are floors (≈ 56° slopes). */
+const WALKABLE_NY = 0.55;
+/** Highest ledge (above the feet) a capsule climbs without a ramp (kerbs, thresholds, low plinths). */
+export const STEP_HEIGHT = 0.32;
+
 const _seg = new THREE.Line3();
 const _box = new THREE.Box3();
+const _capBox = new THREE.Box3();
 const _triP = new THREE.Vector3();
 const _capP = new THREE.Vector3();
 const _dir = new THREE.Vector3();
+const _n = new THREE.Vector3();
+const _t = new THREE.Vector3();
+const _wn = new THREE.Vector3();
+const _up = new THREE.Vector3();
 const _a = new THREE.Vector3();
 const _b = new THREE.Vector3();
 const _ray = new THREE.Ray();
@@ -45,6 +63,21 @@ const _m = new THREE.Matrix4();
 const _q = new THREE.Quaternion();
 const _e = new THREE.Euler();
 const _s = new THREE.Vector3();
+const _sweepRes: MoveResult = { grounded: false, groundNormal: new THREE.Vector3(0, 1, 0), hitWall: false, wallNormal: new THREE.Vector3(), surface: 'stone' };
+
+/**
+ * Where the segment pierces the triangle's interior, or null. `n` receives the unit face normal
+ * (winding as authored); returns the signed distances of the segment ends from the face plane.
+ */
+function segmentPierces(tri: ExtendedTriangle, seg: THREE.Line3, n: THREE.Vector3): [number, number] | null {
+  tri.getNormal(n);
+  if (n.lengthSq() < 0.5) return null; // degenerate
+  const s0 = _t.copy(seg.start).sub(tri.a).dot(n);
+  const s1 = _t.copy(seg.end).sub(tri.a).dot(n);
+  if ((s0 > 0 && s1 > 0) || (s0 < 0 && s1 < 0) || s0 === s1) return null;
+  _t.copy(seg.start).lerp(seg.end, s0 / (s0 - s1));
+  return tri.containsPoint(_t) ? [s0, s1] : null;
+}
 
 export class CollisionWorld {
   private staticParts: THREE.BufferGeometry[] = [];
@@ -151,6 +184,13 @@ export class CollisionWorld {
     let best: RayHit | null = null;
     for (const c of this.colliders) {
       if (!c.enabled || c === ignore) continue;
+      // cheap reject: the ray never reaches this collider's bounds within range
+      if (!c.worldBox.containsPoint(origin)) {
+        _ray.origin.copy(origin); _ray.direction.copy(dir);
+        if (!_ray.intersectBox(c.worldBox, _t)) continue;
+        const bd = _t.distanceTo(origin);
+        if (bd > maxDist || (best && bd >= best.distance)) continue;
+      }
       _ray.origin.copy(origin).applyMatrix4(c.inverse);
       _ray.direction.copy(dir).transformDirection(c.inverse);
       const hit = c.bvh.raycastFirst(_ray, THREE.DoubleSide);
@@ -182,63 +222,113 @@ export class CollisionWorld {
 
   /**
    * Resolve a vertical capsule (feet at `pos`, radius r, total height h) against the world,
-   * modifying `pos` in place. Call after integrating velocity.
+   * modifying `pos` in place. Call after integrating velocity; moves longer than ~r/2 per call must
+   * go through `sweepCapsule` (a single resolve can only undo penetrations shallower than r).
+   *
+   * Every touching triangle is handled on its own:
+   *  - floors (push direction ≥ ~56° up) lift the capsule straight up (no sliding down slopes);
+   *  - a ledge below STEP_HEIGHT above the feet (kerb, plinth, stair nosing) is stepped onto;
+   *  - anything else pushes the capsule out along the contact normal (walls, ceilings).
+   * A triangle that pierces the capsule's axis (a thin floor the feet sank through, a slab the
+   * capsule was placed into) pushes out along its face normal toward the side holding most of the
+   * capsule, so the capsule is never shoved through to the far side.
    */
   resolveCapsule(pos: THREE.Vector3, r: number, h: number, out?: MoveResult): MoveResult {
     const res: MoveResult = out ?? { grounded: false, groundNormal: new THREE.Vector3(0, 1, 0), hitWall: false, wallNormal: new THREE.Vector3(), surface: 'stone' };
     res.grounded = false; res.hitWall = false; res.groundNormal.set(0, 1, 0); res.wallNormal.set(0, 0, 0);
     const start = _a.set(pos.x, pos.y + r, pos.z);
     const end = _b.set(pos.x, pos.y + h - r, pos.z);
-    for (let iter = 0; iter < 3; iter++) {
+    const axis = h - 2 * r;
+    const step = Math.min(STEP_HEIGHT, r * 0.85);
+    for (let iter = 0; iter < 4; iter++) {
       let moved = false;
       for (const c of this.colliders) {
         if (!c.enabled) continue;
+        _capBox.min.set(start.x - r, start.y - r, start.z - r);
+        _capBox.max.set(start.x + r, end.y + r, start.z + r);
+        if (!_capBox.intersectsBox(c.worldBox)) continue;
         _seg.start.copy(start).applyMatrix4(c.inverse);
         _seg.end.copy(end).applyMatrix4(c.inverse);
+        _up.set(0, 1, 0).transformDirection(c.inverse); // world up in the collider's frame (rigid)
         _box.makeEmpty().expandByPoint(_seg.start).expandByPoint(_seg.end);
         _box.min.addScalar(-r); _box.max.addScalar(r);
-        const before = _seg.start.clone();
+        let touched = false;
         c.bvh.shapecast({
           intersectsBounds: (box) => box.intersectsBox(_box),
           intersectsTriangle: (tri: ExtendedTriangle) => {
-            const dist = tri.closestPointToSegment(_seg, _triP, _capP);
-            if (dist < r) {
-              const depth = r - dist;
-              _dir.copy(_capP).sub(_triP);
-              if (_dir.lengthSq() < 1e-10) tri.getNormal(_dir); else _dir.normalize();
-              _seg.start.addScaledVector(_dir, depth);
-              _seg.end.addScaledVector(_dir, depth);
+            let depth: number, faceWalkable = false, contactH = Infinity;
+            const pierce = segmentPierces(tri, _seg, _n);
+            if (pierce) {
+              // oriented face normal toward the side holding most of the capsule
+              let [s0, s1] = pierce;
+              if (Math.abs(s1) > Math.abs(s0) ? s1 < 0 : s0 < 0) { _n.negate(); s0 = -s0; s1 = -s1; }
+              _dir.copy(_n);
+              depth = r - Math.min(s0, s1);
+            } else {
+              const dist = tri.closestPointToSegment(_seg, _triP, _capP);
+              if (dist >= r) return false;
+              depth = r - dist;
+              if (dist > 1e-9) _dir.copy(_capP).sub(_triP).divideScalar(dist);
+              else { _dir.copy(_n); if (_dir.dot(_up) < 0) _dir.negate(); }
+              faceWalkable = Math.abs(_n.dot(_up)) > WALKABLE_NY || Math.abs(_n.dot(_up)) < 0.2;
+              contactH = _t.copy(_triP).sub(_seg.start).dot(_up) + r; // contact height above the feet
             }
+            const ny = _dir.dot(_up);
+            if (ny > WALKABLE_NY) {
+              // floor: pure vertical lift so the capsule does not slide down slopes
+              _seg.start.addScaledVector(_up, depth / ny); _seg.end.addScaledVector(_up, depth / ny);
+              res.grounded = true; res.surface = c.surface;
+              res.groundNormal.copy(_dir).transformDirection(c.matrix);
+            } else if (faceWalkable && contactH <= step && ny > -0.2) {
+              // a low ledge edge: rise until the bottom sphere rests on it
+              const dh = Math.sqrt(Math.max(0, _t.copy(_seg.start).sub(_triP).lengthSq() - (contactH - r) * (contactH - r)));
+              const lift = (contactH - r) + Math.sqrt(Math.max(0, r * r - dh * dh));
+              if (lift <= 1e-6) return false;
+              _seg.start.addScaledVector(_up, lift); _seg.end.addScaledVector(_up, lift);
+              res.grounded = true; res.surface = c.surface;
+              res.groundNormal.set(0, 1, 0);
+            } else {
+              _seg.start.addScaledVector(_dir, depth); _seg.end.addScaledVector(_dir, depth);
+              if (ny >= -0.5) {
+                _wn.copy(_dir).transformDirection(c.matrix).setY(0);
+                if (_wn.lengthSq() > 1e-8) { res.hitWall = true; res.wallNormal.copy(_wn.normalize()); }
+              }
+            }
+            touched = true;
             return false;
           },
         });
-        const delta = _seg.start.clone().sub(before);
-        if (delta.lengthSq() > 1e-12) {
+        if (touched) {
           moved = true;
-          // back to world space
-          _seg.start.applyMatrix4(c.matrix);
-          _seg.end.applyMatrix4(c.matrix);
-          const wd = _seg.start.clone().sub(start);
-          const len = wd.length();
-          const n = wd.clone().divideScalar(len || 1);
-          if (n.y > 0.55) {
-            // Walkable: convert the push into a pure vertical lift so we don't slide down slopes.
-            res.grounded = true;
-            res.groundNormal.copy(n);
-            res.surface = c.surface;
-            const lift = len / Math.max(n.y, 0.55);
-            start.y += Math.min(lift, len * 2); end.y = start.y + (h - 2 * r);
-            if (n.y < 0.999) { start.y = start.y; }
-          } else {
-            if (n.y < -0.5) { /* ceiling */ }
-            else { res.hitWall = true; res.wallNormal.copy(n).setY(0).normalize(); }
-            start.copy(_seg.start); end.copy(_seg.end);
-          }
+          start.copy(_seg.start).applyMatrix4(c.matrix);
+          end.set(start.x, start.y + axis, start.z); // stay upright
         }
       }
       if (!moved) break;
     }
     pos.set(start.x, start.y - r, start.z);
+    return res;
+  }
+
+  /**
+   * Move a capsule by `delta` and resolve it, in sub-steps short enough (≤ r/2) that no single
+   * resolve can start deeper than half a radius inside anything: fast falls, lunges, knock-back and
+   * shoves can never tunnel through floors or thin walls. `pos` is updated in place. The result
+   * describes the final sub-step (plus any wall touched on the way).
+   */
+  sweepCapsule(pos: THREE.Vector3, delta: THREE.Vector3, r: number, h: number, out?: MoveResult): MoveResult {
+    const res: MoveResult = out ?? { grounded: false, groundNormal: new THREE.Vector3(0, 1, 0), hitWall: false, wallNormal: new THREE.Vector3(), surface: 'stone' };
+    const len = delta.length();
+    const n = Math.max(1, Math.ceil(len / Math.max(0.02, r * 0.5)));
+    const dx = delta.x / n, dy = delta.y / n, dz = delta.z / n;
+    let wall = false;
+    const wallN = _s.set(0, 0, 0);
+    for (let i = 0; i < n; i++) {
+      pos.x += dx; pos.y += dy; pos.z += dz;
+      this.resolveCapsule(pos, r, h, res);
+      if (res.hitWall) { wall = true; wallN.copy(res.wallNormal); }
+    }
+    res.hitWall = wall; if (wall) res.wallNormal.copy(wallN);
     return res;
   }
 }

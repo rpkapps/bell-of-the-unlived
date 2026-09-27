@@ -33,6 +33,11 @@ export interface MoveInstance {
 let NEXT_ID = 1;
 
 const _hurtScale = new THREE.Vector3();
+const _mv = new THREE.Vector3();
+const _ext = new THREE.Vector3();
+const _shoveRes: MoveResult = { grounded: false, groundNormal: new THREE.Vector3(0, 1, 0), hitWall: false, wallNormal: new THREE.Vector3(), surface: 'stone' };
+/** External position changes shorter than this are swept; longer ones are teleports. */
+const MAX_SHOVE = 2.5;
 
 export abstract class Actor {
   readonly id = NEXT_ID++;
@@ -57,6 +62,9 @@ export abstract class Actor {
   groundSurface: Surface = 'stone';
   fallStartY = 0;
   private moveRes: MoveResult | undefined;
+  /** Where the last physics step left the actor: shoves applied between steps are swept from here. */
+  private readonly physPos = new THREE.Vector3();
+  private physValid = false;
 
   // ---- resources
   hp = 100; hpMax = 100;
@@ -120,6 +128,7 @@ export abstract class Actor {
     this.yaw = yaw; this.prevYaw = yaw;
     this.vel.set(0, 0, 0); this.vy = 0; this.knock.set(0, 0, 0);
     this.fallStartY = p.y;
+    this.physPos.copy(p); this.physValid = true;
     this.syncRoot(0);
     this.model?.resetSecondary();
   }
@@ -174,6 +183,17 @@ export abstract class Actor {
    * Controllers set `wish` and may start moves before this is called.
    */
   stepPhysics(dt: number, world: CollisionWorld, trackTarget: THREE.Vector3 | null, trackYaw: number | null) {
+    // Shoves applied since the last step (actor separation, grabs, critical alignment, lifts) are
+    // swept through the world too, so they cannot push anyone through a wall or floor. Longer jumps
+    // are deliberate relocations and are taken as they are.
+    if (this.physValid) {
+      _ext.copy(this.pos).sub(this.physPos);
+      const d = _ext.length();
+      if (d > 1e-6 && d < MAX_SHOVE) {
+        this.pos.copy(this.physPos);
+        world.sweepCapsule(this.pos, _ext, this.radius, this.height, _shoveRes);
+      }
+    }
     this.prevPos.copy(this.pos);
     this.prevYaw = this.yaw;
     const frozen = this.hitstop > 0;
@@ -233,16 +253,17 @@ export abstract class Actor {
     // gravity
     this.vy = this.grounded ? -2 : Math.max(this.vy - 22 * dt, -40);
     const wasGrounded = this.grounded;
-    this.pos.x += (this.vel.x + this.knock.x) * dt;
-    this.pos.z += (this.vel.z + this.knock.z) * dt;
-    this.pos.y += this.vy * dt;
-    this.moveRes = world.resolveCapsule(this.pos, this.radius, this.height, this.moveRes);
+    // Swept in sub-steps of at most half a radius: falls at terminal speed (0.67 m/step), lunges
+    // (up to ~0.4 m/step) and knock-back never tunnel through thin floors, ramps or walls.
+    _mv.set((this.vel.x + this.knock.x) * dt, this.vy * dt, (this.vel.z + this.knock.z) * dt);
+    this.moveRes = world.sweepCapsule(this.pos, _mv, this.radius, this.height, this.moveRes);
     this.grounded = this.moveRes.grounded;
     if (!this.grounded && wasGrounded && this.vy <= 0) {
       // snap down small steps/slopes
       const g = world.groundAt(this.pos.x, this.pos.y + 0.3, this.pos.z, 0.75);
       if (g && g.normal.y > 0.55) { this.pos.y = g.y; this.grounded = true; this.moveRes.surface = g.surface; }
     }
+    this.physPos.copy(this.pos); this.physValid = true;
     if (this.grounded) {
       this.groundSurface = this.moveRes.surface;
       if (!wasGrounded) this.onLand(this.fallStartY - this.pos.y);

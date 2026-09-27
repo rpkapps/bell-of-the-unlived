@@ -174,7 +174,7 @@ function homunculus(b: CharBuilder, seed: number) {
   // the jar it was grown in, still strapped to its back
   b.add('chest', xf(cyl(0.11, 0.11, -0.16, 0.14, 12, false), { p: [0, 0.12, -0.2] }), GLASS);
   b.add('chest', xf(torus(0.11, 0.012, 4, 14), { p: [0, 0.26, -0.2], r: [Math.PI / 2, 0, 0] }), BRONZE);
-  b.add('chest', xf(ellipsoid(0.06, 0.08, 0.06, { segs: 8, rows: 6 }), { p: [0, 0.08, -0.2] }), 'glass|e=c8e8c0|ei=0.9');
+  b.add('chest', xf(ellipsoid(0.06, 0.08, 0.06, { segs: 8, rows: 6 }), { p: [0, 0.08, -0.2] }), 'glass|e=c8e8c0|ei=0.35');
   bandolier(b, sex, { over: 0.02, mat: M.leatherDark, width: 0.02 });
 }
 

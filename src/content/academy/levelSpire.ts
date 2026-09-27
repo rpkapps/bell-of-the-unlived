@@ -8,7 +8,7 @@ import * as THREE from 'three';
 import type { Anchor, EnemySpawn } from '../../world/levelTypes';
 import {
   floor, parapet, stairs, stillbellShrine, bellPost, crateStack, barrel, cyl, sphere, cone, bound, masonsTools, rubble, ringSector,
-  bellGeo, type StillbellShrine, bracketLantern, towerRound, column,
+  bellGeo, type StillbellShrine, bracketLantern, towerRound, column, mergeSimple,
 } from '../../world/kit';
 import { getMaterial } from '../../render/materials';
 import { registerLight } from '../../render/lights';
@@ -76,7 +76,7 @@ export function buildSpire(ctx: AreaCtx): SpireBuild {
   k.bmm('stone_wall', Yd.x1, Y - 1, Yd.z0, Yd.x1 + 3, Y + 14, Yd.z1, { col: true, cast: true });
   for (let z = Yd.z0 + 3; z < Yd.z1 - 1; z += 4.5) k.box('window_warm', Yd.x1 - 0.02, Y + 8 + ((z * 7) % 3 > 1.5 ? 3.5 : 0), z, 0.05, 1.8, 0.9, { cast: false });
   k.bmm('roof_slate', Yd.x1 - 0.5, Y + 14, Yd.z0, Yd.x1 + 6, Y + 15, Yd.z1, { cast: true });
-  bound(k, Yd.x0, Yd.z0, Yd.x1, Yd.z0, Y, 30);
+  bound(k, Yd.x0, Yd.z0, Yd.x1, Yd.z0, Y, 6);
   cliffWall(k, Yd.x0, Yd.z0 - 1.5, -19, Yd.z0 - 1.5, Y - 1, Y + 12, 61, 1, 3);
   cliffWall(k, 7, Yd.z0 - 1.5, Yd.x1 + 3, Yd.z0 - 1.5, Y - 1, Y + 12, 62, 1, 3);
   // the drawbridge (lowered from this side) and its lever
@@ -259,21 +259,21 @@ export function buildSpire(ctx: AreaCtx): SpireBuild {
   const bellMesh = new THREE.Mesh(bellGeo(8.5, 28), getMaterial('bronze_bell'));
   bellMesh.castShadow = true;
   bell.add(bellMesh);
-  const cracks = new THREE.Group();
-  const cm = getMaterial('unlived_crack');
+  const crackParts: THREE.BufferGeometry[] = [];
   for (let i = 0; i < 9; i++) {
     const a = (i / 9) * Math.PI * 2;
     let y = -1.2, r = 3.2, ca = a;
     for (let j = 0; j < 6; j++) {
       const ny = y - 1.1, nr = 3.2 + (-(ny + 1.2) / 7.3) * 2.0, na = ca + Math.sin(i * 3 + j) * 0.12;
       const p0 = new THREE.Vector3(Math.cos(ca) * r * 1.01, y, Math.sin(ca) * r * 1.01), p1 = new THREE.Vector3(Math.cos(na) * nr * 1.01, ny, Math.sin(na) * nr * 1.01);
-      const seg = new THREE.Mesh(new THREE.BoxGeometry(0.12, p0.distanceTo(p1), 0.12), cm);
-      seg.position.copy(p0).lerp(p1, 0.5);
-      seg.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), p1.clone().sub(p0).normalize());
-      cracks.add(seg);
+      const seg = new THREE.BoxGeometry(0.12, p0.distanceTo(p1), 0.12);
+      seg.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), p1.clone().sub(p0).normalize()));
+      seg.translate((p0.x + p1.x) / 2, (p0.y + p1.y) / 2, (p0.z + p1.z) / 2);
+      crackParts.push(seg);
       y = ny; r = nr; ca = na;
     }
   }
+  const cracks = new THREE.Mesh(mergeSimple(crackParts), getMaterial('unlived_crack'));
   bell.add(cracks);
   bell.position.set(tx, T.bellY + 0.8, tz);
   ctx.dynamicRoot.add(bell);

@@ -10,7 +10,7 @@ import * as THREE from 'three';
 import type { Anchor, ArenaLayout, DynamicPiece, EnemySpawn } from '../../world/levelTypes';
 import {
   stairs, strongbox, coins, barrel, crate, sack, brazier, candles, candelabrum, cyl, sphere, stillbellShrine, type StillbellShrine,
-  lantern, weaponRack, armourStand, rubble,
+  lantern, weaponRack, armourStand, rubble, lathe,
 } from '../../world/kit';
 import { type AreaCtx, newKit, anchor, P, Y, V, YAW_E, YAW_W, YAW_N, YAW_S } from './levelPlan';
 import { roomWalls, slab, segVault, coffered, ledgerWall, railing, countingDesk } from './levelRooms';
@@ -128,11 +128,11 @@ export function buildVaults(ctx: AreaCtx): VaultsBuild {
     hk.pop();
   }
   // domed ceiling (stepped rings)
-  for (let i = 0; i < 5; i++) {
-    const r = HR + 0.8 - i * 2.2;
-    hk.add('stone_dark', cyl(r, r + 0.4, 0.8, 32, true), { x: HC.x, y: Y.deep + 6.5 + i * 0.8, z: HC.z });
-  }
-  hk.add('stone_dark', cyl(2.6, 2.6, 0.5, 20), { x: HC.x, y: Y.deep + 10.5, z: HC.z });
+  const domeProfile: [number, number][] = [];
+  for (let i = 0; i <= 10; i++) { const a = (i / 10) * (Math.PI / 2); domeProfile.push([Math.max(0.001, Math.cos(a) * (HR + 0.8)), 6.4 + Math.sin(a) * 4.2]); }
+  hk.add('stone_dark', lathe(domeProfile, 32), { x: HC.x, y: Y.deep, z: HC.z });
+  hk.add('stone_dark', lathe(domeProfile.slice().reverse(), 32), { x: HC.x, y: Y.deep - 0.02, z: HC.z });
+  for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; hk.box('stone_trim', HC.x + Math.sin(a) * 6, Y.deep + 9.4, HC.z + Math.cos(a) * 6, 0.4, 0.35, 8.5, { ry: a, rx: -0.5, cast: false }); }
   // heaps of coin against the wall (low colliders), toppled chests, a throne of strongboxes
   for (let i = 0; i < 16; i++) {
     const a = (i / 16) * Math.PI * 2 + 0.2;

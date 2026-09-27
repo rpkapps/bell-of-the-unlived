@@ -89,7 +89,7 @@ export function epilogueCards(id: EndingId, ws: WorldState): CinematicCard[] {
       P('The Covenant came apart like wet thread. Every Stillbell in the kingdom rang once, and then never again.', 6),
       P('No one would return now. Not the king. Not me.', 4),
       ...livedCard('They never knew how near the end had come, and I did not tell them.'),
-      ...lostCard(oswinLived ? 'I said their names on the stair, the way Oswin says them.' : 'I said their names on the stair. Someone had to.'),
+      ...lostCard(`I said ${lost.length === 1 ? 'the name' : 'their names'} on the stair${oswinLived ? ', the way Oswin says them' : '. Someone had to'}.`),
       P('The war came, as it was always going to. The kingdom lost a province, and then a second, and held the river.', 6),
       P('It was a smaller kingdom. It was the one that happened.', 4.5),
       P(muster ? 'The Greyford muster kept its watch beneath Ashbridge until the light went out of them, one by one, at peace.' : 'The Unlived faded with the bells. No one remembered their wars. I tried.', 6),
@@ -124,7 +124,7 @@ export function epilogueCards(id: EndingId, ws: WorldState): CinematicCard[] {
       P('And the discarded histories came down the Belfry stair and did not vanish. They were given a place.', 6),
       P('The Greyford muster marched out of the ground beneath Ashbridge under their captain\'s banner. Sergeant Brannoc asked me for orders. I told him there were none. He laughed.', 7),
       ...livedCard('Now they have neighbours from other histories, who remember them differently, and are sometimes right.'),
-      ...lostCard('Even a sheltered history keeps its losses. We keep a chair for each of them.'),
+      ...lostCard(`Even a sheltered history keeps its losses. We keep a chair for ${lost.length === 1 ? 'that one' : 'each of them'}.`),
       P('The river guilds of the Ninth Future opened their granaries in a kingdom that had never heard of them.', 6),
       ...(record ? [P('The council of seven came down from the Coronation and took seats among the Estates. They were very good at arguing.', 6)] : []),
       P(keeper ? 'The Bellkeeper\'s book was read aloud in the square, every name in it. For once, no one forgot.' : 'Even the Condemned Bellkeeper was offered a place. They say he refused, and kept his brazier lit, in case.', 6),
@@ -193,8 +193,18 @@ export class BelfryRegion extends RegionBase {
   private distantTollT = 30;
   private readonly waveMat = new THREE.MeshBasicMaterial({ color: 0xffd9a0, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false });
 
+  /** Interior kits per floor (F1..F5) and the name-plates, hidden when they cannot be seen. */
+  private floorGroups: THREE.Object3D[][] = [];
+
   constructor(game: Game, session: Session, L: BelfryLayout, info: RegionInfo) {
     super(game, session, L, info);
+    for (let f = 1; f <= 5; f++) {
+      const list: THREE.Object3D[] = [];
+      const kit = L.root.getObjectByName('kit:tower.f' + f);
+      if (kit) list.push(kit);
+      if (f === 3) { const plates = L.root.getObjectByName('inst:bf_plate'); if (plates) list.push(plates); }
+      this.floorGroups.push(list);
+    }
     const waveGeo = new THREE.RingGeometry(0.93, 1, 64, 1).rotateX(-Math.PI / 2);
     for (let i = 0; i < 3; i++) {
       const m = new THREE.Mesh(waveGeo, this.waveMat);
@@ -546,6 +556,17 @@ export class BelfryRegion extends RegionBase {
 
   override frame(dt: number) {
     super.frame(dt);
+    // interior floors: only the player's floor and its neighbours (the panes are opaque; from
+    // outside the tower nothing inside can be seen except through the doorways of F1 and F5)
+    const p = this.player?.pos;
+    if (p) {
+      const inside = Math.abs(p.x) < PLAN.H + 0.4 && Math.abs(p.z) < PLAN.H + 0.4 && p.y < PLAN.roof - 0.5;
+      const fl = Math.max(0, Math.min(4, Math.floor((p.y + 1) / 7)));
+      for (let i = 0; i < 5; i++) {
+        const near = inside ? Math.abs(i - fl) <= 1 : (i === 0 && p.y < 4 && p.z > 0) || (i === 4 && p.y > 24) || (i === 2 && p.x < -14 && p.y > 6 && p.y < 17);
+        for (const o of this.floorGroups[i]) o.visible = near;
+      }
+    }
     // ring-band telegraphs: brighten over the warning, flash on detonation, fade
     const b = this.bosses.get('aldren');
     const bands = this.BL.bands;

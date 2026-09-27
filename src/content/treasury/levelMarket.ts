@@ -56,11 +56,11 @@ export function buildMarket(ctx: AreaCtx): MarketBuild {
   // canal bed (dry to the north of the weir, drowned to the south) and the culvert floor
   k.solid(C.x0, Y.canal - 0.5, P.culvert.z0, C.x1, Y.canal, C.z1);
   k.bmm('mud', C.x0, Y.canal - 0.3, P.weirZ, C.x1, Y.canal, C.z1, { cast: false });
-  k.bmm('dirt', C.x0, Y.canal - 0.3, C.z0, C.x1, Y.canal, P.weirZ, { cast: false, uv: 'world' });
+  k.bmm('mud', C.x0, Y.canal - 0.3, P.culvert.z0, C.x1, Y.canal, P.weirZ, { cast: false, uv: 'world' });
   // cracks in the dry bed: dark polygons of shrinkage
-  for (let i = 0; i < 70; i++) {
-    const x = k.rng.range(C.x0 + 0.3, C.x1 - 0.3), z = k.rng.range(C.z0 + 0.5, P.weirZ - 0.8);
-    k.box('stone_dark', x, Y.canal + 0.006, z, k.rng.range(0.6, 1.8), 0.012, 0.035, { ry: k.rng.range(0, Math.PI), cast: false });
+  for (let i = 0; i < 110; i++) {
+    const x = k.rng.range(C.x0 + 0.3, C.x1 - 0.3), z = k.rng.range(P.culvert.z0 + 0.5, P.weirZ - 0.8);
+    k.box('stone_dark', x, Y.canal + 0.006, z, k.rng.range(0.6, 1.8), 0.012, 0.06, { ry: k.rng.range(0, Math.PI), cast: false });
   }
   // canal walls (quay faces), coping and mooring rings
   for (const s of [-1, 1]) {
@@ -192,6 +192,11 @@ export function buildMarket(ctx: AreaCtx): MarketBuild {
     house(k, P.eastQuay.x1, 0, z, YAW_W, { w: 7.6, d: 8, storeys: 3, stoneBase: true, burned: !!h.burned, lit: h.lit ?? 0, shop: true, chimneys: 1, seed: 420 + i, roof: i % 2 ? 'side' : 'front' });
   });
   bound(k, P.eastQuay.x1, P.marketZ.z0, P.eastQuay.x1, P.marketZ.z1, 0, 6);
+  house(k, P.eastQuay.x1, 0, -55.2, YAW_W, { w: 9.4, d: 9, storeys: 4, stoneBase: true, stone: true, lit: 0.0, seed: 437, roof: 'side' });
+  // the mint annex east of the Hall of Weights (closes the view past the hall)
+  k.bmm('stone_wall', P.hall.x1, 0, P.hall.z0 - 6, P.hall.x1 + 16, 15, P.hall.z1 + 0.5, { cast: true });
+  gableRoof(k, P.hall.x1 + 8, 15, (P.hall.z0 - 6 + P.hall.z1) / 2, 0, 16.6, P.hall.z1 - P.hall.z0 + 7, { gableMat: 'stone_wall', pitch: 0.7 });
+  for (let i = 0; i < 4; i++) k.box('window_warm', P.hall.x1 + 2.5 + i * 3.6, 9.5, P.hall.z1 + 0.52, 0.9, 1.8, 0.06, { cast: false });
   // boarded windows and doors on the dark houses
   for (const [z, y] of [[9.6, 1.4], [-6.4, 4.2], [-30.4, 1.4], [-30.4, 4.2], [-46.4, 1.4]] as const) {
     for (let j = 0; j < 3; j++) k.box('planks', P.eastQuay.x1 - 0.3, y + j * 0.28 - 0.3, z + k.rng.range(-0.2, 0.2), 0.05, 0.18, 1.5, { rx: k.rng.range(-0.15, 0.15), cast: false });
@@ -430,7 +435,6 @@ function buildOverlay(ctx: AreaCtx, stallZ: number[]): DynamicPiece & { tick(t: 
     for (let j = 0; j < 4; j++) add(new THREE.CylinderGeometry(0.05, 0.035, 0.16, 8), 12.05, 1.04, z + 0.8 - j * 0.5);
   }
   // a ghost of the banquet laid over the bread line
-  add(new THREE.BoxGeometry(6, 0.06, 1.0), 10.5, 0.8, -49.6);
   for (let j = 0; j < 7; j++) add(new THREE.CylinderGeometry(0.16, 0.12, 0.03, 10), 7.8 + j * 0.9, 0.84, -49.6);
   let gone = 0;
   const piece = {

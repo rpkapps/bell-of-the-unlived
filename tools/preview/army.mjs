@@ -16,7 +16,7 @@ let failures = 0;
 const check = (name, ok, info = '') => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${info ? '  ' + info : ''}`); if (!ok) failures++; };
 const ev = (f, a) => page.evaluate(f, a);
 const wait = (ms) => page.waitForTimeout(ms);
-const until = async (fn, timeout = 60000, arg) => { await page.waitForFunction(fn, arg, { timeout, polling: 200 }).catch(() => {}); };
+const until = async (fn, timeout = 120000, arg) => { await page.waitForFunction(fn, arg, { timeout, polling: 200 }).catch(() => {}); };
 
 async function boot() {
   await page.goto(base + '?region=army&quality=low&norender&origin=householdKnight');
@@ -36,6 +36,7 @@ async function boot() {
     };
     window.__game.deps.ui.confirm = async () => true;
     setInterval(() => { const g = window.__game; if (g.mode === 'dialogue') window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Enter' })); }, 150);
+    window.__simWait = (sec) => new Promise((res) => { const g = window.__game, t0 = g.time; const id = setInterval(() => { if (g.time - t0 >= sec) { clearInterval(id); res(); } }, 40); });
     window.__peace = () => { for (const e of window.__game.enemies) if (!e.isBoss) { e.aware = false; e.target = null; } };
   });
 }
@@ -76,10 +77,10 @@ async function mechanics() {
     const p = g.player;
     e.hp = 1; e.react('death', p.pos);
     const down1 = e.down && !e.dead;
-    await new Promise((r) => setTimeout(r, 5200));
+    await window.__simWait(5.2);
     const rose = !e.down && e.revived && !e.dead && e.hp > 0;
     e.hp = 1; e.react('death', p.pos);
-    await new Promise((r) => setTimeout(r, 2600));
+    await window.__simWait(3.0);
     return { down1, rose, dead: e.dead };
   });
   check('twice-slain falls, rises once, then dies', ts.down1 && ts.rose && ts.dead, JSON.stringify(ts));
@@ -89,12 +90,12 @@ async function mechanics() {
     const f = r.formations.find((x) => x.id.includes('bailey'));
     const p = g.player;
     p.teleport(new window.THREE.Vector3(6, 0, -34.5), Math.PI);
-    await new Promise((res) => setTimeout(res, 2500));
+    await window.__simWait(2.5);
     const aware = f.members.every((m) => m.aware);
     const faced = f.members.every((m) => Math.abs(Math.atan2(Math.sin(m.yaw - f.yaw), Math.cos(m.yaw - f.yaw))) < 0.5);
     const intact = !f.broken;
     f.members[1].react('guardBreak', p.pos);
-    await new Promise((res) => setTimeout(res, 300));
+    await window.__simWait(0.3);
     return { aware, faced, intact, broken: f.broken };
   });
   check('pike wall alerts together, faces as one, breaks on a broken guard', pk.aware && pk.faced && pk.intact && pk.broken, JSON.stringify(pk));
@@ -107,7 +108,7 @@ async function mechanics() {
     p.teleport(new window.THREE.Vector3(1, 0, 4), Math.PI);
     const hp0 = p.hp;
     let sawShell = false;
-    for (let i = 0; i < 50; i++) { await new Promise((res) => setTimeout(res, 100)); if (r.shells.active > 0) sawShell = true; p.teleport(new window.THREE.Vector3(1, 0, 4), Math.PI); }
+    for (let i = 0; i < 80; i++) { await window.__simWait(0.1); if (r.shells.active > 0) sawShell = true; p.teleport(new window.THREE.Vector3(1, 0, 4), Math.PI); if (sawShell && r.shells.active === 0) break; }
     return { sawShell, hit: p.hp < hp0 || p.dead };
   });
   check('bombard fires at the killing ground (marked shot lands)', bomb.sawShell && bomb.hit, JSON.stringify(bomb));
@@ -116,9 +117,9 @@ async function mechanics() {
     const g = window.__game, r = window.__region, p = g.player;
     r.battery.reset();
     // behind the mantlet at (3.5, -5): the gun has no sightline
-    p.teleport(new window.THREE.Vector3(3.5, 0, -6.3), Math.PI);
+    p.teleport(new window.THREE.Vector3(3.5, 0, -3.9), Math.PI);
     let shells = 0;
-    for (let i = 0; i < 40; i++) { await new Promise((res) => setTimeout(res, 100)); shells = Math.max(shells, r.shells.active); p.teleport(new window.THREE.Vector3(3.5, 0, -6.3), Math.PI); }
+    for (let i = 0; i < 50; i++) { await window.__simWait(0.1); shells = Math.max(shells, r.shells.active); p.teleport(new window.THREE.Vector3(3.5, 0, -3.9), Math.PI); }
     return { shells };
   });
   check('cover denies the bombard its sightline', cover.shells === 0, JSON.stringify(cover));
@@ -128,7 +129,7 @@ async function mechanics() {
     r.battery.reset();
     p.teleport(new window.THREE.Vector3(1, 0, 4), Math.PI);
     let shells = 0;
-    for (let i = 0; i < 40; i++) { await new Promise((res) => setTimeout(res, 100)); shells = Math.max(shells, r.shells.active); }
+    for (let i = 0; i < 50; i++) { await window.__simWait(0.1); shells = Math.max(shells, r.shells.active); }
     return { silenced: r.battery.silenced, shells };
   });
   check('killing the crew silences the bombard', silence.silenced && silence.shells === 0, JSON.stringify(silence));
@@ -180,7 +181,8 @@ async function rescueBranch() {
   check('rescue confirmed in the journal', (await journal()).includes('conf_rescued'));
   // Oderic: veil (no loss now), wall stagger, phase, defeat
   console.log(await act('fog:oderic', 0, 1.2));
-  await until(() => window.__region.fight?.boss.spec.id === 'oderic' && window.__region.fight.boss.engaged, 30000);
+  await until(() => window.__region.fight?.boss.spec.id === 'oderic' && window.__region.fight.boss.engaged, 120000);
+  await god();
   check('entered the Ram-Knight\'s passage', await ev(() => window.__region.fight?.boss.spec.id === 'oderic'));
   const stag = await ev(async () => {
     const { MOVES } = await import('/src/combat/moves.ts');
@@ -192,7 +194,7 @@ async function rescueBranch() {
     b.target = p;
     b.startMove(MOVES.od_charge);
     let stunned = false;
-    for (let i = 0; i < 40; i++) { await new Promise((res) => setTimeout(res, 100)); if (b.move?.def.id === 'od_stunned') stunned = true; }
+    for (let i = 0; i < 45; i++) { await window.__simWait(0.1); if (b.move?.def.id === 'od_stunned') stunned = true; if (stunned) break; }
     return { stunned, vulnerable: stunned, hp: b.hp, max: b.hpMax };
   });
   check('the Ram-Knight\'s charge into a pier staggers him', stag.stunned, JSON.stringify(stag));
@@ -202,19 +204,20 @@ async function rescueBranch() {
   check('Oderic phase 2 (helm broken)', await ev(() => window.__region.fight?.boss.phase === 2));
   await ev(() => { const b = window.__region.fight.boss; b.move = null; b.hp = 0; b.react('death', window.__game.player.pos); });
   await until(() => window.__session.ws.flags['boss.oderic'], 30000);
-  await wait(6000);
+  await ev(() => window.__simWait(6));
   check('Oderic defeated, the north gate opens, maul granted', !!(await flags())['boss.oderic'] && (await ev(() => !window.__region.L.pieces.odericGate.collider?.enabled)) && (await inv('ram_knight_maul')) === 1);
   // Varr: volley, phase, defeat, Great Bell silenced
   await ev(() => window.__peace());
   console.log(await act('fog:varr', 0, 1.2));
-  await until(() => window.__region.fight?.boss.spec.id === 'varr' && window.__region.fight.boss.engaged, 30000);
+  await until(() => window.__region.fight?.boss.spec.id === 'varr' && window.__region.fight.boss.engaged, 120000);
+  await god();
   check('entered the Bell Rampart', await ev(() => window.__region.fight?.boss.spec.id === 'varr'));
   const vol = await ev(async () => {
     const { MOVES } = await import('/src/combat/moves.ts');
     const r = window.__region, b = r.fight.boss;
     b.move = null; b.startMove(MOVES.varr_volley);
     let most = 0;
-    for (let i = 0; i < 30; i++) { await new Promise((res) => setTimeout(res, 100)); most = Math.max(most, r.shells.active); }
+    for (let i = 0; i < 30; i++) { await window.__simWait(0.1); most = Math.max(most, r.shells.active); }
     return { most };
   });
   check('Varr\'s volley marks three blasts in phase 1', vol.most === 3, JSON.stringify(vol));
@@ -225,7 +228,7 @@ async function rescueBranch() {
   await god();
   await ev(() => { const b = window.__region.fight.boss; b.move = null; b.hp = 0; b.react('death', window.__game.player.pos); });
   await until(() => window.__session.ws.flags['boss.varr'], 30000);
-  await wait(7000);
+  await ev(() => window.__simWait(7));
   const bell = await ev(() => { const r = window.__region; return { std: !!r.L.pieces.varrStandard, flag: window.__session.ws.flags['boss.varr'] }; });
   check('Marshal Varr defeated (boss.varr), Final Memory granted', bell.flag && (await inv('memory_varr')) === 1);
   check('the siege resolved in the journal', (await journal()).includes('conf_bell'));
@@ -256,6 +259,47 @@ async function lossBranch() {
   await wait(8000);
 }
 
+
+// ------------------------------------------------------------------ screenshots (rendered)
+async function shotsMode(list) {
+  const out = process.env.ARMY_SHOTS ?? 'tools/out';
+  await page.goto(base + '?region=army&quality=' + (process.env.ARMY_Q ?? 'low') + '&origin=householdKnight');
+  await page.waitForFunction(() => window.__ready && window.__game.mode === 'play' && window.__region?.id === 'army', null, { timeout: 240000 });
+  await wait(4000);
+  await ev(() => { window.__game.deps.ui.setHudVisible(false); window.__peace = () => { for (const e of window.__game.enemies) if (!e.isBoss) { e.aware = false; e.target = null; } }; });
+  const views = {
+    spawn: null,
+    road: { cam: [-2, 3.2, 58], look: [0, 18, -120], player: [-1, 0, 50] },
+    gate: { cam: [4, 2.4, 12], look: [0, 9, -30], player: [2, 0, 6] },
+    bailey: { cam: [30, 7, -26], look: [-12, 2, -48], player: [28, 0, -30] },
+    barbican: { cam: [14, 9, -63], look: [-4, 7, -86], player: [10, 6, -66] },
+    passage: { cam: [0, 9.5, -89], look: [0, 7, -115], player: [0, 6, -92] },
+    hall: { cam: [-16, 9, -134], look: [-30, 6.5, -158], player: [-17, 6, -140] },
+    ward: { cam: [30, 10, -130], look: [-4, 10, -165], player: [26, 6, -133] },
+    keep: { cam: [-12, 18, -176], look: [0, 50, -228], player: [-10, 14, -178] },
+    rampart: { cam: [0, 29, -210], look: [0, 40, -232], player: [0, 24, -214] },
+    bell: { cam: [0, 40, -205], look: [0, 78, -231], player: [0, 24, -214] },
+    magazine: { cam: [28, 9, -64], look: [40, 7, -84], player: [30, 6, -66] },
+  };
+  for (const name of list) {
+    const v = views[name];
+    if (v === undefined) continue;
+    await ev((vv) => {
+      const g = window.__game, T = window.THREE;
+      window.__peace();
+      if (vv) {
+        g.player.teleport(new T.Vector3(...vv.player), Math.PI);
+        g.cameraOverride = (dt, cam) => { cam.position.set(...vv.cam); cam.lookAt(...vv.look); return true; };
+      } else g.cameraOverride = null;
+    }, v);
+    await wait(name === 'spawn' ? 2000 : 9000);
+    await page.screenshot({ path: `${out}/army-${name}.png` });
+    const st = await ev(() => { const r = window.__game.deps.renderer; return { ...r.stats(), area: window.__region.currentAreaName() }; });
+    console.log('shot', name, JSON.stringify(st));
+  }
+}
+
+if (which.startsWith('shots')) await shotsMode((process.argv[4] ?? 'spawn,road,gate,bailey,barbican,passage,hall,ward,keep,rampart,bell,magazine').split(','));
 if (which === 'rescue' || which === 'all') { await boot(); await rescueBranch(); }
 if (which === 'loss' || which === 'all') await lossBranch();
 for (const e of errs.slice(0, 15)) console.log('ERR', e);

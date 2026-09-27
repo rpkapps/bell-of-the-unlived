@@ -53,7 +53,7 @@ export const PLAN = {
   chapel: { x0: -32, x1: -20, z0: -36, z1: -24, y: 12, doorZ0: -31.4, doorZ1: -28.6 },
   front: { z0: -42, z1: -40, doorX: 3, doorH: 9.2 },
   towers: { half: 5, zc: -41, xc: 13, top: 58 },
-  bell: { x: 0, y: 47, z: -37.2, h: 9.5 },
+  bell: { x: 0, y: 47.6, z: -36.6, h: 11.5 },
   // the Name-Ossuary (y = 4)
   passage: { x0: 7, x1: 20, z0: 0.8, z1: 4.4, y: 4 },
   grate: { x0: 12.2, x1: 15.8, zTop: 4.4, zBottom: 14.6 },

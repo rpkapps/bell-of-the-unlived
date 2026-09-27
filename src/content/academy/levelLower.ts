@@ -90,18 +90,18 @@ export function buildLower(ctx: AreaCtx): LowerBuild {
   parapet(l, 'stone_wall', C.x1 + 0.2, L.z1, L.x1, L.z1, L.y);
   parapet(l, 'stone_wall', L.x0, L.z0 + 0.5, L.x0, 23.6, L.y);
   parapet(l, 'stone_wall', L.x0, 27.4, L.x0, L.z1, L.y);
-  parapet(l, 'stone_wall', L.x1, L.z0 + 0.2, L.x1, 27.6, L.y);
-  parapet(l, 'stone_wall', L.x1, 29.6, L.x1, L.z1, L.y);
+  parapet(l, 'stone_wall', L.x1, L.z0 + 0.2, L.x1, 29.5, L.y);
   // the cliff face behind the landing, with the sea gate passage
   cliffWall(l, -15, CZ + 0.4, G.x0 - 1.2, CZ + 0.4, -4, 19, 11, 1, 2.2);
   cliffWall(l, G.x1 + 1.2, CZ + 0.4, 44, CZ + 0.4, -4, 19, 12, 1, 2.4);
   l.bmm('stone_dark', G.x0 - 1.2, G.h + 1.6 + L.y, CZ - 1.2, G.x1 + 1.2, 18, CZ + 0.6, { cast: true });
-  l.solid(-60, -6, CZ - 0.2, G.x0, 40, CZ + 0.6);
-  l.solid(G.x1, -6, CZ - 0.2, 60, 40, CZ + 0.6);
+  l.solid(-14.5, -6, CZ - 0.2, G.x0, 40, CZ + 0.6);
+  l.solid(G.x1, -6, CZ - 0.2, 44, 40, CZ + 0.6);
   l.solid(G.x0, L.y + G.h + 0.5, CZ - 0.2, G.x1, 40, CZ + 0.6);
   archway(l, 'stone_wall', 0, L.y, CZ + 0.5, 0, G.x1 - G.x0 + 0.2, G.h - 1.3, 1.6, 'pointed', 1.1, 0.9, false);
   academyMark(l, 0, L.y + G.h + 2.3, CZ + 1.35, YAW_S, 1.0);
   pieces.seaGate = portcullis(ctx, 'seaGate', 0, L.y, CZ - 0.1, 0, G.x1 - G.x0 + 0.1, G.h + 0.6);
+  floor(l, 'flagstone', G.x0 - 0.1, CZ - 2.2, G.x1 + 0.1, L.z0 + 0.2, L.y, 0.5);
   // landing dressing: a toll post, crates, nets and a beached skiff
   bellPost(l, 6.5, L.y, 25.5, YAW_W);
   crateStack(l, -9.5, L.y, 21.6, 0.3);
@@ -126,7 +126,7 @@ export function buildLower(ctx: AreaCtx): LowerBuild {
   enemies.push({ id: 'ac_hom_l2', kind: 'homunculus', anchor: anchor(0.5, L.y, 23.5, YAW_S), leash: 16 });
   enemies.push({ id: 'ac_hom_l3', kind: 'homunculus', anchor: anchor(3.4, L.y, 27.8, YAW_S), leash: 16 });
   // secret: stair down to the tidal rocks (Bellbronze Shard)
-  stairs(l, 'stone_dark', [11, L.y, 28.6], [15.4, 0.3, 28.6], 1.6);
+  stairs(l, 'stone_dark', [10.9, L.y, 30.3], [15.4, 0.3, 30.3], 1.3);
   l.bmm('rock_cliff', 15, -5, 25.2, 21.5, 0.3, 32, { col: true, cast: true });
   for (const [x, z, r] of [[15.5, 25.3, 1.6], [21.6, 26.5, 2.0], [21.2, 31.5, 1.7], [17.5, 32.3, 1.5], [19, 25, 1.3]] as const) rockProp(l, x, -0.8, z, r, Math.round(x * z), 0.7);
   anchors.shard = anchor(19.6, 0.3, 30.2, YAW_E);
@@ -348,11 +348,11 @@ function buildTheatre(ctx: AreaCtx, anchors: Record<string, Anchor>, pieces: Rec
     rockProp(k, C.x + Math.cos(a) * r, theatreY(C.x + Math.cos(a) * r, C.z - Math.sin(a) * r) - 0.1, C.z - Math.sin(a) * r, 0.25 + (j % 3) * 0.12, j * 13, 0.55, 'rock_cliff');
   }
   // a beached skiff in the orchestra, half in the standing water
-  k.push(C.x + 3.6, Y, C.z + 2.4, 0.9);
+  k.push(C.x + 9.5, Y, C.z - 1.6, 1.35);
   k.add('timber_dark', extrudeXY([[-0.9, 0.2], [0.9, 0.2], [0.6, -0.4], [-0.6, -0.4]], 3.4), { y: 0.4, rz: 0.2 }, { cast: true });
   k.box('planks', 0, 0.55, 0, 1.4, 0.05, 2.6, { rz: 0.2, cast: false });
   k.pop();
-  k.solid(C.x + 2.4, Y, C.z + 0.8, C.x + 4.8, Y + 1.0, C.z + 4.0, 'wood');
+  k.solid(C.x + 7.7, Y, C.z - 2.8, C.x + 11.3, Y + 1.0, C.z - 0.4, 'wood');
   // the stage: a great lens on a stand, the lecturer's podium, chalkboards (one ruined)
   lensApparatus(k, C.x, Y, C.z - 2.4, YAW_S, 1.3, 2.4);
   desk(k, C.x - 3.5, Y, C.z - 1.2, YAW_S);
@@ -410,7 +410,7 @@ function buildTheatre(ctx: AreaCtx, anchors: Record<string, Anchor>, pieces: Rec
   enemies.push({ id: 'ac_aco_theatre_w', kind: 'glassAcolyte', anchor: anchor(C.x - 12, theatreY(C.x - 12, C.z + 9.5), C.z + 9.5, YAW_N), leash: 12 });
   enemies.push({ id: 'ac_aco_theatre_e', kind: 'glassAcolyte', anchor: anchor(C.x + 12, theatreY(C.x + 12, C.z + 9), C.z + 9, YAW_N), leash: 12 });
   enemies.push({ id: 'ac_echo_theatre', kind: 'echoConstruct', anchor: anchor(C.x - 1.5, Y, C.z + 3.2, YAW_S), leash: 14 });
-  enemies.push({ id: 'ac_hom_theatre1', kind: 'homunculus', anchor: anchor(C.x + 10, Y, C.z - 1, YAW_W), leash: 14 });
-  enemies.push({ id: 'ac_hom_theatre2', kind: 'homunculus', anchor: anchor(C.x + 12.5, Y, C.z - 2.5, YAW_W), leash: 14 });
+  enemies.push({ id: 'ac_hom_theatre1', kind: 'homunculus', anchor: anchor(C.x + 4.6, Y, C.z + 0.8, YAW_W), leash: 14 });
+  enemies.push({ id: 'ac_hom_theatre2', kind: 'homunculus', anchor: anchor(C.x + 13, Y, C.z - 1.2, YAW_W), leash: 14 });
   void YAW_E;
 }

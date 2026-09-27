@@ -58,7 +58,7 @@ function backCloth(b: CharBuilder, sex: Sex, mat = 'parchment|t=d8ccb0') {
   b.add('hips', xf(box(0.2, 0.16, 0.006), { p: [0, y, z - 0.004] }), mat, { skin: trunkSkin });
   const lines: G[] = [];
   for (let i = 0; i < 3; i++) lines.push(xf(box(0.13 - i * 0.02, 0.008, 0.004), { p: [0, y + 0.04 - i * 0.035, z - 0.009] }));
-  b.add('hips', merge(lines), INK, { skin: trunkSkin });
+  b.add('hips', merge(lines), M.shadow, { skin: trunkSkin });
 }
 
 /** Little pilgrim bells on a rope belt. */
@@ -83,18 +83,15 @@ function pilgrim(b: CharBuilder, seed: number) {
   addShoulders(b, sex, wool, 0.02);
   robeSkirt(b, sex, { mat: wool, y0: 0.12, hem: -0.92, r1: [0.26, 0.22], tatter: 0.14, cols: 20, rows: 10 });
   mantle(b, sex, { mat: v.chance(0.5) ? ASH : wool, len: 0.34, tatter: 0.22 });
-  belt(b, sex, { y: 0.08, over: 0.045, mat: M.rope, pouches: 1, buckle: M.iron, strapEnd: false });
+  belt(b, sex, { y: 0.08, over: 0.045, mat: M.rope, pouches: 0, buckle: 'bronze_bell', strapEnd: false });
   beltBells(b, sex, v.int(1, 3));
-  bandolier(b, sex, { over: 0.05, mat: M.leather, fromLeft: v.chance(0.5) });
-  backCloth(b, sex);
+  backCloth(b, sex, ASH);
   addArms(b, sex, wool, { inflate: 0.018, foreY1: -0.16, crack: 0.5 });
   addArms(b, sex, SKIN_PALE, { upper: false });
-  addHands(b, 'wrapped', SKIN_PALE, 'cloth_linen|t=a09880');
-  addLegs(b, sex, 'cloth_brown|t=6a6258', { inflate: 0.01 });
-  addFeet(b, sex, v.chance(0.5) ? 'wrap' : 'sandal', M.leather);
-  hood(b, { mat: v.chance(0.5) ? wool : ASH, trim: null, depth: 1.3, tip: 0.1, open: 0.85 });
-  // a scallop badge on the hood (the pilgrim's mark)
-  b.add('chest', xf(ellipsoid(0.03, 0.026, 0.008, { segs: 10, rows: 4 }), { p: [0.09, 0.24, 0.1] }), 'bone', { skin: () => [['chest', 1]] });
+  addHands(b, 'wrapped', SKIN_PALE, ASH);
+  addLegs(b, sex, wool, { inflate: 0.01 });
+  addFeet(b, sex, 'wrap', ASH);
+  hood(b, { mat: ASH, trim: null, depth: 1.3, tip: 0.1, open: 0.85 });
 }
 
 function flagellant(b: CharBuilder, seed: number) {
@@ -145,18 +142,18 @@ function healer(b: CharBuilder, seed: number) {
   robeSkirt(b, sex, { mat: PALE, y0: 0.12, hem: -1.02, r1: [0.3, 0.26], tatter: 0.05, trim: GILT, cols: 24, rows: 12 });
   tabard(b, sex, { mat: 'cloth_red|t=a07068', top: 0.54, hem: -0.95, over: 0.03, w: [0.06, 0.07, 0.08], tatter: 0.04, trim: GILT });
   mantle(b, sex, { mat: PALE, len: 0.36, trim: GILT, emb: true });
-  belt(b, sex, { y: 0.1, over: 0.04, mat: M.rope, pouches: 0, strapEnd: false });
-  beads(b, 'hips', [0.1, 0.06, trunkZ(sex, b.shoulder, 0.1, 0.06, 1, 0.05)], 0.05, 0.14, 'bone', 'bronze_bell', trunkSkin);
+  belt(b, sex, { y: 0.1, over: 0.04, mat: GILT, buckle: GILT, pouches: 0, strapEnd: false });
+  beads(b, 'hips', [0.1, 0.06, trunkZ(sex, b.shoulder, 0.1, 0.06, 1, 0.05)], 0.05, 0.14, GILT, GILT, trunkSkin);
   addArms(b, sex, PALE, { inflate: 0.012 });
   bellSleeves(b, sex, { mat: PALE, trim: GILT, flare: 0.12, len: 0.3, emb: true });
-  addHands(b, 'glove', 'cloth_linen|t=f0e8d8', 'cloth_linen|t=f0e8d8');
+  addHands(b, 'glove', PALE, PALE);
   addLegs(b, sex, PALE);
-  addFeet(b, sex, 'boot', M.leatherDark);
+  addFeet(b, sex, 'boot', PALE);
   // tall mitre and a face veil
   b.add('head', loft([{ y: 0.19, rx: 0.1, rz: 0.11 }, { y: 0.36, rx: 0.09, rz: 0.05 }, { y: 0.46, rx: 0.004, rz: 0.004 }], { segs: 14, capBottom: true }), PALE, { skin: () => [['head', 1]] });
   b.add('head', loft([{ y: 0.2, rx: 0.104, rz: 0.114 }, { y: 0.16, rx: 0.104, rz: 0.114 }], { segs: 16, inflate: 0.004 }), GILT, { skin: () => [['head', 1]] });
   b.add('head', xf(box(0.02, 0.26, 0.012), { p: [0, 0.31, 0.083], r: [-0.28, 0, 0] }), GILT, { skin: () => [['head', 1]] });
-  veil(b, { mat: 'cloth_linen|t=e8e0d0', face: true, y: 0.15, r: 0.13 });
+  veil(b, { mat: PALE, face: true, y: 0.15, r: 0.13 });
 }
 
 function mourner(b: CharBuilder, seed: number) {
@@ -169,21 +166,21 @@ function mourner(b: CharBuilder, seed: number) {
   addTrunk(b, sex, BLACK, { y0: -0.16, y1: 0.56, inflate: 0.03, radial: quilted(16, 10, 0.03), crack: 0.6 });
   addShoulders(b, sex, BLACK, 0.03);
   robeSkirt(b, sex, { mat: BLACK, y0: 0.12, hem: -0.98, r1: [0.32, 0.28], tatter: 0.2, cols: 22, rows: 10 });
-  mantle(b, sex, { mat: 'cloth_black|t=3a3634', len: 0.42, tatter: 0.3, r1: 0.32 });
-  belt(b, sex, { y: 0.1, over: 0.06, mat: M.rope, pouches: 0, strapEnd: false });
+  mantle(b, sex, { mat: BLACK, len: 0.42, tatter: 0.3, r1: 0.32 });
+  belt(b, sex, { y: 0.1, over: 0.06, mat: 'planks', buckle: M.iron, pouches: 0, strapEnd: false });
   // the coffin-lid strapped across the back, with a name scratched out
   const cz = trunkZ(sex, b.shoulder, 0, 0.3, -1, 0.06) - 0.04;
   b.add('hips', xf(extrude([[-0.12, -0.42], [0.12, -0.42], [0.18, 0.22], [0.1, 0.46], [-0.1, 0.46], [-0.18, 0.22]], 0.04), { p: [0, 0.26, cz - 0.02] }), 'planks', { skin: trunkSkin });
-  b.add('hips', xf(box(0.14, 0.03, 0.006), { p: [0, 0.4, cz - 0.045] }), INK, { skin: trunkSkin });
-  for (const y of [0.05, 0.42]) b.add('hips', xf(box(0.44, 0.03, 0.02), { p: [0, y, cz + 0.01] }), M.leatherDark, { skin: trunkSkin });
+  b.add('hips', xf(box(0.14, 0.03, 0.006), { p: [0, 0.4, cz - 0.045] }), M.shadow, { skin: trunkSkin });
+  for (const y of [0.05, 0.42]) b.add('hips', xf(box(0.44, 0.03, 0.02), { p: [0, y, cz + 0.01] }), M.iron, { skin: trunkSkin });
   drapeChain(b, 'hips', [[0.16, 0.5, 0.05], [0.1, 0.36, 0.2], [-0.12, 0.2, 0.2], [-0.2, 0.06, 0.1]], M.iron, 0.04, trunkSkin);
   addArms(b, sex, BLACK, { inflate: 0.02, foreY1: -0.18, crack: 0.5 });
   addArms(b, sex, SKIN_PALE, { upper: false });
   addHands(b, 'bare', SKIN_PALE);
   addLegs(b, sex, BLACK, { inflate: 0.02 });
-  addFeet(b, sex, 'wrap', M.leatherDark);
+  addFeet(b, sex, 'wrap', BLACK);
   hood(b, { mat: BLACK, trim: null, depth: 1.35, tip: 0.04, open: 0.8 });
-  veil(b, { mat: 'cloth_black|t=4a4644', face: true, y: 0.2, r: 0.14 });
+  veil(b, { mat: BLACK, face: true, y: 0.2, r: 0.14 });
 }
 
 function bearer(b: CharBuilder, seed: number) {
@@ -197,14 +194,14 @@ function bearer(b: CharBuilder, seed: number) {
   addShoulders(b, sex, MAT, 0.024);
   robeSkirt(b, sex, { mat: MAT, y0: 0.12, hem: -0.8, r1: [0.28, 0.24], tatter: 0.12, cols: 20, rows: 8 });
   tabard(b, sex, { mat: PALE, top: 0.52, hem: -0.6, over: 0.04, w: [0.1, 0.13, 0.15], tatter: 0.08, trim: GILT, back: true });
-  belt(b, sex, { y: 0.1, over: 0.05, mat: M.leatherDark, pouches: 1 });
-  backCloth(b, sex);
+  belt(b, sex, { y: 0.1, over: 0.05, mat: M.leather, buckle: GILT, pouches: 0 });
+  backCloth(b, sex, PALE);
   // the padded yoke where the litter's pole rests
   for (const s of [1, -1]) b.add('chest', xf(loft([{ y: 0.1, rx: 0.06, rz: 0.06 }, { y: -0.1, rx: 0.06, rz: 0.06 }], { segs: 10, capTop: true, capBottom: true }), { p: [s * 0.16, 0.25, 0], r: [Math.PI / 2, 0, 0] }), M.leather, { skin: () => [['chest', 1]] });
   addArms(b, sex, MAT, { inflate: 0.02, crack: 0.6 });
   addHands(b, 'glove', M.leather, M.leather);
-  addLegs(b, sex, 'cloth_brown|t=6a6258', { inflate: 0.012 });
-  addFeet(b, sex, 'boot', M.leatherDark);
+  addLegs(b, sex, MAT, { inflate: 0.012 });
+  addFeet(b, sex, 'boot', M.leather);
   hood(b, { mat: MAT, trim: null, depth: 1.2, tip: 0.05, open: 0.95 });
 }
 
@@ -241,11 +238,11 @@ function procession(b: CharBuilder, open: boolean) {
   robeSkirt(b, sex, { mat: MAT, y0: 0.12, hem: -0.96, r1: [0.32, 0.28], tatter: 0.16, cols: 22, rows: 10 });
   tabard(b, sex, { mat: PALE, top: 0.54, hem: -0.85, over: 0.045, w: [0.12, 0.15, 0.18], tatter: 0.1, trim: GILT, back: false });
   mantle(b, sex, { mat: PALE, len: 0.36, trim: GILT, tatter: 0.2 });
-  belt(b, sex, { y: 0.1, over: 0.06, mat: M.leatherDark, pouches: 0 });
+  belt(b, sex, { y: 0.1, over: 0.06, mat: 'timber_dark', buckle: GILT, pouches: 0 });
   addArms(b, sex, MAT, { inflate: 0.024, crack: 0.8 });
-  addHands(b, 'glove', M.leatherDark, M.leatherDark);
+  addHands(b, 'glove', 'timber_dark', 'timber_dark');
   addLegs(b, sex, MAT, { inflate: 0.02 });
-  addFeet(b, sex, 'boot', M.leatherDark);
+  addFeet(b, sex, 'boot', MAT);
   hood(b, { mat: PALE, lining: M.shadow, trim: GILT, depth: 1.35, tip: 0.08, open: 0.8 });
   // ---- the reliquary frame on the back (chest space)
   const skin = () => [['chest', 1]] as [import('../../actors/rigDefs').BoneName, number][];
@@ -272,7 +269,7 @@ function procession(b: CharBuilder, open: boolean) {
     for (let i = 0; i < 16; i++) n.push(xf(box(rng.range(0.03, 0.08), 0.006, 0.004), { p: [rng.range(-0.14, 0.14), sy + rng.range(0.05, 0.3), sz + 0.135] }));
     b.add('chest', merge(n), 'unlived_crack', { skin });
   } else {
-    for (const s of [1, -1]) b.add('chest', xf(box(0.16, 0.28, 0.012), { p: [s * 0.085, sy + 0.17, sz - 0.135] }), 'gold_trim|t=b09050', { skin });
+    for (const s of [1, -1]) b.add('chest', xf(box(0.16, 0.28, 0.012), { p: [s * 0.085, sy + 0.17, sz - 0.135] }), GILT, { skin });
   }
 }
 

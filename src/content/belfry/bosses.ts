@@ -331,7 +331,9 @@ export class AldrenBoss extends Boss {
         return;
       case 'drainEnd': this.endDrain(false); return;
       case 'crushFx': this.onCrush(new THREE.Vector3(0, 0, 2.0).applyMatrix4(this.rig.root.matrixWorld)); return;
-      default: super.onCustom(id, m);
+      default:
+        super.onCustom(id, m);
+        if (id.startsWith('phase')) this.applyReign();
     }
   }
 }

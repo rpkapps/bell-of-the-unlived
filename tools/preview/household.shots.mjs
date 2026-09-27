@@ -32,6 +32,7 @@ await page.waitForTimeout(3000);
 await page.evaluate(() => {
   const g = window.__game;
   g.deps.ui?.setHudVisible?.(false);
+  const st = document.createElement('style'); st.textContent = 'body > *:not(:has(canvas)):not(canvas) { visibility: hidden !important; }'; document.head.appendChild(st);
   for (const e of g.enemies) { e.object.visible = !!window.__showEnemies; }
 });
 for (const v of views) {

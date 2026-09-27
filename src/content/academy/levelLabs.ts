@@ -103,13 +103,13 @@ export function buildLabs(ctx: AreaCtx): LabsBuild {
   };
   truss(-70, BW.z, -16, BW.z);
   truss(-70, B.z0 + 6, -30, B.z0 + 6);
-  truss(-38, -46, -38, 2);
-  truss(-57, -46, -57, 2);
+  truss(-38, -48, -38, BW.z);
+  truss(-57, -48, -57, BW.z);
   for (const [x, z] of [[-30, B.z0 + 6], [-16, BW.z]] as const) k.bmm('stone_dark', x - 1, -5, z - 1, x + 1, GY + 2.6, z + 1, { cast: true });
 
   // ================================================================== chasm walls
-  cliffWall(k, -70, -48, -70, -2, -4, 30, 51, -1, 3.6);
-  cliffWall(k, -70, -48.5, -33, -48.5, -4, 26, 52, 1, 3.6);
+  cliffWall(k, -70, -48, -70, -2, -4, 38, 51, -1, 3.6);
+  cliffWall(k, -70, -48.5, -33, -48.5, -4, 38, 52, 1, 3.6);
   cliffWall(k, -33.4, -46, -33.4, -18.6, -4, 23.6, 53, 1, 3);
   cliffWall(k, -33.4, -18.6, 16.5, -18.6, -4, 23.6, 54, 1, 3);
   cliffWall(k, -70, -5.4, -57.6, -5.4, -4, 19, 55, -1, 3);
@@ -126,7 +126,7 @@ export function buildLabs(ctx: AreaCtx): LabsBuild {
   glassHouse(k, ax, A.y, az, 6.6, 6.6, 3.6, ['e', 'w', 'n'], { col: true });
   lensApparatus(k, ax - 1.5, A.y, az + 1.6, YAW_E, 0.6, 1.5);
   lensApparatus(k, ax + 1.5, A.y, az + 1.6, YAW_W, 0.6, 1.5);
-  k.bmm('timber_dark', ax - 2.6, A.y + 0.85, az - 2.6, ax + 0.4, A.y + 0.95, az - 1.8, { col: 'wood' });
+  k.bmm('timber_dark', ax - 3.1, A.y + 0.85, az - 2.6, ax - 0.7, A.y + 0.95, az - 1.8, { col: 'wood' });
   papers(k, ax - 1.5, A.y + 0.95, az - 2.2, 4);
   for (let i = 0; i < 5; i++) k.add('glass', sphere(0.12 + (i % 2) * 0.06, 8, 6), { x: ax - 2.3 + i * 0.5, y: A.y + 1.1, z: az - 2.2 }, { cast: false });
   anchors.wardScroll = anchor(ax - 2.2, A.y, az - 1.2, YAW_N);

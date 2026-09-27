@@ -293,7 +293,7 @@ function buildGreatBell(ctx: AreaCtx, k: Kit): GreatBell {
   const pivot = new THREE.Group();
   pivot.position.set(B.x, B.y + 1.2, B.z);
   root.add(pivot);
-  const H = B.h, R = H * 0.44;
+  const H = B.h, R = H * 0.42;
   const prof: [number, number][] = [[R * 1.0, -H], [R * 1.03, -H * 0.975], [R * 0.95, -H * 0.9], [R * 0.8, -H * 0.72], [R * 0.66, -H * 0.5], [R * 0.6, -H * 0.3], [R * 0.57, -H * 0.16], [R * 0.47, -H * 0.07], [R * 0.26, -H * 0.02], [0.001, 0]];
   const body = new THREE.Mesh(lathe(prof, 36), getMaterial('bronze_bell'));
   body.castShadow = true;
@@ -320,7 +320,7 @@ function buildGreatBell(ctx: AreaCtx, k: Kit): GreatBell {
       a = a2; y = y2;
     }
   };
-  for (let c = 0; c < 26; c++) crack(rng.range(0, Math.PI * 2), -rng.range(H * 0.12, H * 0.45), 10, 0.3, 2);
+  for (let c = 0; c < 15; c++) crack((c / 15) * Math.PI * 2 + rng.range(-0.15, 0.15), -rng.range(H * 0.1, H * 0.4), 11, 0.16, 1);
   const crackGeo = mergeList(lit);
   const cracksLit = new THREE.Mesh(crackGeo, getMaterial('unlived_crack'));
   const cracksDark = new THREE.Mesh(crackGeo, getMaterial('stone_dark'));
@@ -328,8 +328,7 @@ function buildGreatBell(ctx: AreaCtx, k: Kit): GreatBell {
   pivot.add(cracksLit, cracksDark);
   // the inner glow (seen through the mouth from the parvis)
   // the hearth inside: an ember-lit inner shell, seen up through the mouth and through the fissures
-  const innerProf = prof.slice(0, -1).map(([r, yy]) => new THREE.Vector2(Math.max(0.01, r - 0.35), yy));
-  const glow = new THREE.Mesh(new THREE.LatheGeometry(innerProf.reverse(), 24), getMaterial('ember_glow'));
+  const glow = new THREE.Mesh(new THREE.CircleGeometry(R * 0.55, 20).rotateX(Math.PI / 2).translate(0, -H * 0.55, 0), getMaterial('ember_glow'));
   pivot.add(glow);
   // chains to the arch
   for (const sx of [-1, 1]) {

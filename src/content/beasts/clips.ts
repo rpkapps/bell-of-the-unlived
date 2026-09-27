@@ -198,8 +198,8 @@ export function beastClips(d: QuadDims): Record<string, Clip> {
     /** Backstab victim: the blade drives into the back — the hind end drops and the back arches, it rolls over and (if alive) scrambles up. */
     C('victimBack', [
       q(0),
-      q(0.4, { y: -0.08, pitch: -12, spine: [-14, 0, 0], chest: [-6, 0, 0], neck: [-26, 0, 0], head: [-24, 0, 0], hl: [0, 0, 0.1], hr: [0, 0, 0.12], hlPitch: 35, hrPitch: 35, fl: [0, 0, 0.06] }, 'out'),
-      q(0.95, { y: -0.16, pitch: -16, spine: [-16, 0, 0], chest: [-6, 0, 0], neck: [-24, 0, 6], head: [-22, 0, 8], hl: [0, 0, 0.14], hr: [0, 0, 0.16], hlPitch: 50, hrPitch: 50, fl: [0, 0, 0.06] }),
+      q(0.4, { y: -0.1, pitch: -5, spine: [-9, 0, 0], chest: [-4, 0, 0], neck: [-22, 0, 0], head: [-20, 0, 0], hl: [0, 0, 0.1], hr: [0, 0, 0.12], hlPitch: 35, hrPitch: 35, fl: [0, 0, 0.06] }, 'out'),
+      q(0.95, { y: -0.18, pitch: -8, spine: [-10, 0, 0], chest: [-4, 0, 0], neck: [-20, 0, 6], head: [-18, 0, 8], hl: [0, 0, 0.14], hr: [0, 0, 0.16], hlPitch: 50, hrPitch: 50, fl: [0, 0, 0.06] }),
       onSide(d, 1.5, {}, 'in'),
       onSide(d, 2.4),
       q(3.0, { ...SUNK(d), neck: [10, 0, 0], head: [0, 0, 0] }, 'out'),

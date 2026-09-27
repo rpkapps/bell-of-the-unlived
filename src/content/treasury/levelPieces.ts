@@ -437,7 +437,7 @@ export function chestPiece(ctx: AreaCtx, id: string, x: number, y: number, z: nu
   for (const bx of [-0.36, 0, 0.36]) { const b = mesh(new THREE.BoxGeometry(0.07, 0.57, 0.64), gilded ? gold : iron, false); b.position.set(bx, 0.3, 0); root.add(b); }
   const lidHinge = new THREE.Group();
   lidHinge.position.set(0, 0.575, -0.31);
-  const lid = mesh(new THREE.CylinderGeometry(0.31, 0.31, 1.0, 12, 1, false, 0, Math.PI).rotateZ(Math.PI / 2).rotateX(-Math.PI / 2), wood);
+  const lid = mesh(new THREE.CylinderGeometry(0.31, 0.31, 1.0, 12, 1, false, 0, Math.PI).rotateZ(Math.PI / 2), wood);
   lid.scale.set(1, 0.45, 1);
   lid.position.set(0, 0, 0.31);
   lidHinge.add(lid);

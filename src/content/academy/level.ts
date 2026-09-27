@@ -189,7 +189,7 @@ function buildBackdrop(ctx: AreaCtx) {
   }
   k.bmm('rock_cliff', -80, -4, -130, 60, 22, -49, o);
   // headlands east and west, a storm-bell tower on the western point (what Wick would build)
-  for (const [x, z, r, h, s] of [[-150, 40, 60, 70, 3], [-190, -40, 90, 110, 4], [140, 30, 70, 60, 5], [190, -60, 100, 120, 6], [-60, -180, 160, 150, 7], [80, -200, 170, 170, 8]] as const) mountain(k, x, -8, z, r, h, s);
+  for (const [x, z, r, h, s] of [[-170, 30, 70, 46, 3], [-230, -60, 110, 70, 4], [170, 20, 80, 40, 5], [240, -80, 120, 64, 6]] as const) mountain(k, x, -8, z, r, h, s, 'stone_dark');
   k.add('rock_cliff', cyl(9, 16, 22, 10), { x: -118, y: -6, z: 58 }, o);
   k.add('stone_wall', cyl(2.4, 2.8, 24, 12), { x: -118, y: 14, z: 58 }, o);
   k.add('roof_slate', cone(3.2, 6, 12), { x: -118, y: 38, z: 58 }, o);

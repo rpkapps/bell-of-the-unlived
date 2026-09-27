@@ -30,7 +30,11 @@ export function buildTower(ctx: AreaCtx): TowerBuild {
 
   // ================================================================ the vault yard (a raised court hiding the vaults)
   const yard = newKit(ctx, 'yard', 602, 4.4);
-  yard.bmm('flagstone', -48, 3.9, -160, 42, 4.4, P.hall.z0, { cast: false, receive: true });
+  // (split around the tower: its shaft is open from the vault floor to the belfry)
+  const T0 = P.tower;
+  for (const [x0, z0, x1, z1] of [[-48, -160, 42, T0.z0], [-48, T0.z1, 42, P.hall.z0], [-48, T0.z0, T0.x0, T0.z1], [T0.x1, T0.z0, 42, T0.z1]] as const) {
+    yard.bmm('flagstone', x0, 3.9, z0, x1, 4.4, z1, { cast: false, receive: true });
+  }
   // yard walls and a few outbuildings (seen past the hall from the market)
   yard.bmm('stone_wall', -48, 4.4, -161, 42, 10, -159);
   yard.bmm('stone_wall', -49, 4.4, -161, -47, 10, P.hall.z0);

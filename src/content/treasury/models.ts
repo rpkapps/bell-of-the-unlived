@@ -194,7 +194,7 @@ function mimic(rig: Rig, seed: number, o: MimicOpts): CharacterModel {
   const b = new CharBuilder(rig, 'enemy', seed * 7919 + 17);
   const { w, h, d } = o;
   const y0 = -0.38, y1 = y0 + h;
-  const wood = 'timber_dark|t=b09070', iron = M.iron;
+  const wood = 'timber|t=8a6a50', iron = M.iron;
   // body: planks, bands, corner straps, keyhole plate
   b.add('hips', xf(box(w, h, d), { p: [0, (y0 + y1) / 2, 0] }), wood);
   for (const x of [-w * 0.36, 0, w * 0.36]) b.add('hips', xf(box(0.05, h + 0.01, d + 0.02), { p: [x, (y0 + y1) / 2, 0] }), iron);
@@ -225,7 +225,6 @@ function mimic(rig: Rig, seed: number, o: MimicOpts): CharacterModel {
   b.addLR('forearmL', 'forearmR', () => merge([0, 1, 2, 3, 4].map((i) => xf(cyl(0.028, 0.028, -0.004, 0.004, 10), { p: [0, -0.02 - i * 0.05, 0], r: [Math.PI / 2, 0, i * 0.7] }))), GILT);
   b.addLR('forearmL', 'forearmR', () => cyl(0.012, 0.012, -0.26, 0, 5), iron);
   b.addLR('handL', 'handR', () => merge([-1, 0, 1].map((k) => xf(loft([{ y: 0.12, rx: 0.003 }, { y: 0, rx: 0.016 }], { segs: 5, capBottom: true }), { p: [k * 0.025, -0.03, 0.02], r: [Math.PI, 0, k * 0.25] }))), iron);
-  b.add('neck', xf(ellipsoid(0.07, 0.03, 0.13, { segs: 10, rows: 6 }), { p: [0, 0.02, 0.05] }), 'skin|t=a04040');
   if (o.crown) {
     const crown: G[] = [loft([{ y: 0.12, rx: w * 0.26, rz: d * 0.3 }, { y: 0, rx: w * 0.27, rz: d * 0.31 }], { segs: 20 })];
     for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; crown.push(xf(loft([{ y: 0.2, rx: 0.004 }, { y: 0, rx: 0.04, rz: 0.012 }], { segs: 4, capBottom: true }), { p: [Math.sin(a) * w * 0.26, 0.1, Math.cos(a) * d * 0.3], r: [0, a, 0] })); }
@@ -240,14 +239,14 @@ function mimic(rig: Rig, seed: number, o: MimicOpts): CharacterModel {
   pivot.position.set(0, y1 * s, (-d / 2) * s * k);
   const lidG: THREE.BufferGeometry[] = [];
   const lid = new THREE.CylinderGeometry(d / 2, d / 2, w, 14, 1, false, 0, Math.PI);
-  lid.rotateZ(Math.PI / 2).rotateX(-Math.PI / 2);
+  lid.rotateZ(Math.PI / 2);
   lid.scale(1, 0.55, 1);
   lid.translate(0, 0, d / 2);
   lidG.push(lid);
   const mk = (g: THREE.BufferGeometry, mat: string) => { const m = new THREE.Mesh(g, weaponMaterial(mat)); m.castShadow = true; m.scale.set(s * k, s, s * k); pivot.add(m); return m; };
   const lidMesh = mk(lidG[0], wood);
   const bands: THREE.BufferGeometry[] = [];
-  for (const x of [-w * 0.36, 0, w * 0.36]) { const g = new THREE.CylinderGeometry(d / 2 + 0.012, d / 2 + 0.012, 0.05, 14, 1, true, 0, Math.PI); g.rotateZ(Math.PI / 2).rotateX(-Math.PI / 2); g.scale(1, 0.55, 1); g.translate(x, 0, d / 2); bands.push(g); }
+  for (const x of [-w * 0.36, 0, w * 0.36]) { const g = new THREE.CylinderGeometry(d / 2 + 0.012, d / 2 + 0.012, 0.05, 14, 1, true, 0, Math.PI); g.rotateZ(Math.PI / 2); g.scale(1, 0.55, 1); g.translate(x, 0, d / 2); bands.push(g); }
   mk(mergeBuf(bands), iron);
   const lipTeeth: THREE.BufferGeometry[] = [];
   for (let i = 0; i < 8; i++) { const g = new THREE.ConeGeometry(0.016, 0.05, 5); g.rotateX(Math.PI); g.translate(-w / 2 + 0.1 + (i * (w - 0.2)) / 7, -0.01, d - 0.05); lipTeeth.push(g); }

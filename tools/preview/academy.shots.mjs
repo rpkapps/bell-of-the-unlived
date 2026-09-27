@@ -35,19 +35,23 @@ page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') 
 await page.goto(base + '?region=academy&quality=low&origin=courtMage');
 await page.waitForFunction(() => window.__ready && window.__game?.mode === 'play' && window.__region?.id === 'academy', null, { timeout: 400000 });
 await page.waitForTimeout(3000);
+await page.evaluate(() => {
+  const ui = document.getElementById('ui'); if (ui && !location.search.includes('ui')) ui.style.visibility = 'hidden';
+  for (const e of window.__game.enemies) { e.think = () => { e.wish.set(0, 0, 0); }; }
+  window.__game.player.hpMax = 1e6; window.__game.player.hp = 1e6;
+});
 const stats = await page.evaluate(() => ({ stats: window.__region.L.stats, calls: window.__game.deps.renderer.renderer?.info?.render }));
 console.log(JSON.stringify(stats.stats && { tris: stats.stats.triangles, meshes: stats.stats.meshes, lights: stats.stats.lights, ms: Math.round(stats.stats.buildMs) }));
 for (const [name, [cam, look, pl]] of Object.entries(VIEWS)) {
   if (only.length && !only.includes(name)) continue;
   await page.evaluate(([c, l, p]) => {
     const g = window.__game, T = window.THREE;
-    for (const e of g.enemies) { e.aware = false; e.engaged = false; }
     if (p) { g.player.teleport(new T.Vector3(...p), 0); g.player.vy = 0; }
     g.cameraOverride = (dt, cam) => { cam.position.set(...c); cam.lookAt(...l); return true; };
     window.__region.zoneId = '';
   }, [cam, look, pl]);
   await page.waitForTimeout(2600);
-  const info = await page.evaluate(() => { const r = window.__game.deps.renderer; const i = r.renderer?.info?.render ?? r.info?.render; return i ? { calls: i.calls, tris: i.triangles } : null; });
+  const info = await page.evaluate(() => window.__game.deps.renderer.stats?.());
   await page.screenshot({ path: `${out}/academy-${name}.png` });
   console.log(name, JSON.stringify(info));
 }

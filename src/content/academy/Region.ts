@@ -31,7 +31,7 @@ import { DIALOGUE } from '../dialogue';
 import { segmentSegmentDistSq } from '../../core/math';
 import { addMat } from './levelCommon';
 import type { AcademyLayout } from './level';
-import { ECHO_FOR } from './enemies';
+import { ECHO_FOR, echoFamily } from './enemies';
 import { ORROW_ATTACKS } from './bosses';
 import { BLADE_REST } from './clips';
 import './lines';
@@ -452,7 +452,7 @@ export class AcademyRegion extends RegionBase {
 
   private stepEcho() {
     const pm = this.player.move?.def.id;
-    if (pm && pm.startsWith('tech_') && ECHO_FOR[pm] && this.lastTech !== pm) this.lastTech = pm;
+    if (pm && pm.startsWith('tech_')) { const fam = echoFamily(pm); if (this.lastTech !== fam) this.lastTech = fam; }
     for (const { e } of this.enemyList) {
       if (e.def.kind !== 'echoConstruct' || e.dead) continue;
       if (this.echoOf.get(e) === this.lastTech && this.echoOf.has(e)) continue;
@@ -564,7 +564,7 @@ export class AcademyRegion extends RegionBase {
   // ================================================================== arenas
 
   protected override arenaWarning(a: ArenaLayout) {
-    if (a.bossId === 'orrow') return this.wick === 'imprisoned' ? 'orrowWithScholar' : 'orrowPlain';
+    if (a.bossId === 'orrow') return this.wick === 'imprisoned' ? 'orrowWithScholar' : '';
     return '';
   }
   protected override beforeArena(a: ArenaLayout) {
@@ -768,6 +768,21 @@ export class AcademyRegion extends RegionBase {
     this.marks = this.marks.filter((m) => { const keep = m.t < 2.1; if (!keep) { m.mesh.removeFromParent(); m.pillar.removeFromParent(); } return keep; });
   }
 
+  private cullT = 0;
+  /**
+   * Distance culling for the Unlived: a vertical campus shows most of itself from anywhere, so
+   * idle enemies far from the Returned (or on another storey) are hidden — their skinned meshes
+   * are the bulk of the draw calls. Aware enemies and bosses always stay visible.
+   */
+  private cullDistant() {
+    const p = this.player.pos;
+    for (const { e } of this.enemyList) {
+      if (e.dead) continue;
+      const d = Math.hypot(e.pos.x - p.x, e.pos.z - p.z), dy = Math.abs(e.pos.y - p.y);
+      e.object.visible = e.aware || (d < 42 && dy < 14) || d < 16;
+    }
+  }
+
   private clearFx() {
     for (const b of this.beams) b.mesh.removeFromParent();
     this.beams = [];
@@ -778,6 +793,8 @@ export class AcademyRegion extends RegionBase {
   // ================================================================== per step
 
   protected override stepRegion(dt: number) {
+    this.cullT -= dt;
+    if (this.cullT <= 0) { this.cullT = 0.25; this.cullDistant(); }
     this.stepLift(dt);
     this.stepBeams(dt);
     this.stepWards();

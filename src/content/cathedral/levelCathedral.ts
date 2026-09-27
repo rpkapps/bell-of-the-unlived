@@ -98,19 +98,6 @@ export function buildCathedral(ctx: AreaCtx): CathedralBuild {
   for (const sx of [-1, 1]) for (let z = N.z1 - 6; z > N.z0 + 13; z -= 10) if (!(sx > 0 && z < TS.zLow + 1 && z > TS.zHigh - 1)) candelabrum(k, sx * 11.2, y, z, 5);
   k.light(0xffb070, 8, 16, -4, y + 3, -58, 0.4);
   k.light(0xffb070, 8, 16, 4, y + 3, -78, 0.4);
-  // pale shafts of light from the clerestory (additive planes)
-  const shafts: THREE.BufferGeometry[] = [];
-  for (const z of [-51.5, -65.5, -79.5, -93]) for (const sx of [-1, 1]) {
-    const g = new THREE.PlaneGeometry(2.2, 19);
-    g.rotateZ(sx * 0.62);
-    g.rotateY(Math.PI / 2);
-    g.translate(sx * 3.2, y + 12, z);
-    shafts.push(g);
-  }
-  const shaftMesh = new THREE.Mesh(mergeFlat(shafts), new THREE.MeshBasicMaterial({ color: 0xffe2b0, transparent: true, opacity: 0.05, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
-  shaftMesh.name = 'nave:shafts';
-  shaftMesh.renderOrder = 5;
-  ctx.root.add(shaftMesh);
   // the nave Stillbell (west aisle, near the choir screen) and the toll-post
   const shrine = stillbellShrine(k, N.x0 + 1.6, y, -88.5, YAW_E, 7);
   candleField(k, N.x0 + 1.4, y, -85.4, YAW_E, 1.0, 1.8, 18);
@@ -174,7 +161,10 @@ export function buildCathedral(ctx: AreaCtx): CathedralBuild {
   candleField(k, -4.8, y, alZ + 1.4, YAW_S, 2.4, 1.2, 30);
   candleField(k, 4.8, y, alZ + 1.4, YAW_S, 2.4, 1.2, 30);
   for (const sx of [-1, 1]) { brazier(k, sx * 9.5, y, -120.5, true, 1.2); k.light(0xffa860, 10, 18, sx * 9.5, y + 2.4, -120.5, 0.8); }
-  const reliquaryBell = buildReliquaryBell(ctx, 0, y + 13.5, alZ);
+  const reliquaryBell = buildReliquaryBell(ctx, 0, y + 10.5, alZ);
+  // tall candle-stands round the choir and engaged shafts up the walls
+  for (let i = 0; i < 8; i++) { const a = Math.PI * (0.12 + (i / 7) * 0.76); candelabrum(k, Math.cos(a) * 12.4, y, CH.c.z - Math.sin(a) * 12.6 + 2, 5); }
+  for (const sx of [-1, 1]) for (const z of [-99, -105, -111, -117, -123]) k.add('stone_trim', cyl(0.3, 0.34, 23.6, 8), { x: sx * (CH.x1 - 0.1), y: y + 0.2, z });
   // choir arena
   const choirArena: ArenaLayout = {
     bossId: 'vessaline', center: CH.c.clone(), radius: CH.r,
@@ -215,6 +205,7 @@ export function buildCathedral(ctx: AreaCtx): CathedralBuild {
   floor(c, 'flagstone', cx0, cz0, cx1, cz1, y, 0.6);
   c.bmm('stone_dark', cx0, 0, cz0, cx1, y - 0.6, cz1, { cast: false });
   floor(c, 'grass_dead', cx0 + wlk, cz0 + wlk, cx1 - wlk, cz1 - wlk, y + 0.02, 0.05, false);
+  snow.add(c, new THREE.BoxGeometry(cx1 - cx0 - 2 * wlk - 1.2, 0.04, cz1 - cz0 - 2 * wlk - 1.2), { x: CL.c.x, y: y + 0.05, z: CL.c.z });
   for (let i = 0; i < 26; i++) snow.drift(c, c.rng.range(cx0 + wlk + 0.5, cx1 - wlk - 0.5), y + 0.02, c.rng.range(cz0 + wlk + 0.5, cz1 - wlk - 0.5), c.rng.range(1.5, 3.5), c.rng.range(1.5, 3.5), c.rng.range(0.05, 0.14), c.rng.range(0, 3));
   // outer walls: west (door to the nave), north, east, south (the veil from the antechamber)
   const doorZ = (PLAN.cloisterDoor.z0 + PLAN.cloisterDoor.z1) / 2, doorW = PLAN.cloisterDoor.z1 - PLAN.cloisterDoor.z0;
@@ -422,7 +413,7 @@ function buildReliquaryBell(ctx: AreaCtx, x: number, hangY: number, z: number): 
   const root = new THREE.Group();
   root.name = 'reliquaryBell';
   ctx.dynamicRoot.add(root);
-  const H = 3.2, R = H * 0.46;
+  const H = 4.2, R = H * 0.46;
   const prof = [[R, -H], [R * 1.03, -H * 0.97], [R * 0.93, -H * 0.9], [R * 0.78, -H * 0.72], [R * 0.64, -H * 0.5], [R * 0.58, -H * 0.3], [R * 0.55, -H * 0.16], [R * 0.44, -H * 0.07], [R * 0.24, -H * 0.02], [0.001, 0]].map(([a, b]) => new THREE.Vector2(a, b));
   const frags: { g: THREE.Group; phi: number }[] = [];
   const glow = getMaterial('unlived_crack');
@@ -452,7 +443,7 @@ function buildReliquaryBell(ctx: AreaCtx, x: number, hangY: number, z: number): 
   const ribbon = new THREE.Mesh(new THREE.TorusGeometry(R * 0.75, 0.12, 4, 24).rotateX(Math.PI / 2 - 0.2).translate(0, -H * 0.45, 0), getMaterial('cloth_linen'));
   cage.add(ribbon);
   root.add(cage);
-  const chain = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 10, 5).translate(0, 5, 0), getMaterial('iron'));
+  const chain = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 14, 5).translate(0, 7, 0), getMaterial('iron'));
   chain.position.set(x, hangY, z);
   root.add(chain);
   const light = new THREE.PointLight(0xffd080, 12, 16, 1.8);

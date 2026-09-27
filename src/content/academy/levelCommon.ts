@@ -8,7 +8,7 @@
  */
 import * as THREE from 'three';
 import type { Anchor, DynamicPiece } from '../../world/levelTypes';
-import { Kit, type KitShared, cyl, sphere, rock } from '../../world/kit';
+import { Kit, type KitShared, cyl, sphere, rock, mergeSimple } from '../../world/kit';
 import { getMaterial } from '../../render/materials';
 import type { MaterialId } from '../../render/materialIds';
 
@@ -289,7 +289,9 @@ export function portcullis(ctx: AreaCtx, id: string, x: number, y: number, z: nu
   for (let i = 0; i <= n; i++) parts.push(new THREE.BoxGeometry(0.08, h, 0.08).translate(-w / 2 + (w * i) / n, h / 2, 0));
   for (let j = 1; j < 6; j++) parts.push(new THREE.BoxGeometry(w, 0.07, 0.1).translate(0, (h * j) / 6, 0));
   for (let i = 0; i <= n; i++) parts.push(new THREE.ConeGeometry(0.06, 0.22, 4).rotateX(Math.PI).translate(-w / 2 + (w * i) / n, -0.1, 0));
-  for (const p of parts) { const m = new THREE.Mesh(p, iron); m.castShadow = true; g.add(m); }
+  const gm = new THREE.Mesh(mergeSimple(parts), iron);
+  gm.castShadow = true;
+  g.add(gm);
   const holder = new THREE.Group();
   holder.position.set(x, y, z); holder.rotation.y = yaw;
   holder.add(g);
@@ -429,17 +431,17 @@ export function cagePiece(ctx: AreaCtx, id: string, gantry: THREE.Vector3, out: 
     if (Math.abs(Math.sin(a)) < 0.2 && Math.cos(a) > 0) continue; // door gap on +X (dock side)
     barsG.push(new THREE.CylinderGeometry(0.025, 0.025, H, 4).translate(Math.cos(a) * R, H / 2, Math.sin(a) * R));
   }
-  for (const b of barsG) { const m = new THREE.Mesh(b, iron); g.add(m); }
-  for (const yy of [0.2, H * 0.55, H]) { const ring = new THREE.Mesh(new THREE.TorusGeometry(R, 0.035, 4, 18).rotateX(Math.PI / 2), iron); ring.position.y = yy; g.add(ring); }
-  const dome = new THREE.Mesh(new THREE.ConeGeometry(R * 1.05, 0.9, 12, 1, true), iron);
-  dome.position.y = H + 0.45; g.add(dome);
-  const hook = new THREE.Mesh(new THREE.TorusGeometry(0.14, 0.035, 4, 8), iron);
-  hook.position.y = H + 1.0; g.add(hook);
+  for (const yy of [0.2, H * 0.55, H]) barsG.push(new THREE.TorusGeometry(R, 0.035, 4, 18).rotateX(Math.PI / 2).translate(0, yy, 0));
+  barsG.push(new THREE.ConeGeometry(R * 1.05, 0.9, 12, 1, true).translate(0, H + 0.45, 0));
+  barsG.push(new THREE.TorusGeometry(0.14, 0.035, 4, 8).translate(0, H + 1.0, 0));
+  g.add(new THREE.Mesh(mergeSimple(barsG), iron));
   // door on the +X side (swings open when the scholar leaves)
   const door = new THREE.Group();
   door.position.set(R * Math.cos(-0.35), 0, R * Math.sin(-0.35));
-  for (let i = 0; i < 3; i++) { const b = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, H, 4).translate(0, H / 2, 0.2 * (i + 0.5)), iron); door.add(b); }
-  const dbar = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.7).translate(0, H * 0.55, 0.35), iron); door.add(dbar);
+  const dparts: THREE.BufferGeometry[] = [];
+  for (let i = 0; i < 3; i++) dparts.push(new THREE.CylinderGeometry(0.025, 0.025, H, 4).translate(0, H / 2, 0.2 * (i + 0.5)));
+  dparts.push(new THREE.BoxGeometry(0.05, 0.05, 0.7).translate(0, H * 0.55, 0.35));
+  door.add(new THREE.Mesh(mergeSimple(dparts), iron));
   g.add(door);
   g.traverse((o) => { if ((o as THREE.Mesh).isMesh) o.castShadow = true; });
   // chain as a stretched cylinder
@@ -495,7 +497,7 @@ export function draftingBoard(ctx: AreaCtx, k: Kit, x: number, y: number, z: num
       parts.push(new THREE.PlaneGeometry(L, 0.014).rotateZ(a).translate((x0 + x1) / 2, (y0 + y1) / 2, 0));
     }
     for (const [cx, cy, r] of circles) parts.push(new THREE.RingGeometry(r - 0.007, r + 0.007, 24).translate(cx, cy, 0));
-    for (const p of parts) grp.add(new THREE.Mesh(p, ink));
+    grp.add(new THREE.Mesh(mergeSimple(parts), ink));
     return grp;
   };
   // the striking-engine: a great bell, yoke, cams and a long lever arm

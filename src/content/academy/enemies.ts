@@ -139,10 +139,18 @@ export const ACADEMY_ENEMIES: Record<string, EnemyDef> = {
 
 registerEnemyDefs(ACADEMY_ENEMIES);
 
-/** Echo moves by the Returned's last Imprint Technique move (the player's `tech_*` moves). */
+/** Echo moves by family of the Returned's Imprint Technique moves (the player's `tech_*` moves). */
 export const ECHO_FOR: Record<string, { move: string; range: [number, number]; cooldown: number }> = {
-  tech_lunge: { move: 'echo_lunge', range: [1.8, 5.2], cooldown: 4 },
-  tech_bash: { move: 'echo_bash', range: [0, 2.3], cooldown: 5 },
-  tech_ward: { move: 'echo_ward', range: [0, 12], cooldown: 9 },
-  tech_measured: { move: 'echo_measured', range: [0.5, 4.2], cooldown: 5 },
+  lunge: { move: 'echo_lunge', range: [1.8, 5.2], cooldown: 4 },
+  bash: { move: 'echo_bash', range: [0, 2.3], cooldown: 5 },
+  ward: { move: 'echo_ward', range: [0, 12], cooldown: 9 },
+  measured: { move: 'echo_measured', range: [0.5, 4.2], cooldown: 5 },
 };
+/** Which echo a technique move becomes: thrusts → lunge, blows/counters → bash, buffs → ward, sweeps and strings → measured. */
+export function echoFamily(techMoveId: string): keyof typeof ECHO_FOR {
+  const id = techMoveId.replace(/^tech_/, '');
+  if (/^(lunge|impaling|vow_pursuit|pinning|stilled)/.test(id)) return 'lunge';
+  if (/^(bash|bell_breaker|knell|riposte|vow_parry)/.test(id)) return 'bash';
+  if (/^(ward|ember)/.test(id)) return 'ward';
+  return 'measured';
+}

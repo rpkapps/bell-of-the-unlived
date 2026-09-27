@@ -43,7 +43,7 @@ registerMoves({
   pike_thrust: M({ id: 'pike_thrust', clip: 'pikeThrust', dur: 1.35, hits: [{ start: 0.6, end: 0.75, source: 'weaponR', dmg: 165, posture: 0, poise: 35, kind: 'thrust', knock: 2 }], motion: [[0.55, 0], [0.72, 0.45]], track: [0.56, 3.5], events: [{ t: 0.1, e: { type: 'sfx', cue: 'enemy_windup' } }, { t: 0.58, e: { type: 'sfx', cue: 'swing_light' } }] }),
   pike_bash: M({ id: 'pike_bash', clip: 'pikeBash', dur: 1.4, tell: 'unparryable', hits: [{ start: 0.64, end: 0.78, source: 'sphere', sphere: { bone: 'handL', offset: [0.1, 0.1, 0], radius: 0.6 }, dmg: 115, posture: 0, poise: 70, kind: 'strike', unparryable: true, knock: 5, guardBreak: true }], motion: [[0.6, -0.2], [0.76, 1.1]], track: [0.58, 4], events: [{ t: 0.12, e: { type: 'sfx', cue: 'enemy_grunt' } }] }),
   // crossbowman
-  xbow_shoot: M({ id: 'xbow_shoot', clip: 'xbowShoot', dur: 2.95, track: [1.08, 2.5], events: [{ t: 0.25, e: { type: 'sfx', cue: 'bow_draw' } }, { t: 1.12, e: { type: 'custom', id: 'bolt' } }, { t: 1.9, e: { type: 'sfx', cue: 'chain_rattle', volume: 0.35 } }] }),
+  army_xbow_shoot: M({ id: 'army_xbow_shoot', clip: 'armyXbowShoot', dur: 2.95, track: [1.08, 2.5], events: [{ t: 0.25, e: { type: 'sfx', cue: 'bow_draw' } }, { t: 1.12, e: { type: 'custom', id: 'bolt' } }, { t: 1.9, e: { type: 'sfx', cue: 'chain_rattle', volume: 0.35 } }] }),
   xbow_bash: M({ id: 'xbow_bash', clip: 'xbowBash', dur: 1.1, hits: [{ start: 0.55, end: 0.7, source: 'sphere', sphere: { bone: 'handR', offset: [0, 0.25, 0.05], radius: 0.35 }, dmg: 95, posture: 0, poise: 30, kind: 'strike', knock: 2 }], motion: [[0.5, 0], [0.66, 0.5]], track: [0.5, 5], events: [{ t: 0.1, e: { type: 'sfx', cue: 'enemy_windup' } }] }),
   // sapper
   sapper_throw: M({ id: 'sapper_throw', clip: 'sapperThrow', dur: 1.7, track: [0.9, 4], events: [{ t: 0.35, e: { type: 'custom', id: 'light' } }, { t: 0.36, e: { type: 'sfx', cue: 'cast_cinder', volume: 0.5 } }, { t: 0.95, e: { type: 'sfx', cue: 'throw' } }, { t: 0.96, e: { type: 'custom', id: 'pot' } }] }),
@@ -78,7 +78,7 @@ registerEnemyDefs({
     hp: 170, poise: 10, postureMax: 120, postureRegen: 24, defense: 50, absorb: UNLIVED, hours: 95, walk: 1.6, run: 3.8, sight: 28,
     weaponR: 'garrison_arbalest', stance: { handR: XB_REST, handL: XB_REST_L, chest: [2, -4, 0] },
     attacks: [
-      { move: 'xbow_shoot', range: [4, 30], angle: 0.5, weight: 3, cooldown: 1.6 },
+      { move: 'army_xbow_shoot', range: [4, 30], angle: 0.5, weight: 3, cooldown: 1.6 },
       { move: 'xbow_bash', range: [0, 2.2], weight: 2 },
     ],
     keepDistance: [6, 18], recover: [0.8, 1.4], aggression: 0.7,

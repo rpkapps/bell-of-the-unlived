@@ -271,8 +271,12 @@ export class ArmyRegion extends RegionBase {
    * view is a short push from beside the shrine up to the Great Bell between its two towers (the
    * region's landmark and goal). Any player movement hands the camera back at once.
    */
+  private revealPending = false;
   private revealBell() {
-    if (this.flag(F.reveal)) return;
+    if (!this.flag(F.reveal)) this.revealPending = true;
+  }
+  private startReveal() {
+    this.revealPending = false;
     this.setFlag(F.reveal);
     const g = this.game, p = g.player;
     if (!p) return;
@@ -281,7 +285,7 @@ export class ArmyRegion extends RegionBase {
     const from = new THREE.Vector3(start.x + 5.5, start.y + 2.2, start.z + 3.5), to = new THREE.Vector3(start.x + 6.5, start.y + 3.2, start.z - 1.5);
     let t = 0;
     g.cameraOverride = (dt, cam) => {
-      t += dt;
+      t += Math.min(dt, 0.05);   // the first frames after loading can carry a long hitch
       const k = Math.min(1, t / 5.5), e = k * k * (3 - 2 * k);
       cam.position.lerpVectors(from, to, e);
       cam.lookAt(bell.x, 30 + 48 * e, bell.z);
@@ -445,6 +449,7 @@ export class ArmyRegion extends RegionBase {
   // ------------------------------------------------------------------ per step
 
   protected override stepRegion(dt: number) {
+    if (this.revealPending && this.game.mode === 'play' && !this.game.cameraOverride && this.game.player) this.startReveal();
     const inArenaFight = !!this.fight;
     if (!inArenaFight) this.battery?.step(dt);
     this.shells.step(dt);

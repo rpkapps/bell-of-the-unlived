@@ -96,7 +96,7 @@ export const armyClips = {
 
   // ---------------------------------------------------------------- crossbowman
   /** Raise and aim (hold), loose, then lower the bow tip-down and crank the windlass (long reload). */
-  xbowShoot: new Clip('xbowShoot', [
+  armyXbowShoot: new Clip('armyXbowShoot', [
     xb(0),
     { t: 0.5, ease: 'out', handR: XB_AIM, handL: along(XB_AIM.p, XB_AIM.dir, 0.3, [0.9, -0.4, 0]), chest: [0, -12, 0], spine: [0, -4, 0], head: [6, 8, 0], footR: [-0.16, 0.08, -0.22] },
     { t: 1.12, handR: { ...XB_AIM, p: [-0.1, 1.43, 0.21] }, handL: along([-0.1, 1.43, 0.21], XB_AIM.dir, 0.3, [0.9, -0.4, 0]), chest: [0, -12, 0], head: [6, 8, 0] },

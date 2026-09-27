@@ -37,7 +37,7 @@ export const M = {
   shadow: 'cloth_black|c=050506|r=1',
   crack: 'unlived_crack',
   mail: 'iron|t=9a9a9a|r=0.6',
-  fur: 'hair_dark|t=8c7a64',
+  fur: 'hair_fair|t=6a5a4c|r=1',
   arms: 'gold_trim|a=arms|po',
   armsWorn: 'gold_trim|a=arms2|po',
   army: 'cloth_linen|t=b89a6a|a=army|po',
@@ -991,16 +991,34 @@ export function cloak(b: CharBuilder, style: CloakStyle, o: { mat?: string; pad?
     drapeChain(b, 'chest', [[l[0] * 0.97, l[1], l[2] + 0.03], [0, 0.18, 0.14 + pad], [r[0] * 0.97, r[1], r[2] + 0.03]], M.bronze, 0.022);
   }
   if (o.fur) {
-    // shaggy fur mantle: tufts in several tiers, longer at the back
-    const fur = (th: number, v: number) => 1 + (0.1 + 0.14 * v) * Math.abs(Math.sin(th * 17 + v * 7)) * (0.6 + 0.4 * Math.abs(Math.sin(th * 5 + 1)))
-      + 0.06 * Math.sin(th * 41);
-    b.add('chest', loft([
-      { y: 0.34, rx: 0.1, rz: 0.095, cz: -0.02 }, { y: 0.31, rx: 0.17 + pad, rz: 0.14 + pad, cz: -0.03 },
-      { y: 0.26, rx: 0.24 + pad, rz: 0.18 + pad, cz: -0.04 }, { y: 0.2, rx: 0.26 + pad, rz: 0.19 + pad, cz: -0.05, back: 1.1 },
-      { y: 0.13, rx: 0.22 + pad, rz: 0.17 + pad, cz: -0.06, back: 1.15 },
-    ], { segs: 40, radial: fur, phi0: 0.6, phiLen: TAU - 1.2 }), M.fur, {
-      skin: (p) => { const s = p.x > 0 ? 'shoulderL' : 'shoulderR'; const k = Math.min(0.4, Math.max(0, (Math.abs(p.x) - 0.1) * 3)); return [['chest', 1 - k], [s, k]]; },
-    });
+    // shaggy fur mantle: a matte base ring plus tiers of tufts (longer at the back) for a broken,
+    // soft silhouette over the shoulders
+    const furSkin: SkinFn = (p) => { const sd = p.x > 0 ? 'shoulderL' : 'shoulderR'; const k = Math.min(0.4, Math.max(0, (Math.abs(p.x) - 0.1) * 3)); return [['chest', 1 - k], [sd, k]]; };
+    const baseR: Ring[] = [
+      { y: 0.33, rx: 0.1, rz: 0.095, cz: -0.02 }, { y: 0.3, rx: 0.17 + pad, rz: 0.14 + pad, cz: -0.03 },
+      { y: 0.24, rx: 0.23 + pad, rz: 0.17 + pad, cz: -0.04 }, { y: 0.17, rx: 0.23 + pad, rz: 0.17 + pad, cz: -0.05, back: 1.1 },
+    ];
+    const baseLo: LoftOpts = { segs: 28, phi0: 0.6, phiLen: TAU - 1.2 };
+    b.add('chest', loft(baseR, baseLo), M.fur, { skin: furSkin });
+    const tufts: G[] = [];
+    const rng = b.rng;
+    for (let tier = 0; tier < 3; tier++) {
+      const n = 26 - tier * 4;
+      for (let i = 0; i < n; i++) {
+        const a = 0.6 + ((i + rng.next() * 0.6) / n) * (TAU - 1.2);
+        const t = 0.6 + tier * 0.8 + rng.range(-0.15, 0.15);
+        const f = loftFrame(baseR, a, Math.min(2.95, t), baseLo, -0.004);
+        const back = Math.max(0, -Math.cos(a));
+        const len = rng.range(0.05, 0.085) * (1 + back * 0.6) * (1 - tier * 0.12);
+        const dir = f.n.clone().multiplyScalar(0.55).add(new THREE.Vector3(0, -1, 0)).normalize();
+        const g = loft([{ y: len, rx: 0.002 }, { y: len * 0.5, rx: 0.014 }, { y: 0, rx: 0.02 }], { segs: 5, capBottom: true });
+        g.scale(1, 1, 0.55);
+        g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir));
+        g.translate(f.p.x, f.p.y, f.p.z);
+        tufts.push(g);
+      }
+    }
+    b.add('chest', merge(tufts), M.fur, { skin: furSkin });
   }
 }
 

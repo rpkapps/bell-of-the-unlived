@@ -8,6 +8,7 @@ import type * as THREE from 'three';
 import type { CollisionWorld, Collider } from './Collision';
 import type { Quality } from '../game/settings';
 
+/** The caller must run `collision.build()` after the builder returns (dynamic pieces manage their own colliders). */
 export interface LevelContext {
   scene: THREE.Scene;
   collision: CollisionWorld;
@@ -97,6 +98,9 @@ export interface AshbridgeLayout {
   /** Collapse of the yard floor revealing the battlefield below; set(t) animates 0→1. */
   battlefieldReveal: DynamicPiece;
   brannoc: Anchor;                       // where Sergeant Brannoc stands after the reveal (reachable edge)
+
+  /** Hidden loot spots off the critical path. */
+  lootNooks?: Anchor[];
 
   /** Below this Y the player has fallen to death. */
   killY: number;

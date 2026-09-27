@@ -268,6 +268,8 @@ export class AshbridgeRegion implements Region {
     add('gear', L.gearRack, 2.0, () => (this.flag(F.gear) ? null : 'Take gear from the rack'), () => this.playerAct('pickup', () => this.takeGear()));
     for (const pl of L.practicePlaques) add('plaque:' + pl.topic, pl.anchor, 1.8, () => 'Read the plaque', () => { this.game.mode = 'menu'; this.game.input.setPointerLock(false); this.game.deps.ui?.showPractice(pl.topic); });
     add('fog', L.fogGate.anchor, 2.4, () => (this.flag(F.boss) || this.fighting ? null : 'Pass through the veil'), () => this.enterArena());
+    const nook = L.lootNooks?.[0];
+    if (nook) add('nook', nook, 1.8, () => (this.ws.pickups.nook ? null : 'Take the grimoire'), () => this.playerAct('pickup', () => { this.ws.pickups.nook = true; this.session.grantItem('grimoire_shard_volley'); this.session.grantItem('throwing_knife', 3); this.session.save(); }));
     add('brannoc', L.brannoc, 2.6, () => (this.npcs.has('brannoc') ? 'Speak with the sergeant' : null), () => this.talkBrannoc(), false);
   }
 
@@ -461,6 +463,7 @@ export class AshbridgeRegion implements Region {
     g.sfx('collapse_rumble', { pos: this.L.arenaCenter });
     g.shake(0.8);
     this.tween(this.L.battlefieldReveal, 0, 1, 6);
+    this.game.deps.renderer.setEnvironment('battlefield', 4);
     this.session.audio?.setMusic('battlefield', 4);
     this.setFlag(F.reveal);
     await wait(6500);
@@ -573,6 +576,12 @@ export class AshbridgeRegion implements Region {
 
   frame(dt: number) {
     this.L.update(dt, this.time, this.game.deps.renderer.camera);
+    // Unlit Stillbells glow faintly; kindled ones burn warm.
+    for (const b of this.L.stillbells) {
+      const base = (b.light.userData.baseIntensity ??= b.light.intensity) as number;
+      const want = this.ws?.stillbells[b.id] ? base : base * 0.3;
+      b.light.intensity += (want - b.light.intensity) * Math.min(1, dt * 2);
+    }
     if (this.bellSwing) {
       this.bellSwing.t += dt;
       const t = this.bellSwing.t;

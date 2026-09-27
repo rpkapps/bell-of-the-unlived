@@ -31,8 +31,15 @@ for (const v of list) {
     g.cameraOverride = (_dt, cam) => { cam.position.set(cx, cy, cz); cam.lookAt(lx, ly, lz); return true; };
   }, [px, py, pz, cx, cy, cz, lx, ly, lz]);
   await page.waitForTimeout(4500);
-  const r = await page.evaluate(() => window.__game.deps.renderer.stats());
   await page.screenshot({ path: `${outDir}/belfry-${name}.png` });
+  await page.waitForTimeout(1500);
+  const r = await page.evaluate(() => window.__game.deps.renderer.stats());
   console.log(name, JSON.stringify(r));
+  if (process.env.BREAKDOWN) console.log(await page.evaluate(() => {
+    const out = {}; const g = window.__game;
+    const vis = (o) => { for (let c = o; c; c = c.parent) if (!c.visible) return false; return true; };
+    g.scene.traverse((o) => { if (!o.isMesh || !vis(o)) return; let top = o; while (top.parent && top.parent !== g.scene && !(top.name || '').startsWith('kit:') && !(top.name || '').startsWith('inst:')) top = top.parent; const k = top.name || top.type; out[k] = (out[k] || 0) + 1; });
+    return JSON.stringify(Object.entries(out).sort((a, b) => b[1] - a[1]).slice(0, 30));
+  }));
 }
 await browser.close();

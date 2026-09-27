@@ -15,7 +15,7 @@ import type { DynamicPiece, EnemySpawn } from '../../world/levelTypes';
 import {
   Kit, wall, floor, stairs, column, buttress, stringCourse, candles, candelabrum, wallBanner, reliefPanel, bench, table,
   shelves, ledger, papers, desk, strongbox, coins, scales, brazier, sconceTorch, crate, barrel, cyl, sphere, cone, bellGeo, lathe,
-  rubble, deg, bellPost, archPoints, extrudeXY, planarUV,
+  rubble, deg, bellPost, archPoints, extrudeXY, planarUV, mergeSimple,
 } from '../../world/kit';
 import { getMaterial } from '../../render/materials';
 import { registerLight } from '../../render/lights';
@@ -552,14 +552,10 @@ function greatDoor(ctx: BCtx, x: number, y: number, z: number): DynamicPiece & {
     const leaf = new THREE.Mesh(g, wood);
     leaf.castShadow = true;
     hinge.add(leaf);
-    for (const hy of [0.8, 2.2, 3.6]) {
-      const band = new THREE.Mesh(new THREE.BoxGeometry(w * 0.95, 0.12, 0.26), iron);
-      band.position.set(-s * w * 0.48, hy, 0);
-      hinge.add(band);
-    }
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.14, 0.025, 6, 12), iron);
-    ring.position.set(-s * (w - 0.35), 1.6, -0.14);
-    hinge.add(ring);
+    const ironParts: THREE.BufferGeometry[] = [];
+    for (const hy of [0.8, 2.2, 3.6]) ironParts.push(new THREE.BoxGeometry(w * 0.95, 0.12, 0.26).translate(-s * w * 0.48, hy, 0));
+    ironParts.push(new THREE.TorusGeometry(0.14, 0.025, 6, 12).translate(-s * (w - 0.35), 1.6, -0.14));
+    hinge.add(new THREE.Mesh(mergeSimple(ironParts), iron));
     root.add(hinge);
     leaves.push(hinge);
   }
@@ -598,13 +594,10 @@ function ossuaryDoor(ctx: BCtx, x: number, y: number, z: number): DynamicPiece {
   const w = PLAN.ossuary.w, h = PLAN.ossuary.h;
   const slab = new THREE.Mesh(new THREE.BoxGeometry(PLAN.T * 0.8, h, w), getMaterial('stone_wall'));
   slab.castShadow = true;
+  const plateGeos: THREE.BufferGeometry[] = [];
+  for (let r = 0; r < 4; r++) for (let i = 0; i < 3; i++) plateGeos.push(new THREE.BoxGeometry(0.03, 0.24, 0.42).translate(PLAN.T * 0.4 + 0.02, -h / 2 + 0.5 + r * 0.5, -0.5 + i * 0.5));
   const plates = new THREE.Group();
-  const bronze = getMaterial('bronze');
-  for (let r = 0; r < 4; r++) for (let i = 0; i < 3; i++) {
-    const p = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.24, 0.42), bronze);
-    p.position.set(PLAN.T * 0.4 + 0.02, -h / 2 + 0.5 + r * 0.5, -0.5 + i * 0.5);
-    plates.add(p);
-  }
+  plates.add(new THREE.Mesh(mergeSimple(plateGeos), getMaterial('bronze')));
   // the one plate that still bears a name glows faintly
   const named = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.26, 0.44), getMaterial('bell_light'));
   named.position.set(PLAN.T * 0.4 + 0.03, -h / 2 + 1.0, 0);
@@ -645,24 +638,24 @@ function throneRecordPiece(ctx: BCtx, x: number, y: number, z: number): DynamicP
   glow.position.set(x, y + 1.4, z + 0.8);
   root.add(glow);
   registerLight(glow);
-  const candleMat = getMaterial('bell_light');
-  const flames: THREE.Mesh[] = [];
+  const flameGeos: THREE.BufferGeometry[] = [], stickGeos: THREE.BufferGeometry[] = [];
   for (let i = 0; i < 14; i++) {
     const a = (i / 14) * Math.PI * 2;
-    const m = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.12, 5), candleMat);
-    m.position.set(x + Math.cos(a) * 2.8, y - 0.35 + 0.08, z + 2.6 + Math.sin(a) * 1.4);
-    const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.3, 6), getMaterial('wax'));
-    stick.position.set(m.position.x, m.position.y - 0.2, m.position.z);
-    root.add(m, stick);
-    flames.push(m);
+    const px = x + Math.cos(a) * 2.8, py = y - 0.35 + 0.08, pz = z + 2.6 + Math.sin(a) * 1.4;
+    flameGeos.push(new THREE.ConeGeometry(0.035, 0.12, 5).translate(px, py, pz));
+    stickGeos.push(new THREE.CylinderGeometry(0.04, 0.04, 0.3, 6).translate(px, py - 0.2, pz));
   }
+  const flameMesh = new THREE.Mesh(mergeSimple(flameGeos), getMaterial('bell_light'));
+  const stickMesh = new THREE.Mesh(mergeSimple(stickGeos), getMaterial('wax'));
+  root.add(flameMesh, stickMesh);
   const piece: DynamicPiece = {
     object: root,
     set(t: number) {
       const e = Math.min(1, Math.max(0, t));
       book.visible = e > 0.01;
       glow.intensity = 6 * e;
-      flames.forEach((f, i) => { f.visible = e > i / 14; });
+      flameMesh.visible = e > 0.3;
+      stickMesh.visible = e > 0.01;
     },
   };
   piece.set(0);

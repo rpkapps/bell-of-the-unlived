@@ -11,7 +11,7 @@
  */
 import * as THREE from 'three';
 import type { ArenaLayout, DynamicPiece } from '../../world/levelTypes';
-import { Kit, wall, floor, stillbellShrine, towerRound, crenellation, extrudeXY, bellGeo, cyl, cone, sphere, ringSector, archPoints, brazier, lathe, type StillbellShrine } from '../../world/kit';
+import { Kit, wall, floor, stillbellShrine, towerRound, crenellation, extrudeXY, bellGeo, cyl, cone, sphere, ringSector, archPoints, brazier, lathe, mergeSimple, type StillbellShrine } from '../../world/kit';
 import type { MaterialId } from '../../render/materialIds';
 import { getMaterial } from '../../render/materials';
 import { registerLight } from '../../render/lights';
@@ -74,6 +74,18 @@ export function buildCrown(ctx: BCtx): CrownBuild {
     m.position.set(C.x, y + 0.04 + i * 0.002, C.z);
     m.renderOrder = 6;
     m.visible = false;
+    // bright edges on both rims of the band (animated with the fill; see Region.frame)
+    const edgeMat = glowMaterial(0xffe0a8, 0);
+    const edges: THREE.Mesh[] = [];
+    for (const rr of [r0, r1]) {
+      if (rr < 0.1) continue;
+      const e = new THREE.Mesh(new THREE.RingGeometry(rr - 0.09, rr + 0.09, 72, 1).rotateX(-Math.PI / 2), edgeMat);
+      e.position.y = 0.004;
+      e.renderOrder = 7;
+      m.add(e);
+      edges.push(e);
+    }
+    m.userData.edgeMat = edgeMat;
     ctx.dynamicRoot.add(m);
     return m;
   });
@@ -205,17 +217,19 @@ function bellOfReturn(ctx: BCtx, x: number, floorY: number, z: number, apexY: nu
   // gold light bleeding from the great crack and from inside the mouth
   const crackMat = getMaterial('unlived_crack');
   let cx = 1.2, cy = -1.2;
+  const crackGeos: THREE.BufferGeometry[] = [];
   for (let i = 0; i < 14; i++) {
     const nx = cx + (Math.sin(i * 2.3) * 0.45), ny = cy - 0.68;
-    const r = Hb * 0.62 * (0.55 + 0.45 * Math.min(1, -ny / Hb)) + 0.05;
+    const rr = Hb * 0.62 * (0.55 + 0.45 * Math.min(1, -ny / Hb)) + 0.05;
     const L = Math.hypot(nx - cx, ny - cy);
-    const seg = new THREE.Mesh(new THREE.BoxGeometry(0.12, L + 0.05, 0.08), crackMat);
     const px = (cx + nx) / 2;
-    seg.position.set(px, (cy + ny) / 2, Math.sqrt(Math.max(0.1, r * r - px * px)));
-    seg.rotation.z = Math.atan2(nx - cx, -(ny - cy)) * -1;
-    bell.add(seg);
+    const g = new THREE.BoxGeometry(0.12, L + 0.05, 0.08);
+    g.rotateZ(-Math.atan2(nx - cx, -(ny - cy)));
+    g.translate(px, (cy + ny) / 2, Math.sqrt(Math.max(0.1, rr * rr - px * px)));
+    crackGeos.push(g);
     cx = nx; cy = ny;
   }
+  bell.add(new THREE.Mesh(mergeSimple(crackGeos), crackMat));
   const inner = new THREE.Mesh(new THREE.ConeGeometry(Hb * 0.5, Hb * 0.7, 32, 1, true).rotateX(Math.PI), glowMaterial(0xffb060, 0.08));
   inner.position.y = -Hb * 0.62;
   bell.add(inner);

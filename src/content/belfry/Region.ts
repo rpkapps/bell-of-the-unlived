@@ -228,7 +228,7 @@ export class BelfryRegion extends RegionBase {
     this.add('layRecord', this.A('record5'), 2.4, () => (this.canLayRecord() ? 'Lay the full record on the empty throne' : null), () => this.layRecord());
     // --- inspectables along the way
     this.inspectAt('belfry.statues', 'statues', 'Look at the monuments', undefined, 3.2);
-    this.add('coffins', new THREE.Vector3(-7.4, 0, -3.8), 2.4, () => 'Look at the coffins', () => this.inspect('belfry.coffins'));
+    this.add('coffins', new THREE.Vector3(-7.4, 0, -5.9), 2.4, () => 'Look at the coffins', () => this.inspect('belfry.coffins'));
     this.add('seats', new THREE.Vector3(0, PLAN.floors[1], 3.6), 2.6, () => 'Read the chalk on the benches', () => this.inspect('belfry.seats'));
     this.add('plaques', new THREE.Vector3(-12.3, PLAN.floors[2], 11.5), 2.4, () => 'Look at the name-plates', () => this.inspect('belfry.plaques', () => this.record(BELFRY_LEAD, 'bf_obs_nave')));
     this.add('coffers', new THREE.Vector3(-4, PLAN.floors[3], 11.2), 2.4, () => 'Look into the coffers', () => this.inspect('belfry.coffers'));
@@ -318,8 +318,10 @@ export class BelfryRegion extends RegionBase {
     const from = this.A('revealFrom').pos.clone();
     const C = PLAN.crown.c;
     let t = 0;
-    g.cameraOverride = (dt, cam) => {
-      t += dt;
+    // start once the arrival fade has cleared
+    setTimeout(() => { if (g.mode === 'play' && !g.player.dead) g.cameraOverride = reveal; }, 1500);
+    const reveal = (dt: number, cam: THREE.PerspectiveCamera) => {
+      t += Math.min(dt, 0.1);
       const k = Math.min(1, t / 7.5), e = k * k * (3 - 2 * k);
       cam.position.set(from.x + Math.sin(t * 0.08) * 2, from.y + e * 3, from.z - e * 6);
       const look = new THREE.Vector3(0, 6 + e * 52, 15 - e * 16);
@@ -522,7 +524,7 @@ export class BelfryRegion extends RegionBase {
     for (const { e } of this.enemyList) {
       if (e.dead && e.deathT > 2.2) continue;
       const d = e.pos.distanceTo(pp);
-      e.object.visible = !(d > 60 || (Math.abs(e.pos.y - pp.y) > 5.5 && d > 12));
+      e.object.visible = !(d > 46 || (Math.abs(e.pos.y - pp.y) > 5.5 && d > 12));
     }
     // Bell-ringers loose a slow, homing knell from the bell at the bottom of their swing
     for (const { e } of this.enemyList) {
@@ -563,7 +565,7 @@ export class BelfryRegion extends RegionBase {
       const inside = Math.abs(p.x) < PLAN.H + 0.4 && Math.abs(p.z) < PLAN.H + 0.4 && p.y < PLAN.roof - 0.5;
       const fl = Math.max(0, Math.min(4, Math.floor((p.y + 1) / 7)));
       for (let i = 0; i < 5; i++) {
-        const near = inside ? Math.abs(i - fl) <= 1 : (i === 0 && p.y < 4 && p.z > 0) || (i === 4 && p.y > 24) || (i === 2 && p.x < -14 && p.y > 6 && p.y < 17);
+        const near = inside ? Math.abs(i - fl) <= 1 : (i === 0 && p.y > -1 && p.y < 4 && p.z > -3 && p.z < 27) || (i === 4 && p.y > 24) || (i === 2 && p.x < -14 && p.y > 6 && p.y < 17);
         for (const o of this.floorGroups[i]) o.visible = near;
       }
     }
@@ -590,7 +592,9 @@ export class BelfryRegion extends RegionBase {
       this.bandFlash[i] = Math.max(0, this.bandFlash[i] - dt * 1.2);
       const v = Math.max(level[i], this.bandFlash[i] * 0.8);
       const mat = bands[i].material as THREE.MeshBasicMaterial;
-      mat.opacity = Math.min(1, v);
+      mat.opacity = Math.min(0.42, v * 0.42);
+      const edge = bands[i].userData.edgeMat as THREE.MeshBasicMaterial | undefined;
+      if (edge) edge.opacity = Math.min(1, v * 1.1);
       bands[i].visible = v > 0.01;
     }
   }

@@ -76,6 +76,22 @@ await until(() => window.__session.ws.flags['belfry.ossuaryDoor'], 10000);
 const f1 = await flags();
 check('shortcuts persist (great door, gallery gate, loose plate)', !!(f1['belfry.greatDoor'] && f1['belfry.galleryGate'] && f1['belfry.ossuaryDoor']));
 
+// ------------------------------------------------ the secret boss: the Condemned Bellkeeper
+console.log(await ev(() => window.__do('fog:bellkeeper', 0.8, 0)));
+await until(() => window.__region.fight && window.__region.bosses.get('bellkeeper')?.engaged, 20000);
+check('Branding Cell entered, the Bellkeeper engaged', await ev(() => window.__region.fight?.arena.bossId === 'bellkeeper'));
+await ev(() => { const b = window.__region.bosses.get('bellkeeper'); b.hp = b.hpMax * 0.5 - 5; });
+await until(() => window.__region.bosses.get('bellkeeper').phase === 2, 20000);
+check('Bellkeeper phase 2 (the brand lit)', await ev(() => window.__region.bosses.get('bellkeeper').phase === 2));
+await wait(2500);
+await ev(() => { const b = window.__region.bosses.get('bellkeeper'); b.move = null; b.hp = 0; b.react('death', window.__game.player.pos); });
+await until(() => window.__session.ws.flags['boss.bellkeeper'], 20000);
+await wait(3500);
+console.log(await ev(() => window.__do('confession', -0.8, 0)));
+await until(() => window.__session.ws.pickups['belfry.confession'], 10000);
+j = await journal();
+check('Bellkeeper at rest: memory, confession (lore) and journal', await ev(() => !!window.__session.pd.inventory.memory_bellkeeper && !!window.__session.pd.inventory.bellkeeper_confession) && j.includes('bf_conf_bellkeeper') && j.includes('bf_obs_brand'));
+
 // ------------------------------------------------ Aldren
 console.log(await ev(() => window.__do('fog:aldren')));
 await until(() => window.__region.fight && window.__region.bosses.get('aldren')?.engaged, 20000);

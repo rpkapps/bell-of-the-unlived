@@ -10,7 +10,7 @@ import * as THREE from 'three';
 import type { DynamicPiece, EnemySpawn } from '../../world/levelTypes';
 import {
   Kit, floor, stairs, stillbellShrine, bellPost, rockFace, rockProp, deadTree, rubble, brazier, standardBanner, headstone,
-  mountainRing, skylineRing, farKeep, cathedral, spireTower, cyl, sphere, cone, type StillbellShrine,
+  mountainRing, skylineRing, farKeep, cathedral, spireTower, cyl, sphere, cone, mergeSimple, type StillbellShrine,
 } from '../../world/kit';
 import { getMaterial } from '../../render/materials';
 import { type BCtx, PLAN, newKit, anchor, parapetWall, YAW_N, YAW_S, YAW_E, YAW_W } from './levelCommon';
@@ -242,12 +242,10 @@ function galleryGate(ctx: BCtx, x: number, y: number, z: number): DynamicPiece &
   const iron = getMaterial('iron');
   const W = PLAN.gallery.lane2[1] - PLAN.gallery.lane2[0] + 0.3, Hh = 3.2;
   const bars = new THREE.Group();
-  for (let i = 0; i < 11; i++) {
-    const m = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, Hh, 6), iron);
-    m.position.set(-W / 2 + 0.1 + (i * (W - 0.2)) / 10, Hh / 2, 0);
-    bars.add(m);
-  }
-  for (const hy of [0.3, 1.6, 2.9]) { const m = new THREE.Mesh(new THREE.BoxGeometry(W, 0.08, 0.08), iron); m.position.y = hy; bars.add(m); }
+  const barGeos: THREE.BufferGeometry[] = [];
+  for (let i = 0; i < 11; i++) barGeos.push(new THREE.CylinderGeometry(0.03, 0.03, Hh, 6).translate(-W / 2 + 0.1 + (i * (W - 0.2)) / 10, Hh / 2, 0));
+  for (const hy of [0.3, 1.6, 2.9]) barGeos.push(new THREE.BoxGeometry(W, 0.08, 0.08).translate(0, hy, 0));
+  bars.add(new THREE.Mesh(mergeSimple(barGeos), iron));
   bars.position.set(x, y, z);
   root.add(bars);
   // arch frame (static look, but part of this piece so it reads with the gate)

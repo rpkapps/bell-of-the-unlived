@@ -328,8 +328,7 @@ function buildGreatBell(ctx: AreaCtx, k: Kit): GreatBell {
   pivot.add(cracksLit, cracksDark);
   // the inner glow (seen through the mouth from the parvis)
   // the hearth inside: an ember-lit inner shell, seen up through the mouth and through the fissures
-  const glow = new THREE.Mesh(new THREE.CircleGeometry(R * 0.55, 20).rotateX(Math.PI / 2).translate(0, -H * 0.55, 0), getMaterial('ember_glow'));
-  pivot.add(glow);
+  const glow = new THREE.Group(); // (kept for the state toggle; the hearth light is the point light)
   // chains to the arch
   for (const sx of [-1, 1]) {
     const ch = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 4.2, 5).translate(0, 2.1, 0), getMaterial('iron'));

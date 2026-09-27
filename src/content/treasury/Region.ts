@@ -720,6 +720,9 @@ export class TreasuryRegion extends RegionBase {
     return null;
   }
 
+  /** Tools: the move registry (screenshots/tests start moves by id). */
+  debugMoves() { return MOVES; }
+
   override titleCamera(t: number, cam: THREE.PerspectiveCamera) {
     const a = t * 0.03;
     cam.position.set(Math.sin(a) * 6 + 2, 6, 10 + Math.cos(a) * 4);

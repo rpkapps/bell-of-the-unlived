@@ -92,14 +92,16 @@ export function buildLower(ctx: AreaCtx): LowerBuild {
   parapet(l, 'stone_wall', L.x0, 27.4, L.x0, L.z1, L.y);
   parapet(l, 'stone_wall', L.x1, L.z0 + 0.2, L.x1, 29.5, L.y);
   // the cliff face behind the landing, with the sea gate passage
-  cliffWall(l, -15, CZ + 0.4, G.x0 - 1.2, CZ + 0.4, -4, 19, 11, 1, 2.2);
-  cliffWall(l, G.x1 + 1.2, CZ + 0.4, 44, CZ + 0.4, -4, 19, 12, 1, 2.4);
-  l.bmm('stone_dark', G.x0 - 1.2, G.h + 1.6 + L.y, CZ - 1.2, G.x1 + 1.2, 18, CZ + 0.6, { cast: true });
-  l.solid(-14.5, -6, CZ - 0.2, G.x0, 40, CZ + 0.6);
-  l.solid(G.x1, -6, CZ - 0.2, 44, 40, CZ + 0.6);
-  l.solid(G.x0, L.y + G.h + 0.5, CZ - 0.2, G.x1, 40, CZ + 0.6);
-  archway(l, 'stone_wall', 0, L.y, CZ + 0.5, 0, G.x1 - G.x0 + 0.2, G.h - 1.3, 1.6, 'pointed', 1.1, 0.9, false);
-  academyMark(l, 0, L.y + G.h + 2.3, CZ + 1.35, YAW_S, 1.0);
+  cliffWall(l, -15, CZ + 0.4, -8.8, CZ + 0.4, -4, 19, 11, 1, 2.2);
+  cliffWall(l, 8.8, CZ + 0.4, 44, CZ + 0.4, -4, 19, 12, 1, 2.4);
+  // the sea-gate bastion: a masonry face in the cliff with the gate passage
+  wall(l, 'stone_wall', -8.8, CZ + 0.1, 8.8, CZ + 0.1, -4, 23, 1.6, { openings: [{ u: 0, w: G.x1 - G.x0, sill: L.y + 4, h: G.h, kind: 'flat' }] });
+  for (const sx of [-1, 1]) l.bmm('stone_trim', sx * 8.8 - 0.6, -4, CZ - 0.8, sx * 8.8 + 0.6, 19.5, CZ + 1.3, { cast: true });
+  l.bmm('stone_trim', -8.8, 17.4, CZ + 0.8, 8.8, 18.0, CZ + 1.2, { cast: false });
+  l.solid(-14.5, -6, CZ - 0.2, -8.8, 40, CZ + 0.6);
+  l.solid(8.8, -6, CZ - 0.2, 44, 40, CZ + 0.6);
+  archway(l, 'stone_wall', 0, L.y, CZ + 1.3, 0, G.x1 - G.x0 + 0.2, G.h - 1.3, 0.8, 'pointed', 1.1, 0.9, false);
+  academyMark(l, 0, L.y + G.h + 2.3, CZ + 1.75, YAW_S, 1.0);
   pieces.seaGate = portcullis(ctx, 'seaGate', 0, L.y, CZ - 0.1, 0, G.x1 - G.x0 + 0.1, G.h + 0.6);
   floor(l, 'flagstone', G.x0 - 0.1, CZ - 2.2, G.x1 + 0.1, L.z0 + 0.2, L.y, 0.5);
   // landing dressing: a toll post, crates, nets and a beached skiff

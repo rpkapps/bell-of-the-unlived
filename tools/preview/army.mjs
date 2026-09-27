@@ -35,6 +35,10 @@ async function boot() {
       return 'ok ' + text;
     };
     window.__game.deps.ui.confirm = async () => true;
+    // keep the Returned alive through the scripted checks; count bombard hits on him
+    window.__god = setInterval(() => { const p = window.__game.player; if (p && !p.dead) p.hp = p.hpMax; }, 40);
+    window.__hits = 0;
+    { const g = window.__game, orig = g.combat.onResult; g.combat.onResult = (r) => { if (r.target === g.player && r.move?.id === 'bombard_shot' && r.outcome !== 'dodged') window.__hits++; orig(r); }; }
     setInterval(() => { const g = window.__game; if (g.mode === 'dialogue') window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Enter' })); }, 150);
     window.__simWait = (sec) => new Promise((res) => { const g = window.__game, t0 = g.time; const id = setInterval(() => { if (g.time - t0 >= sec) { clearInterval(id); res(); } }, 40); });
     window.__peace = () => { for (const e of window.__game.enemies) if (!e.isBoss) { e.aware = false; e.target = null; } };
@@ -106,10 +110,10 @@ async function mechanics() {
     const g = window.__game, r = window.__region, p = g.player;
     r.resetEnemies();
     p.teleport(new window.THREE.Vector3(1, 0, 4), Math.PI);
-    const hp0 = p.hp;
+    const h0 = window.__hits;
     let sawShell = false;
     for (let i = 0; i < 80; i++) { await window.__simWait(0.1); if (r.shells.active > 0) sawShell = true; p.teleport(new window.THREE.Vector3(1, 0, 4), Math.PI); if (sawShell && r.shells.active === 0) break; }
-    return { sawShell, hit: p.hp < hp0 || p.dead };
+    return { sawShell, hit: window.__hits > h0 };
   });
   check('bombard fires at the killing ground (marked shot lands)', bomb.sawShell && bomb.hit, JSON.stringify(bomb));
   await god();

@@ -164,7 +164,7 @@ function shell(ctx: BCtx) {
   // north: windows; the coronation's great window behind the throne
   const northOps = [] as ReturnType<typeof win>[];
   for (const f of floorsUp) for (const u of [-7, 7]) northOps.push(win(u, f + 2.4));
-  northOps.push({ u: 0, sill: F[4] + 2.0, w: 3.6, h: 3.0, kind: 'pointed' });
+  northOps.push({ u: 0, sill: F[4] + 1.9, w: 3.0, h: 2.2, kind: 'pointed' });
   wall(k, 'stone_wall', -H, -c, H, -c, 0, top, T, { openings: northOps, col: false });
   wallCollider(k, -H, -c, H, -c, top, T, []);
   // west (u measured along +z): postern, ossuary door (F3), windows

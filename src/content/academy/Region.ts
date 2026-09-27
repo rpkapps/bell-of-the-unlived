@@ -569,12 +569,6 @@ export class AcademyRegion extends RegionBase {
   }
   protected override beforeArena(a: ArenaLayout) {
     if (a.bossId === 'orrow' && this.wick === 'imprisoned') this.loseWick();
-    if (a.bossId === 'orrow') {
-      this.floor.active = true;
-      this.floor.nextAt = this.time + 4;
-      this.floor.pending = -1;
-      if (!this.floor.seen) { this.floor.seen = true; }
-    }
   }
 
   protected override onBossPhase(id: string, phase: number, b: Boss) {
@@ -701,7 +695,9 @@ export class AcademyRegion extends RegionBase {
 
   private stepFloor(dt: number) {
     const f = this.L.lensFloor, b = this.orrowBoss();
-    if (!this.floor.active || !b || !this.fight || this.fight.arena.bossId !== 'orrow') { if (this.floor.active && !this.fight) this.resetFloor(); return; }
+    const inFight = !!b && !b.dead && this.fight?.arena.bossId === 'orrow';
+    if (!inFight) { if (this.floor.active) this.resetFloor(); return; }
+    if (!this.floor.active) { this.floor.active = true; this.floor.nextAt = this.time + 3.5; this.floor.pending = -1; }
     const phase = b.phase;
     const busy = this.floor.states.some((s) => s.s !== 0);
     // time for a re-alignment: she raises her staff if she is free; otherwise the lenses turn on their own

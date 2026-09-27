@@ -135,25 +135,33 @@ function healer(b: CharBuilder, seed: number) {
   const v = new Rng(seed * 97 + 5);
   const sex: Sex = v.chance(0.35) ? 'f' : 'm';
   b.cracks = 0.3;
-  addNeck(b, sex, 'skin');
-  addHead(b, { sex, hair: 'grey', style: sex === 'f' ? 'long' : 'short', unlived: true, old: true });
+  const RED = 'cloth_red|t=9a4a40';
+  addNeck(b, sex, 'skin|t=d8c8bc');
+  addHead(b, { sex, skin: 'skin|t=d8c8bc', hair: 'grey', style: sex === 'f' ? 'long' : 'short', beard: sex === 'm' ? 'short' : 'none', unlived: true, old: true });
   addTrunk(b, sex, PALE, { y0: -0.16, y1: 0.56, inflate: 0.016 });
   addShoulders(b, sex, PALE, 0.02);
   robeSkirt(b, sex, { mat: PALE, y0: 0.12, hem: -1.02, r1: [0.3, 0.26], tatter: 0.05, trim: GILT, cols: 24, rows: 12 });
-  tabard(b, sex, { mat: 'cloth_red|t=a07068', top: 0.54, hem: -0.95, over: 0.03, w: [0.06, 0.07, 0.08], tatter: 0.04, trim: GILT });
-  mantle(b, sex, { mat: PALE, len: 0.36, trim: GILT, emb: true });
-  belt(b, sex, { y: 0.1, over: 0.04, mat: GILT, buckle: GILT, pouches: 0, strapEnd: false });
-  beads(b, 'hips', [0.1, 0.06, trunkZ(sex, b.shoulder, 0.1, 0.06, 1, 0.05)], 0.05, 0.14, GILT, GILT, trunkSkin);
+  // a red chasuble over the alb, gilt-edged, a bell stitched on the breast
+  tabard(b, sex, { mat: RED, top: 0.56, hem: -0.7, over: 0.035, w: [0.17, 0.2, 0.22], tatter: 0.04, trim: GILT, back: true });
+  b.add('hips', xf(bellGeom(0.08), { p: [0, 0.36, trunkZ(sex, b.shoulder, 0, 0.34, 1, 0.06)], r: [0.2, 0, 0] }), GILT, { skin: trunkSkin });
+  mantle(b, sex, { mat: RED, len: 0.26, trim: GILT, emb: true, open: 0.6 });
+  belt(b, sex, { y: 0.1, over: 0.045, mat: GILT, buckle: GILT, pouches: 0, strapEnd: false });
+  beads(b, 'hips', [0.1, 0.06, trunkZ(sex, b.shoulder, 0.1, 0.06, 1, 0.06)], 0.05, 0.14, GILT, GILT, trunkSkin);
   addArms(b, sex, PALE, { inflate: 0.012 });
   bellSleeves(b, sex, { mat: PALE, trim: GILT, flare: 0.12, len: 0.3, emb: true });
   addHands(b, 'glove', PALE, PALE);
   addLegs(b, sex, PALE);
   addFeet(b, sex, 'boot', PALE);
-  // tall mitre and a face veil
-  b.add('head', loft([{ y: 0.19, rx: 0.1, rz: 0.11 }, { y: 0.36, rx: 0.09, rz: 0.05 }, { y: 0.46, rx: 0.004, rz: 0.004 }], { segs: 14, capBottom: true }), PALE, { skin: () => [['head', 1]] });
-  b.add('head', loft([{ y: 0.2, rx: 0.104, rz: 0.114 }, { y: 0.16, rx: 0.104, rz: 0.114 }], { segs: 16, inflate: 0.004 }), GILT, { skin: () => [['head', 1]] });
-  b.add('head', xf(box(0.02, 0.26, 0.012), { p: [0, 0.31, 0.083], r: [-0.28, 0, 0] }), GILT, { skin: () => [['head', 1]] });
-  veil(b, { mat: PALE, face: true, y: 0.15, r: 0.13 });
+  // a deep red cowl thrown back, and a gilt circlet hung with small bells over a short veil (face visible)
+  b.add('neck', loft([{ y: 0.04, rx: 0.09, rz: 0.1, cz: -0.02 }, { y: -0.03, rx: 0.14, rz: 0.14, cz: -0.04 }, { y: -0.08, rx: 0.19, rz: 0.16, cz: -0.05 }], { segs: 18, radial: (th, t) => 1 + 0.07 * Math.sin(th * 6 + t * 3) }), RED, {
+    skin: (p) => { const k = Math.min(1, Math.max(0, (0.03 - p.y) / 0.1)); return [['neck', 1 - k], ['chest', k]]; },
+  });
+  const hs = () => [['head', 1]] as [import('../../actors/rigDefs').BoneName, number][];
+  b.add('head', xf(torus(0.108, 0.007, 5, 26), { p: [0, 0.17, 0.006], r: [Math.PI / 2 - 0.1, 0, 0] }), GILT, { skin: hs });
+  const bells: G[] = [];
+  for (let i = 0; i < 7; i++) { const a = -1.2 + (i / 6) * 2.4; bells.push(xf(bellGeom(0.028), { p: [Math.sin(a) * 0.115, 0.15, Math.cos(a) * 0.12 + 0.006] })); }
+  b.add('head', merge(bells), GILT, { skin: hs });
+  b.add('head', loft([{ y: 0.16, rx: 0.114, rz: 0.13, cz: 0.01 }, { y: 0.1, rx: 0.12, rz: 0.14, cz: 0.012 }], { segs: 16, phi0: 1.4, phiLen: TAU - 2.8 }), 'cloth_linen|t=e8e0d0', { skin: hs });
 }
 
 function mourner(b: CharBuilder, seed: number) {
@@ -258,7 +266,7 @@ function procession(b: CharBuilder, open: boolean) {
   // candles on the frame
   for (const x of [-0.14, -0.05, 0.06, 0.15]) {
     b.add('chest', xf(cyl(0.012, 0.012, 0, 0.08 + Math.abs(x) * 0.3, 6), { p: [x, sy + 0.02, Z + 0.02] }), 'wax', { skin });
-    b.add('chest', xf(ellipsoid(0.01, 0.022, 0.01, { segs: 6, rows: 4 }), { p: [x, sy + 0.12 + Math.abs(x) * 0.3, Z + 0.02] }), 'fire', { skin });
+    b.add('chest', xf(ellipsoid(0.01, 0.022, 0.01, { segs: 6, rows: 4 }), { p: [x, sy + 0.12 + Math.abs(x) * 0.3, Z + 0.02] }), 'bell_light', { skin });
   }
   if (open) {
     // doors thrown open: the interior blazes with the names it carries

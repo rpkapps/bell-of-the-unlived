@@ -30,6 +30,7 @@ import { removeItem } from '../../systems/PlayerData';
 import type { HouseholdLayout } from './level';
 import { applyHouseholdBehaviour } from './enemies';
 import { CelwynBoss, HeirBoss } from './bosses';
+import { beastPackStep } from '../beasts';
 
 const F = {
   arrived: 'household.arrived', kitchen: 'household.kitchenDoor', portcullis: 'household.portcullis', buttery: 'household.butteryDoor',
@@ -257,6 +258,8 @@ export class HouseholdRegion extends RegionBase {
     this.coercer = null;
     for (const { e } of this.enemyList) {
       applyHouseholdBehaviour(e);
+      // the palace's sighthounds are the last region's: tougher than the border's
+      if (e.def.kind === 'huntingHound') { e.hpMax = e.hp = 420; e.postureMax = 220; e.poise = 18; }
       if (e.spawnId === 'hh_coercer') {
         this.coercer = e;
         if (!this.pageHeld) this.hideEnemy(e);
@@ -276,7 +279,7 @@ export class HouseholdRegion extends RegionBase {
     const i = this.game.enemies.indexOf(e);
     if (i >= 0) this.game.enemies.splice(i, 1);
   }
-  private coercerAlive() { const c = this.coercer; return !!c && !c.dead && this.game.enemies.includes(c); }
+  private coercerAlive() { const c = this.coercer; return !!c && !c.dead && c.hp > 0 && this.game.enemies.includes(c); }
 
   // ------------------------------------------------------------------ the page
   private async talkPage() {
@@ -480,6 +483,7 @@ export class HouseholdRegion extends RegionBase {
 
   // ------------------------------------------------------------------ per step / HUD
   protected override stepRegion(dt: number) {
+    beastPackStep(this.game.enemies, dt);
     this.barkCd -= dt;
     // the courtier mutters at the page while the player is near the linen room
     if (this.pageHeld && this.coercerAlive() && this.barkCd <= 0 && this.player.pos.distanceTo(this.A('page').pos) < 9 && !this.coercer!.aware) {

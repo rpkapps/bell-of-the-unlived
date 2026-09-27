@@ -153,7 +153,7 @@ await until(() => window.__region.bosses.get('orrow').phase === 3, 30000);
 check('Orrow phase 3: the Preserved Hour (Falling Hour in her moveset)', await ev(() => { const b = window.__region.bosses.get('orrow'); return b.phase === 3 && b.def.attacks.some((a) => a.move === 'orrow_hour'); }));
 await ev(() => { const b = window.__region.bosses.get('orrow'); b.move = null; b.hp = 0; b.react('death', window.__game.player.pos); });
 await until(() => window.__session.ws.flags['boss.orrow'], 40000);
-await page.waitForTimeout(4500);
+await until(() => !window.__region.L.arenas.find((a) => a.bossId === 'orrow').onDefeat[0].object.children[0].visible, 40000);
 const f2 = await flags();
 check('Keeper Orrow defeated (flag)', !!f2['boss.orrow']);
 check('Final Memory of Keeper Orrow granted', await ev(() => !!window.__session.pd.inventory.memory_orrow));

@@ -32,3 +32,30 @@ describe('The Pilgrim Stair traversal (capsule walks every route; closed pieces 
     expect(L.tollPosts.length).toBe(3);
   }, 120000);
 });
+
+describe('Cathedral looks and weapons build cleanly (no NaN vertices)', () => {
+  it('every look and weapon', async () => {
+    const { models } = await import('../src/actors/models/index');
+    const { Rig } = await import('../src/actors/Rig');
+    const { registerCathedralLooks } = await import('../src/content/cathedral/models');
+    registerCathedralLooks();
+    const bad: string[] = [];
+    const scan = (name: string, root: THREE.Object3D) => root.traverse((o) => {
+      const g = (o as THREE.Mesh).geometry as THREE.BufferGeometry | undefined;
+      if (!g) return;
+      for (const att of ['position', 'normal'] as const) {
+        const a = g.attributes[att];
+        if (!a) continue;
+        for (let i = 0; i < a.array.length; i++) if (!Number.isFinite(a.array[i])) { bad.push(`${name}:${o.name}:${att}`); return; }
+      }
+    });
+    for (const look of ['cath_pilgrim', 'cath_flagellant', 'cath_healer', 'cath_mourner', 'cath_bearer', 'cath_cantor', 'cath_procession', 'cath_procession2', 'vessaline', 'vessaline2']) {
+      const rig = new Rig({ height: 1.2, bulk: 1.2, shoulder: 1.1 });
+      models.buildEnemy(rig, look, 3);
+      scan(look, rig.root);
+    }
+    for (const npc of ['wenna', 'cath_soames']) { const rig = new Rig(); models.buildNpc(rig, npc); scan(npc, rig.root); }
+    for (const w of ['cath_pilgrim_staff', 'cath_scourge', 'cath_mourner_maul', 'cath_bearer_pole', 'cath_procession_pole', 'cath_cantor_staff', 'crozier_of_names']) scan(w, models.buildWeapon(w).object);
+    expect(bad).toEqual([]);
+  }, 120000);
+});

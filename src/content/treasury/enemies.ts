@@ -195,7 +195,7 @@ export class WardCoffer extends Enemy {
     if (!this.move && !this.dead) this.startMove(MOVES.tr_coffer_idle, { fade: 0 });
   }
   override react(kind: Parameters<Enemy['react']>[0], from: THREE.Vector3) {
-    if (this.dead) return;
+    if (this.dead || this.move?.def.id === 'tr_coffer_break') return;
     if (kind === 'death') {
       this.hp = 0;
       this.startMove(MOVES.tr_coffer_break, { fade: 0 });

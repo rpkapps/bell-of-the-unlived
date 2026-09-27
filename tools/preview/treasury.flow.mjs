@@ -47,7 +47,7 @@ await ev(() => {
 check('region is the Undervaults, at the market Stillbell', await ev(() => window.__region.id === 'treasury' && window.__session.ws.lastStillbell === 'treasury.market'));
 const kinds = await ev(() => { const m = {}; for (const e of window.__game.enemies) m[e.def.kind] = (m[e.def.kind] ?? 0) + 1; return m; });
 console.log('    enemies', JSON.stringify(kinds));
-check('enemy kinds spawned (7 types + coffers + 2 bosses)', ['tr_militia', 'tr_militiaFork', 'tr_collector', 'tr_collectorHead', 'tr_sentry', 'tr_guardian', 'tr_mimic', 'tr_warden', 'tr_coffer', 'aurelmask', 'mimicsovereign'].every((k) => kinds[k] > 0));
+check('enemy kinds spawned (7 types + coffers + 2 bosses)', ['tr_militia', 'tr_militiaFork', 'tr_collector', 'tr_collectorHead', 'tr_sentry', 'tr_guardian', 'tr_mimic', 'tr_warden', 'tr_coffer', 'aurelmask', 'mimicSovereign'].every((k) => kinds[k] > 0));
 check('four ward-coffers', kinds.tr_coffer === 4);
 
 // ---------------------------------------------------------------- market
@@ -100,13 +100,13 @@ check('confirmed change recorded', (await journal()).includes('tr_conf_ione'));
 
 // ---------------------------------------------------------------- shortcuts
 await doIt('tr:weighLever', 0, 0);
-await until(() => window.__session.ws.flags['treasury.weighGate'], 10000); await wait(3200);
+await until(() => { const c = window.__region.L.pieces.weighGate.collider; return window.__session.ws.flags['treasury.weighGate'] && (!c || !c.enabled); }, 40000);
 check('weigh-gate opened (collider off)', await ev(() => { const c = window.__region.L.pieces.weighGate.collider; return window.__session.ws.flags['treasury.weighGate'] && (!c || !c.enabled); }));
 await doIt('tr:scaleLever', 0, 0);
-await until(() => window.__session.ws.flags['treasury.scaleBridge'], 10000); await wait(4200);
+await until(() => { const c = window.__region.L.pieces.scaleBridge.collider; return window.__session.ws.flags['treasury.scaleBridge'] && (!c || c.enabled); }, 40000);
 check('scale bridge lowered (collider on)', await ev(() => { const c = window.__region.L.pieces.scaleBridge.collider; return !c || c.enabled; }));
 await doIt('tr:vaultWheel', 0, 0);
-await until(() => window.__session.ws.flags['treasury.vaultDoor'], 10000); await wait(3600);
+await until(() => { const c = window.__region.L.pieces.vaultDoor.collider; return window.__session.ws.flags['treasury.vaultDoor'] && (!c || !c.enabled); }, 40000);
 check('round vault door rolled open (collider off)', await ev(() => { const c = window.__region.L.pieces.vaultDoor.collider; return !c || !c.enabled; }));
 
 // ---------------------------------------------------------------- the revelation, the muster
@@ -123,6 +123,7 @@ await until(() => window.__session.ws.flags['muster.treasury'], 10000);
 check('muster.treasury set (pay-roll delivered)', !!(await flags())['muster.treasury']);
 
 // ---------------------------------------------------------------- the Mimic Sovereign
+await ev(() => { window.__region.arenaWarning = () => ''; });
 console.log('   ', await ev(() => window.__do('fog:mimicsovereign', 0, 0)));
 await wait(500); await pressEnter();
 await until(() => window.__region.bosses.get('mimicsovereign')?.engaged === true, 30000);
@@ -146,7 +147,7 @@ await ev(() => { const b = window.__region.bosses.get('aurelmask'); b.hp = b.hpM
 await wait(400);
 check('warded: health cannot fall below half', await ev(() => { const b = window.__region.bosses.get('aurelmask'); return b.hp >= b.hpMax * 0.5 && b.phase === 1; }));
 for (let i = 0; i < 4; i++) {
-  await ev((i) => { const c = window.__game.enemies.filter((e) => e.def.kind === 'tr_coffer' && !e.dead)[0]; if (c) { c.hp = 0; c.react('death', window.__game.player.pos); } }, i);
+  await ev((i) => { const c = window.__game.enemies.filter((e) => e.def.kind === 'tr_coffer' && !e.dead && e.hp > 0)[0]; if (c) { c.hp = 0; c.react('death', window.__game.player.pos); } }, i);
   await wait(1300);
 }
 await until(() => window.__region.bosses.get('aurelmask').phase === 2, 30000);
@@ -175,6 +176,19 @@ f = await flags();
 check('after reload: shortcuts, cage, bosses, muster persist', f['treasury.weighGate'] && f['treasury.vaultDoor'] && f['treasury.scaleBridge'] && f['treasury.cageLowered'] && f['boss.aurelmask'] && f['boss.mimicsovereign'] && f['muster.treasury'] && f.ione === 'rescued');
 check('after reload: no boss or coffers respawned', await ev(() => window.__region.bosses.size === 0 && !window.__game.enemies.some((e) => e.def.kind === 'tr_coffer')));
 check('after reload: gate open, bridge down, door rolled', await ev(() => { const P = window.__region.L.pieces; return !P.weighGate.collider.enabled && P.scaleBridge.collider.enabled && !P.vaultDoor.collider.enabled; }));
+// ---------------------------------------------------------------- the loss path: crossing while Ione is caged
+await page.goto(base + '?region=treasury&quality=low&norender');
+await page.waitForFunction(() => window.__ready && window.__game.mode === 'play' && window.__region?.id === 'treasury', null, { timeout: 240000 });
+await wait(2000);
+await ev(() => {
+  window.__region.arenaWarning = () => '';
+  const it = window.__region.inter.list.find((x) => x.id === 'fog:aurelmask');
+  window.__game.player.teleport(new window.THREE.Vector3(it.pos.x, it.pos.y, it.pos.z), Math.PI);
+  it.action();
+});
+await until(() => window.__session.ws.npcs.ione === 'taken', 30000);
+check('crossing into the Vault with Ione caged: she is written off (taken)', await ev(() => window.__session.ws.npcs.ione === 'taken' && Object.keys(window.__session.ws.journal).includes('tr_conf_ione_taken')));
+check('the cage is empty (no Ione NPC)', await ev(() => !window.__region.npcs.has('ione')));
 for (const e of errs.slice(0, 12)) console.log('ERR', e.slice(0, 300));
 console.log(failures ? `\n${failures} FAILED` : '\nALL PASSED');
 await browser.close();

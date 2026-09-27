@@ -62,7 +62,8 @@ export function buildCrown(ctx: BCtx): CrownBuild {
     if (r0 > 0.1) k.add('stone_trim', ringSector(r0 - 0.12, r0 + 0.12, 0, Math.PI * 2 - 0.001, 0.02, 64), { x: C.x, y: y + 0.012, z: C.z }, { cast: false });
     void r1;
   }
-  k.add('bronze', ringSector(0, 1.2, 0, Math.PI * 2 - 0.001, 0.03, 32), { x: C.x, y: y + 0.015, z: C.z }, { cast: false });
+  k.add('stone_trim', ringSector(1.0, 1.25, 0, Math.PI * 2 - 0.001, 0.03, 32), { x: C.x, y: y + 0.015, z: C.z }, { cast: false });
+  k.add('gold_trim', ringSector(0, 0.35, 0, Math.PI * 2 - 0.001, 0.03, 16), { x: C.x, y: y + 0.016, z: C.z }, { cast: false });
   for (let i = 0; i < 16; i++) {
     const a = (i / 16) * Math.PI * 2;
     k.box('stone_trim', C.x + Math.cos(a) * 8, y + 0.012, C.z + Math.sin(a) * 8, 3.2, 0.02, 0.12, { ry: -a, cast: false });

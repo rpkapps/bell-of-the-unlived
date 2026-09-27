@@ -252,18 +252,18 @@ export function buildGarden(ctx: AreaCtx): GardenBuild {
   }
   // gazebo court (3..4 × 5..6): open pavilion with a stone table (Vow Parry imprint)
   const gz = mazeCell(3.5, 5.5);
-  k.bmm('flagstone', gz.x - 3.3, Y0 + 0.004, gz.z - 3.3, gz.x + 3.3, Y0 + 0.2, gz.z + 3.3, { cast: false });
-  k.solid(gz.x - 3.3, Y0, gz.z - 3.3, gz.x + 3.3, Y0 + 0.2, gz.z + 3.3);
+  k.bmm('flagstone', gz.x - 3.3, Y0 + 0.004, gz.z - 3.3, gz.x + 3.3, Y0 + 0.1, gz.z + 3.3, { cast: false });
+  k.solid(gz.x - 3.3, Y0, gz.z - 3.3, gz.x + 3.3, Y0 + 0.1, gz.z + 3.3);
   for (let i = 0; i < 6; i++) {
     const a = (i / 6) * Math.PI * 2;
     const px = gz.x + Math.cos(a) * 2.4, pz = gz.z + Math.sin(a) * 2.4;
-    k.add('stone_trim', cyl(0.14, 0.16, 3.2, 8), { x: px, y: Y0 + 0.2, z: pz });
+    k.add('stone_trim', cyl(0.14, 0.16, 3.2, 8), { x: px, y: Y0 + 0.1, z: pz });
     k.solid(px - 0.16, Y0, pz - 0.16, px + 0.16, Y0 + 3.4, pz + 0.16);
   }
   k.add('roof_slate', new THREE.ConeGeometry(3.1, 1.7, 6), { x: gz.x, y: Y0 + 4.25, z: gz.z });
   k.add('stone_trim', cyl(2.8, 2.8, 0.25, 6), { x: gz.x, y: Y0 + 3.3, z: gz.z });
   k.add('gold_trim', new THREE.SphereGeometry(0.18, 8, 6), { x: gz.x, y: Y0 + 5.15, z: gz.z }, { cast: false });
-  k.add('stone_trim', cyl(0.55, 0.3, 0.9, 10), { x: gz.x, y: Y0 + 0.2, z: gz.z });
+  k.add('stone_trim', cyl(0.55, 0.3, 1.0, 10), { x: gz.x, y: Y0 + 0.1, z: gz.z });
   k.solid(gz.x - 0.55, Y0, gz.z - 0.55, gz.x + 0.55, Y0 + 1.1, gz.z + 0.55);
   anchors.gazeboTable = anchor(gz.x, Y0 + 1.15, gz.z + 0.9, YAW_N);
   // grave corner (0..1 × 10..11): the Elder Claim's broken mausoleum, the Oath set, the Greyford colour

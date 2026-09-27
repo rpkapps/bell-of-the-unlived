@@ -28,6 +28,9 @@ const VIEWS = {
   hoard: { cam: [-33, -4.6, -132], look: [-33, -7, -146], at: [-33, -7.8, -132] },
   tower: { cam: [0, 20, -40], look: [10, 38, -124], at: [0, 0, -40] },
 };
+// Character line-up in the Vault of Futures (first enemy of each kind, plus the bosses and NPC looks).
+const LINEUP = ['tr_militia', 'tr_militiaFork', 'tr_collector', 'tr_collectorHead', 'tr_sentry', 'tr_guardian', 'tr_mimic', 'tr_warden', 'aurelmask', 'mimicSovereign'];
+const ATTACK = { tr_militia: 'tr_mil_flail', tr_militiaFork: 'tr_fork_jab', tr_collector: 'tr_col_grab', tr_collectorHead: 'tr_col_hook', tr_sentry: 'tr_cw_spin', tr_guardian: 'tr_vg_overhead', tr_mimic: 'tr_mim_bite', tr_warden: 'tr_lw_shoot', aurelmask: 'tr_au_stamp', mimicSovereign: 'tr_sov_bite' };
 const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
 const page = await browser.newPage({ viewport: { width: 960, height: 540 } });
 page.setDefaultTimeout(300000);
@@ -38,6 +41,32 @@ await page.waitForFunction(() => window.__ready === true && window.__game?.mode 
 await page.waitForTimeout(3000);
 await page.evaluate(() => { const ui = document.querySelectorAll('.hud, .toast, .banner'); ui.forEach((e) => (e.style.opacity = '0')); });
 const names = only.length ? only : Object.keys(VIEWS);
+for (const [n, t] of [['lineup', -1], ['windup', 0.52], ['strike', 0.75]]) {
+  if (!names.includes(n)) continue;
+  await page.evaluate(({ LINEUP, ATTACK, t }) => {
+    const g = window.__game, T = window.THREE, M = window.__region.debugMoves();
+    g.player.teleport(new T.Vector3(10, -3.2, -114), Math.PI);
+    const picked = [];
+    for (const k of LINEUP) { const e = g.enemies.find((x) => x.def.kind === k && !x.dead); if (e) picked.push(e); }
+    picked.forEach((e, i) => {
+      const x = 1.2 + i * 2.0;
+      e.engaged = false; e.aware = false; e.target = null; e.patrol = null; e.def.sight = 0; e.def.aggression = 0;
+      e.home.set(x, -3.2, -125); e.homeYaw = 0;
+      e.teleport(new T.Vector3(x, -3.2, -125), 0);
+      e.move = null;
+      if (t >= 0 && M && M[ATTACK[e.def.kind]]) { e.startMove(M[ATTACK[e.def.kind]]); e.move.t = t; }
+    });
+    for (const e of g.enemies) if (!picked.includes(e) && e.pos.distanceTo(new T.Vector3(10, -3.2, -124)) < 16) e.object.visible = false;
+    const c = new T.Vector3(10, -1.2, -115.5), l = new T.Vector3(10, -2.0, -125);
+    g.cameraOverride = (_dt, cam) => { cam.position.copy(c); cam.lookAt(l); cam.updateMatrixWorld(); return true; };
+    g.deps.renderer.setFocus(l);
+    if (t >= 0) { const tick = () => { for (const e of picked) if (e.move) e.move.t = t; }; window.__freeze = setInterval(tick, 16); }
+  }, { LINEUP, ATTACK, t });
+  await page.waitForTimeout(3000);
+  await page.screenshot({ path: `tools/out/treasury-${n}.png` });
+  console.log(`tools/out/treasury-${n}.png`);
+  await page.evaluate(() => { clearInterval(window.__freeze); });
+}
 for (const n of names) {
   const v = VIEWS[n];
   if (!v) { console.log('no view', n); continue; }

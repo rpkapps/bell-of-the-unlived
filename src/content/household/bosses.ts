@@ -117,7 +117,7 @@ export class CelwynBoss extends Boss {
       const pm = player.move;
       if (pm && pm.def.id === 'hurt_heavy' && pm !== this.seenHurt && pm.t < 0.12 && this.distTo(player) < 4.2) {
         this.seenHurt = pm;
-        this.riposteAt = now + 0.12;
+        this.riposteAt = now + 0.2;
         this.svc.fx('sparks', this.chest.clone().add(this.forward.multiplyScalar(0.4)), { count: 30, color: 0xffe2a0 });
         this.onRead('parried');
       } else if (ev && this.predicted && this.riposteAt < 0 && this.distTo(player) < 5 && this.differs(ev.cat, ev.id)) {

@@ -6,7 +6,7 @@
  *
  *  Elite Retainer (hhRetainer)  — READS LIGHT STRINGS: after two light attacks in one breath it raises
  *    a crosswise parry stance (tell: square pose, blade at face height, a ring and a glint) that turns
- *    the third cut aside and ripostes (0.12 s delay — a quick dodge still escapes). A heavy attack,
+ *    the third cut aside and ripostes (0.2 s later — a quick dodge out of the stagger still escapes). A heavy attack,
  *    a technique or a spell breaks the stance open (guard-broken → critical). Pausing resets the read.
  *  Court Duellist (hhDuellist)  — fast lunges and flicks; the FEINT is its own move with a stamp, a
  *    false half-lunge that stops short, a recoil and a glint before the one real lunge.
@@ -64,7 +64,7 @@ registerMoves({
   // ---- gardener (shears)
   gard_snip: M({ id: 'gard_snip', clip: 'gardSnip', dur: 1.5, hits: [W(0.6, 0.76, 340, 45, { knock: 2 })], motion: [[0.56, 0], [0.74, 0.8]], track: [0.58, 4], events: [sfx(0.12, 'enemy_windup'), sfx(0.58, 'swing_heavy'), ...tr(0.58, 0.78)] }),
   gard_chop: M({ id: 'gard_chop', clip: 'gardChop', dur: 2.2, hits: [W(1.02, 1.14, 480, 80, { kind: 'strike', knock: 3.5 })], motion: [[0.95, 0], [1.12, 0.7]], track: [0.95, 3.5], hyper: [0.5, 1.15, 70], events: [sfx(0.15, 'enemy_grunt'), sfx(0.98, 'swing_huge'), { t: 1.12, e: { type: 'shake', amount: 0.35 } }] }),
-  gard_grab: M({ id: 'gard_grab', clip: 'gardGrab', dur: 1.9, tell: 'grab', hits: [W(0.76, 0.94, 60, 10, { unblockable: true, unparryable: true, kind: 'slash', knock: 0 })], motion: [[0.72, -0.1], [0.92, 1.5]], track: [0.74, 4], hyper: [0.3, 0.95, 60], events: [sfx(0.1, 'enemy_grunt')] }),
+  gard_grab: M({ id: 'gard_grab', clip: 'gardGrab', dur: 1.9, tell: 'grab', hits: [W(0.76, 0.94, 60, 10, { unblockable: true, unparryable: true, kind: 'slash', knock: 0 })], motion: [[0.72, -0.1], [0.92, 1.5]], track: [0.74, 4], hyper: [0.3, 0.95, 60], events: [sfx(0.1, 'enemy_grunt'), { t: 0.05, e: { type: 'custom', id: 'grabTell' } }] }),
   gard_cut: M({ id: 'gard_cut', clip: 'gardCut', dur: 1.8, noFlinch: true, hyper: [0, 1.8, 200], events: [{ t: 0.6, e: { type: 'custom', id: 'snip' } }, { t: 1.2, e: { type: 'custom', id: 'snip' } }, { t: 1.45, e: { type: 'custom', id: 'release' } }] }),
   hh_held: M({ id: 'hh_held', clip: 'hurtHeavy', dur: 1.55, fade: 0.05, noFlinch: true }),
 
@@ -206,7 +206,7 @@ export class RetainerAI extends Enemy {
       } else if (pm && pm.def.id === 'hurt_heavy' && pm !== st.seenHurt && pm.t < 0.12 && this.distTo(player) < 4) {
         // the cut was turned aside: answer it
         st.seenHurt = pm;
-        st.riposteAt = now + 0.12;
+        st.riposteAt = now + 0.2;
         this.svc.fx('sparks', this.chest.clone().add(this.forward.multiplyScalar(0.4)), { count: 26, color: 0xffe2a0 });
       }
       if (st.riposteAt >= 0 && now >= st.riposteAt) { st.riposteAt = -1; this.faceToward(player.pos.x, player.pos.z, 10); this.startMove(MOVES.ret_riposte); }
@@ -270,6 +270,7 @@ export class GardenerAI extends Enemy {
       if (v.hp <= 0) (v as unknown as { react(k: 'death', f: THREE.Vector3): void }).react('death', this.pos);
       return;
     }
+    if (id === 'grabTell') { this.svc.hint('hh_grab'); return; }
     if (id === 'release') { if (v && v.move?.def.id === 'hh_held') { v.endMove(); v.knock.copy(this.forward.multiplyScalar(4)); } this.victim = null; return; }
     super.onCustom(id, m);
   }
@@ -319,6 +320,7 @@ export class GhostAI extends Enemy {
       // motes gather where it will reappear (the tell), and rise where it stands
       this.svc.fx('bellMotes', next.clone().add(new THREE.Vector3(0, 1, 0)), { count: 50, speed: 0.8 });
       this.svc.fx('goldMotes', this.chest, { count: 30, speed: 1.2 });
+      if (this.aware) this.svc.hint('hh_ghost');
       return;
     }
     if (id === 'phase' && next) {

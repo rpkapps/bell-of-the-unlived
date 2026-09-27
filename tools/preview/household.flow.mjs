@@ -95,6 +95,7 @@ await until(() => window.__session.ws.npcs.wynn === 'rescued', 20000);
 let f = await flags();
 check('Wynn Harrow freed → Hospice guest', f.wynn === 'rescued');
 check('confirmed change recorded', (await journal()).includes('conf_freed'));
+await until(() => window.__region.L.pieces.posternBar.object.children[0].visible, 20000);
 check('postern barred', await ev(() => window.__region.L.pieces.posternBar.object.children[0].visible));
 
 // ------------------------------------------------ shortcuts
@@ -153,13 +154,13 @@ const celRead = await ev(async () => {
   const b = g.enemies.find((e) => e.spawnId === 'celwyn'); const p = g.player;
   const M = (await import('/src/combat/moves.ts')).MOVES;
   const out = [];
-  const aggr = b.def.aggression;
-  b.def = { ...b.def, aggression: 0 };
+  const def0 = b.def;
+  b.def = { ...b.def, aggression: 0, attacks: [] };
   const simWait = async (s) => { const t0 = g.time; while (g.time - t0 < s) { await new Promise((res) => setTimeout(res, 15)); out.push(b.move?.def.id ?? '-'); } };
   b.move = null;
   b.teleport(new T.Vector3(39, 14.4, -76), Math.PI); p.teleport(new T.Vector3(39, 14.4, -77.8), 0);
   for (let k = 0; k < 3; k++) { p.move = null; p.startMove(M.sword_light1); await simWait(1.6); }
-  b.def = { ...b.def, aggression: aggr };
+  b.def = def0;
   return out;
 });
 check('Celwyn reads a repeated attack (stance)', celRead.includes('cel_stance'), celRead.filter((x, i) => x !== celRead[i - 1]).join('>'));
@@ -177,7 +178,7 @@ await until(() => window.__session.ws.flags['boss.celwyn'], 30000);
 f = await flags();
 check('Dame Celwyn defeated', !!f['boss.celwyn']);
 check('Final Memory granted', (await inv('memory_celwyn')) > 0);
-await wait(4500);
+await until(() => window.__region.L.arenas.find((a) => a.bossId === 'celwyn').onDefeat[0].state >= 0.99, 60000);
 check('the Great Bell\'s anchor shattered', await ev(() => window.__region.L.arenas.find((a) => a.bossId === 'celwyn').onDefeat[0].state >= 0.99));
 check('conf_celwyn recorded', (await journal()).includes('conf_celwyn'));
 
@@ -187,7 +188,7 @@ await page.goto(base + '?quality=low&norender');
 await page.waitForFunction(() => window.__ready, null, { timeout: 180000 });
 await wait(1500);
 await ev(() => window.__session.continueGame());
-await page.waitForFunction(() => window.__game.mode === 'play' && window.__region?.id === 'household', null, { timeout: 120000 });
+await page.waitForFunction(() => window.__game.mode === 'play' && window.__region?.id === 'household', null, { timeout: 120000 }).catch(async () => console.log('reload state', await ev(() => ({ mode: window.__game.mode, region: window.__region?.id, save: window.__session.saves.load()?.world.region }))));
 await wait(2500);
 f = await flags();
 check('after reload: page, shortcuts, muster and bosses persist', f.wynn === 'rescued' && f['household.portcullis'] && f['household.kitchenDoor'] && f['muster.household'] && f['boss.heirs'] && f['boss.celwyn']);

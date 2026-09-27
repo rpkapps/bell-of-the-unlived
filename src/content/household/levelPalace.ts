@@ -131,8 +131,11 @@ export function buildPalace(ctx: AreaCtx): PalaceBuild {
   wx(w, 'plaster', LI.z0, WG.x0 + 0.6, CO.x0, Y0, CH, 0.5);
   wx(w, 'plaster', LI.z1, WG.x0 + 0.6, CO.x0, Y0, CH, 0.5);
   w.bmm('plaster', WG.x0, CH, LI.z0, CO.x0, CH + 0.2, LI.z1, { cast: false });
-  for (let i = 0; i < 3; i++) shelves(w, -52.2, Y0, 19.6 + i * 2.4, YAW_E, 2.2, 2.6, false);
-  for (let i = 0; i < 12; i++) w.box(i % 3 ? 'cloth_linen' : 'cloth_red', -52.2, 0.5 + (i % 4) * 0.6, 19.2 + Math.floor(i / 4) * 2.4 + (i % 2) * 0.6, 0.6, 0.12, 0.9, { cast: false });
+  for (let i = 0; i < 3; i++) {
+    const zc = 19.9 + i * 2.35;
+    shelves(w, -53.05, Y0, zc, YAW_E, 2.2, 2.6, false);
+    for (let lv = 0; lv < 5; lv++) for (let k = 0; k < 3; k++) if ((i + lv + k) % 4) w.box((lv + k) % 5 ? 'cloth_linen' : 'cloth_red', -53.02, 0.07 + lv * 0.5 + 0.09, zc - 0.7 + k * 0.7, 0.34, 0.16 + ((lv * 3 + k) % 3) * 0.04, 0.55, { cast: false });
+  }
   table(w, -49.3, Y0, 29.6, YAW_E, 1.8, 0.9, 0.85);
   w.box('wax', -49.4, 0.9, 29.3, 0.18, 0.05, 0.12, { cast: false });
   w.box('iron', -49.2, 0.91, 29.9, 0.24, 0.02, 0.05, { cast: false });

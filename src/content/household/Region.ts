@@ -151,7 +151,6 @@ export class HouseholdRegion extends RegionBase {
   // ------------------------------------------------------------------ setup
   protected setup() {
     const L = this.L, A = (n: string) => this.A(n);
-    if (!this.ws.npcs.wynn) this.ws.npcs.wynn = 'imprisoned';
 
     // --- shortcuts
     this.opener('kitchen', 'kitchenDoor', F.kitchen, 'Draw the bolt', { cue: 'door_open', after: () => this.subtitle('The kitchen door opens onto the Servants\' Yard.', 'The Returned', 3.5) });
@@ -209,7 +208,6 @@ export class HouseholdRegion extends RegionBase {
     this.inspectAt('hh_thrones', 'thrones', 'Look at the thrones', () => { this.record('household_successions', 'mem_coronation'); this.record('household_successions', 'obs_thrones'); });
     this.inspectAt('hh_orangery_beam', 'orangeryBeam', 'Look up at the beam', () => this.record('household_postern', 'mem_postern'), 2.6);
     this.inspectAt('hh_bell', 'greatBell', 'Look up at the Great Bell', undefined, 3);
-    this.inspectAt('hh_signet_locked', 'bellStairFoot', 'Examine the door', undefined, 0.01);
 
     // --- the Postern Page
     this.add('postern', A('postern'), 2.0, () => 'Examine the postern', () => this.inspect('hh_postern', () => { this.record('household_postern', 'mem_postern'); if (this.pageHeld) this.subtitle('Oiled hinges. Someone means to open it soon.', RET, 3.5); }));
@@ -231,15 +229,19 @@ export class HouseholdRegion extends RegionBase {
     // --- the Unlived Muster
     this.add('muster', A('musterSoldier'), 2.4, () => 'Speak with the Greyford soldier', () => void this.talkMuster(), false);
 
-    // --- arrival line
-    if (!this.flag(F.arrived)) { this.setFlag(F.arrived); setTimeout(() => this.lines('hh_arrive'), 2500); }
-    if (!this.session.journalSys?.has?.('mem_training')) this.record('household_celwyn', 'mem_training');
   }
 
   private inspectLines(title: string, text: string[]) { return this.dialogue(text.map((t) => ({ speaker: title, text: t }))); }
 
   // ------------------------------------------------------------------ state
   protected override applyRegionState() {
+    // (state is only available once a game is running: the region may also be built for the title)
+    if (!this.ws.npcs.wynn) this.ws.npcs.wynn = 'imprisoned';
+    if (!this.flag(F.arrived)) {
+      this.setFlag(F.arrived);
+      setTimeout(() => this.lines('hh_arrive'), 2500);
+      this.record('household_celwyn', 'mem_training');
+    }
     const P = this.L.pieces;
     P.posternDoor?.set(this.page === 'taken' ? 1 : 0);
     P.posternBar?.set(this.page === 'rescued' ? 1 : 0);
@@ -455,7 +457,6 @@ export class HouseholdRegion extends RegionBase {
 
   protected override async onBossDefeated(id: string) {
     if (id === 'heirs') {
-      this.lines('heirs_death');
       this.session.grantItem('hh_signet');
       this.record('household_successions', 'obs_heirs');
       this.game.sfx('gate_open', { pos: this.P('heirsGate').anchor?.pos ?? this.L.arenas[0].center });

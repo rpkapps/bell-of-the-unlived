@@ -102,14 +102,14 @@ export function buildOrangery(ctx: AreaCtx): OrangeryBuild {
     k.add('iron', cyl(0.64, 0.64, 0.06, 10, true), { x, y: 0.55, z }, { cast: false });
     k.add('timber_dark', cyl(0.07, 0.09, 1.5, 6), { x, y: 0.8, z }, { cast: false });
     // canopy: dark green blob speckled with fruit (vertex colours)
-    const g = new THREE.IcosahedronGeometry(1.05, 1);
+    const g = new THREE.IcosahedronGeometry(1.05, 3);
     const p = g.attributes.position;
     for (let i = 0; i < p.count; i++) { const f = 1 + 0.12 * Math.sin(p.getX(i) * 4 + x) * Math.cos(p.getZ(i) * 3 + z); p.setXYZ(i, p.getX(i) * f, p.getY(i) * f * 0.85, p.getZ(i) * f); }
     g.computeVertexNormals();
     const ng = g.index ? g.toNonIndexed() : g;
     const cols = new Float32Array(ng.attributes.position.count * 3);
     for (let i = 0; i < ng.attributes.position.count; i += 3) {
-      const c = rng.chance(0.14) ? orange : leaf;
+      const c = rng.chance(0.07) ? orange : leaf;
       const s = rng.range(0.75, 1.05);
       for (let j = 0; j < 3; j++) { cols[(i + j) * 3] = c.r * s; cols[(i + j) * 3 + 1] = c.g * s; cols[(i + j) * 3 + 2] = c.b * s; }
     }

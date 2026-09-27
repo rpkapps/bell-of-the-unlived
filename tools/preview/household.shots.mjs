@@ -29,12 +29,12 @@ page.on('console', (m) => { if (m.type() === 'error' || m.text().includes('[hous
 await page.goto(`http://127.0.0.1:${port}/?region=household&quality=${process.env.Q ?? 'low'}&origin=householdKnight`);
 await page.waitForFunction(() => window.__ready && window.__game?.mode === 'play', null, { timeout: 300000 });
 await page.waitForTimeout(3000);
-await page.evaluate(() => {
+await page.evaluate((show) => {
   const g = window.__game;
   g.deps.ui?.setHudVisible?.(false);
-  const st = document.createElement('style'); st.textContent = 'body > *:not(:has(canvas)):not(canvas) { visibility: hidden !important; }'; document.head.appendChild(st);
-  for (const e of g.enemies) { e.object.visible = !!window.__showEnemies; }
-});
+  const st = document.createElement('style'); st.textContent = 'body *:not(canvas):not(:has(canvas)) { visibility: hidden !important; }'; document.head.appendChild(st);
+  for (const e of g.enemies) { e.object.visible = show; if (show) e.def = { ...e.def, passive: true }; }
+}, !!process.env.SHOW);
 for (const v of views) {
   await page.evaluate(({ p, t }) => {
     const g = window.__game, T = window.THREE;

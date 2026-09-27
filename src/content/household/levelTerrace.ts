@@ -11,7 +11,7 @@
 import * as THREE from 'three';
 import type { Anchor, ArenaLayout, DynamicPiece } from '../../world/levelTypes';
 import { cyl, brazier, skylineRing, spireTower, cathedral, mountainRing, farKeep, bellGeo, wallGeo } from '../../world/kit';
-import { getMaterial } from '../../render/materials';
+import { getMaterial, cloneMaterial } from '../../render/materials';
 import { registerLight } from '../../render/lights';
 import {
   type AreaCtx, newKit, anchor, PLAN, Y0, YU, YT, YAW_E, YAW_W, balustrade, pinnacle, hangingBanner, statue, autumnTree, leafLitter, Rng, AUTUMN,
@@ -102,8 +102,10 @@ export function buildTerrace(ctx: AreaCtx): TerraceBuild {
   const bell = new THREE.Group();
   bell.name = 'householdGreatBell';
   bell.position.set(C.x, YT + 36, fz);
-  const bellH = 9.5;
-  const body = new THREE.Mesh(bellGeo(bellH, 28), getMaterial('bronze_bell'));
+  const bellH = 11;
+  const bellMat = cloneMaterial(getMaterial('bronze_bell'));
+  bellMat.side = THREE.DoubleSide;
+  const body = new THREE.Mesh(bellGeo(bellH, 32), bellMat);
   body.castShadow = true;
   bell.add(body);
   // gold cracks (emissive) across the bell's face, built as thin ribbons following the surface

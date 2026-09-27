@@ -61,6 +61,18 @@ export function blendSpec(a: PoseSpec, b: PoseSpec, w: number, out: PoseSpec): P
 
 export interface PlayOpts { fade?: number; speed?: number; t0?: number }
 
+/**
+ * OPTIONAL body-plan extension a Stance may carry (quadrupeds: src/content/beasts). Humanoid
+ * stances never set `body`, so nothing below changes their behaviour.
+ *  - `gait()`: creates this actor's locomotion, used INSTEAD of the humanoid `loco` (same
+ *    update/sample contract; created lazily once per actor and stance body plan).
+ *  - `clips`: replacement clips by clip name, for shared moves whose clip id is fixed by the
+ *    engine (critical victims, sentry idle…): `play()` substitutes `clips[clip.name]` if present.
+ */
+export interface GaitLike { update(dt: number, inp: LocoInput): void; sample(stance: Stance, out: PoseSpec): void }
+export interface BodyPlan { gait?: () => GaitLike; clips?: Record<string, Clip> }
+export type StanceWithBody = Stance & { body?: BodyPlan };
+
 export class Animator {
   readonly loco = new Locomotion();
   readonly solver: PoseSolver;
@@ -94,8 +106,18 @@ export class Animator {
     this.solver = new PoseSolver(rig);
   }
 
+  /** Body-plan locomotion (see BodyPlan), or null for the humanoid `loco`. */
+  private gait: { plan: BodyPlan; g: GaitLike } | null = null;
+  private get locomotor(): GaitLike {
+    const plan = (this.stance as StanceWithBody).body;
+    if (!plan?.gait) return this.loco;
+    if (this.gait?.plan !== plan) this.gait = { plan, g: plan.gait() };
+    return this.gait.g;
+  }
+
   /** Start a clip; crossfades from the current pose over `fade` seconds. */
   play(clip: Clip, o: PlayOpts = {}) {
+    clip = (this.stance as StanceWithBody).body?.clips?.[clip.name] ?? clip;
     copyPoseSpec(this.out, this.from);
     this.hasFrom = true;
     this.fadeT = 0;
@@ -130,7 +152,7 @@ export class Animator {
 
   update(dt: number, loco: LocoInput) {
     const sdt = dt * this.timeScale;
-    this.loco.update(sdt, loco);
+    this.locomotor.update(sdt, loco);
     if (this.clip) this.clipT += sdt * this.clipSpeed;
     if (this.hasFrom) { this.fadeT += sdt; if (this.fadeT >= this.fadeDur) this.hasFrom = false; }
     if (this.overlay) {
@@ -150,7 +172,7 @@ export class Animator {
   evaluate(lag = 0) {
     const out = this.out;
     // base: locomotion + stance
-    this.loco.sample(this.stance, this.base);
+    this.locomotor.sample(this.stance, this.base);
     let cur = this.base;
     if (this.clip) {
       copyPoseSpec(this.base, this.tmp);

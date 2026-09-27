@@ -3,6 +3,7 @@
  * audio, UI and region logic. Region-specific rules live in src/game/regions/*.
  */
 import * as THREE from 'three';
+import { MOVES } from '../combat/moves';
 import { FixedLoop, SIM_DT } from '../core/loop';
 import type { IInput } from '../input/actions';
 import type { IRenderer, IParticles, ITrails, ITrail, ParticleKind, EmitOpts } from '../render/contract';
@@ -90,6 +91,20 @@ export class Game implements Services {
     this.projectiles.onImpact = (p, pt) => this.projectileImpact(p, pt);
     this.projectiles.onStatus = (t, s) => { t.buffs.set(s.id, s.seconds); };
     this.combat.onResult = (r) => this.onHit(r);
+    this.combat.world = () => this.world;
+    this.combat.onWeaponBounce = (att, pt, n) => {
+      att.startMove(MOVES.weapon_rebound, { fade: 0.03 });
+      att.hitstop = Math.max(att.hitstop, 0.08);
+      this.sfx('hit_stone', { pos: pt, volume: 1.2 });
+      this.sfx('guard_block', { pos: pt, volume: 0.5 });
+      this.fx('sparks', pt, { count: 26, speed: 6, dir: n });
+      this.fx('dust', pt, { count: 8 });
+      this.shake(0.14);
+    };
+    this.combat.onWeaponScrape = (_att, pt) => {
+      this.sfx('hit_stone', { pos: pt, volume: 0.6 });
+      this.fx('sparks', pt, { count: 12, speed: 3 });
+    };
     window.addEventListener('resize', () => deps.renderer.resize());
   }
 
@@ -382,7 +397,11 @@ export class Game implements Services {
         return;
       case 'blocked':
         this.sfx('guard_block', { pos: r.point });
-        this.fx('blockSparks', r.point, { count: 18 });
+        this.fx('blockSparks', r.point, { count: 34, speed: 6 });
+        this.fx('sparks', r.point, { count: 10 });
+        // the player feels a blocked blow: a jolt on their own guard, a lighter one on a foe's
+        if (tgt === this.player) this.shake(0.16 + Math.min(0.2, r.damage / 300));
+        else if (att === this.player) this.shake(0.08);
         if (att === this.player && (tgt as Combatant).guardInfo()) this.hint('guardbreak');
         return;
       case 'guardBroken':
@@ -391,12 +410,20 @@ export class Game implements Services {
         return;
       default: break;
     }
-    const armored = true;
-    this.sfx(r.spec.kind === 'fire' ? 'fire_burst' : armored ? (r.damage > 150 ? 'hit_heavy' : 'hit_armor') : 'hit_flesh', { pos: r.point });
+    this.sfx(r.spec.kind === 'fire' ? 'fire_burst' : this.hitCue(tgt, r), { pos: r.point });
     this.fx(unlived ? 'goldMotes' : 'blood', r.point, { count: unlived ? 22 : 12, dir: r.dir });
     this.fx('sparks', r.point, { count: 8 });
     if (tgt === this.player) { this.shake(0.25 + Math.min(0.4, r.damage / 400)); }
     else if (att === this.player) this.shake(0.06 + Math.min(0.12, r.damage / 1500));
+  }
+
+  /** Impact sound for a clean hit: heavy blows thud, plate clanks briefly, bodies thwack. */
+  private hitCue(tgt: Actor, r: HitResult): CueId {
+    if (r.damage > 180 || (r.spec.kind === 'strike' && r.damage > 110)) return 'hit_heavy';
+    if (tgt === this.player) return this.player.data.equipment.body ? 'hit_armor' : 'hit_flesh';
+    const e = tgt as unknown as Enemy;
+    const mat = e.def?.material ?? ((e.isBoss || (e.def?.poise ?? 0) >= 40) ? 'armor' : 'flesh');
+    return mat === 'armor' ? 'hit_armor' : 'hit_flesh';
   }
 
   private onEnemyKilled(e: Enemy) {

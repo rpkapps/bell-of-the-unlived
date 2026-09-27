@@ -237,19 +237,32 @@ export const chargeFull: Synth = (v, p) => {
 // Hits
 // ---------------------------------------------------------------------------------------------
 
+/**
+ * A blade or blow landing on a body (cloth, leather, flesh): a sharp contact click, a low body
+ * punch and a short leathery slap. No ringing partials, so it never reads as a bell.
+ */
 export const hitFlesh: Synth = (v, p) => {
   const r = p.rate * vary(1, 0.08);
-  v.burst({ type: 'highpass', freq: 2800 * r, peak: 0.35, d: 0.05 }); // the slice
-  thump(v, 125 * r, 0.7, 0.14);
-  // Wet squelch: bandpass closing downward.
-  v.burst({ color: 'pink', type: 'bandpass', freq: 1300 * r, q: 2.2, peak: 0.55, d: 0.16, sweepTo: 380 * r, sweepDur: 0.12 });
+  v.burst({ type: 'highpass', freq: 3600 * r, peak: 0.32, d: 0.022 }); // contact
+  thump(v, 92 * r, 0.95, 0.17); // body punch
+  v.burst({ color: 'pink', type: 'bandpass', freq: 720 * r, q: 1.3, peak: 0.55, d: 0.07 }); // cloth / leather slap
+  // the cut itself: a short, falling hiss
+  v.burst({ type: 'bandpass', freq: 4200 * r, q: 1.1, peak: 0.2, d: 0.06, sweepTo: 1600 * r, sweepDur: 0.06 });
+  v.burst({ color: 'brown', type: 'lowpass', freq: 380 * r, peak: 0.35, d: 0.1 }); // weight
 };
 
+/**
+ * A hit on an armoured body: the same body punch under a short, damped clank of plate and a
+ * rattle of mail. The metal is choked (≈0.1 s), not left ringing.
+ */
 export const hitArmor: Synth = (v, p) => {
   const r = p.rate * vary(1, 0.07);
-  metal(v, { f: 1050 * r, peak: 0.38, decay: 0.38, bright: 0.75 });
-  v.burst({ type: 'bandpass', freq: 3200 * r, q: 1.4, peak: 0.55, d: 0.06 });
-  thump(v, 140 * r, 0.45, 0.1);
+  v.burst({ type: 'highpass', freq: 2600 * r, peak: 0.42, d: 0.02 }); // contact
+  thump(v, 105 * r, 0.8, 0.14);
+  metal(v, { f: 470 * r, peak: 0.2, decay: 0.11, bright: 0.5 }); // plate, choked
+  v.burst({ type: 'bandpass', freq: 1500 * r, q: 2.2, peak: 0.32, d: 0.05 }); // clank body
+  grains(v, { n: 5, spread: 0.05, freq: 5200, q: 1.2, peak: 0.1, d: 0.015, type: 'highpass' }); // mail rattle
+  v.burst({ color: 'pink', type: 'bandpass', freq: 650 * r, q: 1.2, peak: 0.3, d: 0.06 }); // padding under the plate
 };
 
 export const hitWood: Synth = (v, p) => {
@@ -282,13 +295,18 @@ export const hitHeavy: Synth = (v, p) => {
 // Guard, parry, criticals
 // ---------------------------------------------------------------------------------------------
 
-/** Blocked hit: duller thud with a short ring. */
+/**
+ * Blocked hit: the blow stopped dead on a shield or blade. A hard crack, a heavy thud the player
+ * feels, the shield's wooden body, and a short steel ring from the boss or edge.
+ */
 export const guardBlock: Synth = (v, p) => {
-  const r = p.rate * vary(1, 0.06);
-  thump(v, 150 * r, 0.75, 0.16);
-  v.burst({ color: 'brown', type: 'lowpass', freq: 1400, peak: 0.55, d: 0.12 });
-  metal(v, { f: 640 * r, peak: 0.2, decay: 0.45, bright: 0.55, beat: 3 });
-  v.burst({ type: 'bandpass', freq: 2200, q: 1.2, peak: 0.25, d: 0.04 });
+  const r = p.rate * vary(1, 0.05);
+  v.burst({ type: 'highpass', freq: 1900 * r, peak: 0.4, d: 0.03 }); // crack
+  thump(v, 115 * r, 0.7, 0.22); // weight into the arm
+  v.burst({ color: 'pink', type: 'bandpass', freq: 420 * r, q: 2, peak: 0.6, d: 0.11 }); // shield boards
+  v.burst({ color: 'brown', type: 'lowpass', freq: 900, peak: 0.5, d: 0.14 });
+  metal(v, { f: 690 * r, peak: 0.3, decay: 0.34, bright: 0.6, beat: 3 }); // boss / edge ring
+  grains(v, { n: 4, spread: 0.04, freq: 3800, peak: 0.12, d: 0.015, type: 'highpass' }); // grit
 };
 
 /** Parry attempt: a sharp flick of steel — no contact yet. */

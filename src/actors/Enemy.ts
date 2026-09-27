@@ -33,6 +33,8 @@ export interface EnemyAttack {
 
 export interface EnemyDef {
   kind: EnemyKind | string;
+  /** What a blow sounds like on this body; default: 'armor' for heavy foes (poise ≥ 40, bosses), else 'flesh'. */
+  material?: 'flesh' | 'armor';
   name: string;
   look: EnemyLook;
   props: RigProportions;

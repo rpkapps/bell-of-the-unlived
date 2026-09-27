@@ -85,6 +85,8 @@ export class Player extends Actor implements Combatant {
   constructor(private svc: Services, data: PlayerData) {
     super({ height: 1, bulk: 1, shoulder: 1 });
     this.name = 'The Returned';
+    // a raised guard covers the whole front half (circling foes should not slip past it)
+    this.guardArc = Math.PI * 0.5;
     this.data = data;
     this.refresh();
     this.hp = Math.min(data.hp || this.hpMax, this.hpMax);

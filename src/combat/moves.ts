@@ -90,6 +90,8 @@ export const MOVES: Record<string, MoveDef> = {
   // ------------------------------------------------------------------ defence & movement
   parry_shield: M({ id: 'parry_shield', clip: 'parryShield', dur: 0.72, stamina: 12, parry: [0.08, 0.3], cancel: { free: 0.62 }, events: [{ t: 0.05, e: { type: 'sfx', cue: 'parry_attempt' } }] }),
   parry_hand: M({ id: 'parry_hand', clip: 'parryHand', dur: 0.72, stamina: 12, parry: [0.08, 0.28], cancel: { free: 0.62 }, events: [{ t: 0.05, e: { type: 'sfx', cue: 'parry_attempt' } }] }),
+  // a swing that struck a wall: the blade jars back and the arm recoils (dodge soon, attack later)
+  weapon_rebound: M({ id: 'weapon_rebound', clip: 'guardHit', dur: 0.62, fade: 0.03, walk: 0, cancel: { dodge: 0.32, free: 0.55 } }),
   guard_hit: M({ id: 'guard_hit', clip: 'guardHit', dur: 0.32, guard: true, fade: 0.03, cancel: { dodge: 0.18, free: 0.26 } }),
   backstep: M({ id: 'backstep', clip: 'backstep', dur: 0.46, stamina: 10, iframes: [0.05, 0.2], motion: [[0.3, -1.6], [0.46, -1.7]], cancel: { chain: 0.34, free: 0.4 } }),
   // roll: duration/iframes/distance filled from the load class at runtime (see Player)

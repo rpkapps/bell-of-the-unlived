@@ -55,8 +55,9 @@ export class FixedLoop {
   }
 
   private frame(now: number) {
-    const dt = (now - this.last) / 1000;
-    this.last = now;
+    // a frame timestamp can predate start() (it is taken at the frame's beginning): never step backwards
+    const dt = Math.max(0, (now - this.last) / 1000);
+    this.last = Math.max(this.last, now);
     if (this.frameCap > 0) {
       // Skip display refreshes until a full capped frame has elapsed (small tolerance for jitter).
       this.pending += dt;

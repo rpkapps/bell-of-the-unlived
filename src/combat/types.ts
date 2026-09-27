@@ -39,6 +39,8 @@ export interface MoveDef {
   clip: string;
   /** Total duration (the move ends here even if the clip is longer). */
   dur: number;
+  /** The weapon may strike walls without rebounding (slams, wall-scraping techniques). */
+  noBounce?: boolean;
   /** Clip playback speed. */
   speed?: number;
   fade?: number;

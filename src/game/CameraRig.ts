@@ -52,7 +52,8 @@ export class CameraRig {
   /** Switch target left (-1) or right (+1) relative to the current one on screen. */
   switchTarget(dir: number, player: Actor, candidates: readonly Actor[]) {
     if (!this.lock) return;
-    const next = this.pick(player, candidates, dir);
+    // on screen, right of the current target means a smaller yaw (angleDiff < 0)
+    const next = this.pick(player, candidates, -dir);
     if (next) this.lock = next;
   }
 
@@ -95,7 +96,8 @@ export class CameraRig {
       const tp = clamp(Math.atan2(this.pivot.y - lp.y, hd) + 0.22, -0.3, 0.8);
       this.pitch = damp(this.pitch, tp, 5, dt);
     } else {
-      this.yaw = wrapAngle(this.yaw + look.x);
+      // +yaw turns the view toward +X, which is screen-left; look.x > 0 means "look right"
+      this.yaw = wrapAngle(this.yaw - look.x);
       this.pitch = clamp(this.pitch - look.y, PITCH_MIN, PITCH_MAX);
       if (Math.abs(look.x) + Math.abs(look.y) > 1e-4) this.idleT = 0; else this.idleT += dt;
       if (this.recenterT > 0) {

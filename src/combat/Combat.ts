@@ -8,6 +8,7 @@ import * as THREE from 'three';
 import type { Actor } from '../actors/Actor';
 import type { HitSpec, MoveDef } from './types';
 import { segmentSegmentDistSq } from '../core/math';
+import type { CollisionWorld } from '../world/Collision';
 
 export interface DamagePacket { physical: number; magic: number; fire: number }
 
@@ -35,6 +36,7 @@ export interface Combatant extends Actor {
 
 const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _pa = new THREE.Vector3(), _pb = new THREE.Vector3();
 const _c1 = new THREE.Vector3(), _c2 = new THREE.Vector3();
+const _wd = new THREE.Vector3(), _wo = new THREE.Vector3();
 const _sa = new THREE.Vector3(), _sb = new THREE.Vector3();
 
 export class Combat {
@@ -43,6 +45,12 @@ export class Combat {
   /** Debug: record swept segments for the hitbox overlay. */
   debugSegments: { a: THREE.Vector3; b: THREE.Vector3; r: number }[] = [];
   debug = false;
+  /** Level geometry, for weapons meeting walls and floors (set by the game; null in unit tests). */
+  world: () => CollisionWorld | null = () => null;
+  /** A player's swing struck a wall before any foe: the blade rebounds (point, surface normal). */
+  onWeaponBounce: (att: Combatant, point: THREE.Vector3, normal: THREE.Vector3) => void = () => {};
+  /** A swing dragged along the floor (sparks, no interruption). */
+  onWeaponScrape: (att: Combatant, point: THREE.Vector3) => void = () => {};
 
   /** Trace all active melee hit windows for this step. */
   trace(actors: Combatant[]) {
@@ -86,9 +94,43 @@ export class Combat {
           }
           if (best < Infinity) { log.add(tgt.id); this.resolve(att, tgt, h, m.def, slot, pt); }
         }
+        if (att.team === 'player' && !(att as { owner?: unknown }).owner && slot !== 'S') this.worldContact(att, m, log, slot);
         prev.a.copy(_a); prev.b.copy(_b);
       }
     }
+  }
+
+  /**
+   * The player's weapon against level geometry (current blade and the tip's path this step).
+   * A wall met before any foe stops the swing; the floor only throws sparks, once per move.
+   */
+  private worldContact(att: Combatant, m: NonNullable<Combatant['move']>, log: Set<number>, slot: 'R' | 'L') {
+    const w = this.world();
+    if (!w || m.data.bounced || att.move !== m) return;
+    const prevTip = att.prevSeg[slot].b;
+    let hit: ReturnType<CollisionWorld['raycast']> = null;
+    // along the blade (hilt → tip), skipping the first 15 cm so a hand at the wall doesn't count
+    _wd.subVectors(_b, _a);
+    const len = _wd.length();
+    if (len > 0.2) {
+      _wd.divideScalar(len);
+      _wo.copy(_a).addScaledVector(_wd, 0.15);
+      hit = w.raycast(_wo, _wd, len - 0.15);
+    }
+    // the tip's path since the last step
+    if (!hit) {
+      _wd.subVectors(_b, prevTip);
+      const d = _wd.length();
+      if (d > 0.01) hit = w.raycast(prevTip, _wd.divideScalar(d), d);
+    }
+    if (!hit) return;
+    if (hit.normal.y > 0.55) {
+      if (!m.data.scraped) { m.data.scraped = true; this.onWeaponScrape(att, hit.point); }
+      return;
+    }
+    if (log.size > 0 || m.def.noBounce) return; // it already found a foe, or the move is meant to hit walls
+    m.data.bounced = true;
+    this.onWeaponBounce(att, hit.point, hit.normal);
   }
 
   private sphereHits(att: Combatant, h: HitSpec, move: MoveDef, log: Set<number>, actors: Combatant[]) {

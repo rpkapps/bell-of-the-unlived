@@ -299,6 +299,30 @@ async function gallery(): Promise<void> {
   }
 }
 
+/** Numeric probe: mean of every channel of every generated texture (console table). */
+async function probe(): Promise<void> {
+  const canvas = document.getElementById('c') as HTMLCanvasElement;
+  const renderer = new THREE.WebGLRenderer({ canvas });
+  await initMaterials(renderer, (params.get('q') ?? 'low') as Quality);
+  const rows: string[] = [];
+  for (const id of MATERIAL_IDS) {
+    const ts = getTextureSet(id);
+    if (!ts) continue;
+    const out: string[] = [];
+    for (let k = 0; k < 3; k++) {
+      const w = ts.width, h = ts.height, buf = new Uint8Array(w * h * 4);
+      renderer.readRenderTargetPixels(ts.target, 0, 0, w, h, buf, undefined, k);
+      const m = [0, 0, 0, 0];
+      for (let i = 0; i < buf.length; i += 4) for (let c = 0; c < 4; c++) m[c] += buf[i + c];
+      out.push(m.map((v) => (v / (w * h)).toFixed(0)).join('/'));
+    }
+    rows.push(`${id.padEnd(18)} map ${out[0].padEnd(16)} nrm ${out[1].padEnd(16)} orm ${out[2]}`);
+  }
+  console.log(rows.join('\n'));
+  window.__ready = true;
+}
+
 if (view === 'heraldry') void heraldryBoard();
+else if (view === 'probe') void probe();
 else if (view === 'gallery') void gallery();
 else if (view === 'textures') void textureSheet();

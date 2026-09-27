@@ -526,7 +526,7 @@ export function techniqueMove(id: string): MoveDef | null {
     case 'oathbound_lunge': case 'impaling_charge': case 'vow_pursuit': return MOVES.tech_lunge;
     case 'bulwark_toll': return MOVES.tech_bash;
     case 'bellglass_ward': return MOVES.tech_ward;
-    case 'measured_cut': case 'greyford_flourish': return MOVES.tech_lunge;
+    case 'measured_cut': case 'greyford_flourish': return MOVES.tech_measured;
     default: return MOVES.tech_lunge;
   }
 }

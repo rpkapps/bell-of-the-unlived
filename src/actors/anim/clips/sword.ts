@@ -103,6 +103,19 @@ export const swordClips = {
     rest(1.0),
   ]),
 
+  /** Measured Cut (Corvane's technique): a gliding dash and two measured cuts. */
+  measuredCut: new Clip('measuredCut', [
+    rest(0),
+    { t: 0.22, ease: 'out', handR: S([-0.42, 1.45, -0.05], [-0.4, 0.6, -0.7], { elbow: [-0.8, -0.2, -0.3] }), chest: [4, -30, 0], spine: [6, -12, 0], hipsPos: [0, -0.16, 0], footR: [-0.14, 0.08, -0.3] },
+    { t: 0.3, ease: 'in', handR: S([-0.1, 1.25, 0.6], [0.35, 0.25, 0.9]), chest: [8, -2, 0], spine: [6, 0, 0], footL: [0.13, 0.08, 0.4] },
+    { t: 0.38, ease: 'out', handR: S([0.3, 0.85, 0.42], [0.85, -0.35, 0.3]), chest: [14, 26, 0], spine: [8, 12, 0], hipsPos: [0, -0.14, 0.08] },
+    { t: 0.56, ease: 'out', handR: S([0.32, 1.02, 0.14], [0.85, 0.25, -0.4], { elbow: [-0.2, -0.8, -0.4] }), chest: [6, 32, 0], spine: [4, 14, 0] },
+    { t: 0.64, ease: 'in', handR: S([0, 1.22, 0.62], [-0.2, 0.3, 0.93]), chest: [4, 0, 0], footR: [-0.14, 0.08, 0.3] },
+    { t: 0.72, ease: 'out', handR: S([-0.44, 1.32, 0.3], [-0.92, 0.3, 0.2]), chest: [-2, -28, 0], spine: [0, -12, 0], hipsPos: [0, -0.1, 0.05] },
+    { t: 0.95, handR: S([-0.42, 1.3, 0.26], [-0.88, 0.4, 0.12]), chest: [-2, -24, 0] },
+    rest(1.2),
+  ]),
+
   /** Sword critical from behind: drive the blade into the back. */
   critBack: new Clip('critBack', [
     rest(0),

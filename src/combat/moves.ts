@@ -75,6 +75,16 @@ export const MOVES: Record<string, MoveDef> = {
     cancel: { dodge: 0.62, free: 0.78 },
     events: [{ t: 0.1, e: { type: 'sfx', cue: 'technique' } }, { t: 0.3, e: { type: 'sfx', cue: 'swing_heavy' } }],
   }),
+  tech_measured: M({
+    id: 'tech_measured', clip: 'measuredCut', dur: 1.2, stamina: 22, focus: 20,
+    hits: [
+      { start: 0.28, end: 0.4, source: 'weaponR', dmg: 1.15, posture: 1.6, poise: 30, kind: 'slash', knock: 1.5, group: 0 },
+      { start: 0.62, end: 0.74, source: 'weaponR', dmg: 1.25, posture: 1.8, poise: 35, kind: 'slash', knock: 2, group: 1 },
+    ],
+    motion: [[0.1, 0], [0.32, 2.2], [0.6, 2.4], [0.72, 3.0]], track: [0.6, 6], hyper: [0.2, 0.75, 25],
+    cancel: { dodge: 0.85, free: 1.0 },
+    events: [{ t: 0.05, e: { type: 'sfx', cue: 'technique' } }, { t: 0.26, e: { type: 'sfx', cue: 'swing_heavy' } }, { t: 0.6, e: { type: 'sfx', cue: 'swing_heavy' } }, { t: 0.26, e: { type: 'trail', on: true } }, { t: 0.76, e: { type: 'trail', on: false } }],
+  }),
   tech_ward: M({ id: 'tech_ward', clip: 'channel', dur: 1.0, stamina: 10, focus: 22, walk: 0.2, cancel: { dodge: 0.7, free: 0.85 }, events: [{ t: 0.45, e: { type: 'technique' } }, { t: 0.4, e: { type: 'sfx', cue: 'ward_up' } }] }),
 
   // ------------------------------------------------------------------ defence & movement

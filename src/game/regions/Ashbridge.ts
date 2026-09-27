@@ -96,7 +96,7 @@ export class AshbridgeRegion implements Region {
     // practice dummies (never hostile)
     for (const [i, a] of this.L.practiceDummies.entries()) {
       const d = g.spawnEnemy('dummy', a.pos.clone(), a.yaw, { id: 'dummy' + i, seed: 90 + i });
-      d.anim.play((d.anim as any).constructor && (window as any) ? CLIP_RIGID() : CLIP_RIGID(), { fade: 0 });
+      d.anim.play(CLIP_RIGID(), { fade: 0 });
       this.enemies.push({ e: d, anchor: a });
     }
   }

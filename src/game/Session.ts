@@ -233,6 +233,7 @@ export class Session implements UIHost {
     this.atBell = { id: bellId, name };
     this.save();
     this.game.mode = 'menu';
+    this.game.menuHoldUntil = this.game.now + (first ? 2.0 : 0.9);
     this.input.releaseAll();
     this.input.setPointerLock(false);
     setTimeout(() => this.ui.showStillbell(), first ? 1600 : 500);
@@ -267,6 +268,7 @@ export class Session implements UIHost {
     this.atBell = { id, name: bell.name };
     this.game.player.startMove({ id: 'rest', clip: 'rest', dur: 1e9, fade: 0 });
     this.game.mode = 'menu';
+    this.game.menuHoldUntil = this.game.now + 2.5;
     this.save();
     await this.ui.fade(0, 0.8);
     this.ui.showStillbell();

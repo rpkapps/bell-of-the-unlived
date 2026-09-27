@@ -64,6 +64,9 @@ export class Game implements Services {
   readonly levelRoot = new THREE.Group();
   private fpsAcc = 0; private fpsFrames = 0;
   private heartbeatT = 0;
+  /** Keep 'menu' mode without an open screen until this real time (e.g. between rest and the Stillbell menu). */
+  menuHoldUntil = 0;
+  get now() { return this.realTime; }
 
   constructor(readonly deps: GameDeps) {
     this.cam = new CameraRig(deps.renderer.camera, this.world);
@@ -214,11 +217,17 @@ export class Game implements Services {
     const playing = this.mode === 'play' || this.mode === 'dead';
     if (!this.player) { inp.endStep(); return; }
     const ui = this.deps.ui;
+    // A menu closed itself (back out of smith/practice/journal): return control to the player.
+    if (this.mode === 'menu' && ui && !ui.blocking && this.realTime > this.menuHoldUntil) {
+      if (this.player.move?.def.id === 'rest') this.player.startMove({ id: 'rise', clip: 'rise', dur: 0.8 });
+      this.resumePlay();
+    }
     const blocked = this.mode !== 'play' || !!ui?.blocking;
     // lock-on
     if (!blocked) {
-      if (inp.pressed('lockOn')) this.cam.toggleLock(this.player, this.enemies.filter((e) => e.aware || e.isBoss || true));
+      if (inp.pressed('lockOn')) this.cam.toggleLock(this.player, this.enemies.filter((e) => !e.def.passive));
       if (inp.pressed('pause')) this.openPause();
+      else if (inp.pressed('journal') && ui) { this.mode = 'menu'; inp.releaseAll(); inp.setPointerLock(false); this.deps.audio?.setMenuMuffle(true); ui.showJournal(); }
     }
     this.player.control(dt, { input: inp, camYaw: this.cam.yaw, camForward: this.cam.forward, lock: this.cam.lock as Combatant | null, blocked });
     if (playing) for (const e of this.enemies) e.think(dt, this.player);

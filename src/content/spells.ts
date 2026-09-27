@@ -9,7 +9,7 @@ export const SPELLS: Record<string, SpellDef> = {
   // ---------------------------------------------------------------- sorceries
   glinting_shard: {
     id: 'glinting_shard', name: 'Glinting Shard', icon: 'glinting_shard', school: 'sorcery', kind: 'projectile',
-    focus: 8, stamina: 10, requirements: { intellect: 10 }, slots: 1,
+    focus: 7, stamina: 10, requirements: { intellect: 10 }, slots: 1,
     source: 'Court Mage origin',
     description: 'Loose a fast shard of bronze light at the target. Quick to cast and quick to fly; the court mage\'s first lesson.',
   },

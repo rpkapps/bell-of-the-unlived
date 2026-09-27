@@ -167,7 +167,8 @@ export class Player extends Actor implements Combatant {
     // --- locomotion
     const free = !this.move;
     this.guarding = (free && wantGuard) || !!this.move?.def.guard;
-    this.anim.setOverlay(this.guarding && (free || this.move?.def.guard) ? CLIPS.guard : null, 1, 14);
+    const guardClip = this.leftDef?.kind === 'shield' ? CLIPS.guard : this.catalyst ? CLIPS.guardStaff : CLIPS.guardBlade;
+    this.anim.setOverlay(this.guarding && (free || this.move?.def.guard) ? guardClip : null, 1, 14);
     const loadMul = DODGE[this.derived.loadClass].speedMult;
     let speed = (this.sprinting ? SPRINT : walking || this.derived.loadClass === 'overloaded' ? WALK : this.guarding ? GUARD_WALK : RUN * Math.min(1, mag * 1.15)) * loadMul;
     if (!hasMove) speed = 0;
@@ -309,7 +310,7 @@ export class Player extends Actor implements Combatant {
         posture: 18 * power, poise: 20, damageKind: dmg.fire ? 'fire' : 'magic', homing, ...extra,
       });
     switch (sp.id) {
-      case 'glinting_shard': P('shard', 30, { magic: 100 }); break;
+      case 'glinting_shard': P('shard', 30, { magic: 110 }); break;
       case 'cinder_bolt': P('cinder', 17, { fire: 155 }, { burst: 1.8, status: { id: 'burn', seconds: 3, dps: 12 * power }, posture: 40 * power, poise: 45 }); break;
       case 'shard_volley': for (const a of [-0.13, 0, 0.13]) P('shard', 28, { magic: 72 }, {}, aim.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), a)); break;
       case 'bellglass_lance': P('shard', 55, { magic: 240 }, { radius: 0.25, posture: 60 * power, poise: 70 }); break;

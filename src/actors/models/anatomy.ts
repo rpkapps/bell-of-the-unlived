@@ -10,7 +10,7 @@
 import * as THREE from 'three';
 import type { BoneName } from '../rigDefs';
 import { type CharBuilder, trunkSkin, jointSkin, parentSkin, type SkinFn } from './builder';
-import { ellipsoid, loft, sweep, type Ring, type G, type V3, type LoftOpts, merge, xf, rivet, lerp } from './parts';
+import { ellipsoid, loft, loftFrame, sweep, panel, type Ring, type G, type V3, type LoftOpts, merge, xf, rivet, lerp } from './parts';
 
 export type Sex = 'm' | 'f';
 
@@ -205,104 +205,188 @@ export interface HeadOpts {
   unlived?: boolean;
   /** Soot smudges (smith). */
   soot?: boolean;
-  /** Age lines: thinner face, deeper eyes. */
+  /** Age: hollower cheeks, deeper sockets. */
   old?: boolean;
+  /** 0..1 darkening of the face (deep hoods keep the face in shadow at any light angle). */
+  shade?: number;
 }
 
+/** Base skull profile (head space: y = 0 at the skull base), crown → chin. */
 export function skullRings(sex: Sex, old = false): Ring[] {
   const f = sex === 'f';
-  const j = f ? 0.88 : 1; // jaw width
+  const j = f ? 0.87 : 1; // jaw width
   const o = old ? 0.96 : 1;
   return [
     { y: 0.205, rx: 0.02, rz: 0.025, cz: 0.005 },
     { y: 0.195, rx: 0.052, rz: 0.062, cz: 0.004 },
     { y: 0.17, rx: 0.073, rz: 0.09, cz: 0.004 },
-    { y: 0.13, rx: 0.079, rz: 0.1, cz: 0.006, p: 2.1 },
-    { y: 0.085, rx: 0.077, rz: 0.1, cz: 0.008, p: 2.2, front: 0.97 },
-    { y: 0.055, rx: 0.073 * o, rz: 0.098, cz: 0.01, p: 2.3, front: 0.95 },
-    { y: 0.025, rx: 0.07 * o * (f ? 0.95 : 1), rz: 0.094, cz: 0.012, p: 2.3, front: 0.97 },
-    { y: -0.008, rx: 0.062 * j * o, rz: 0.086, cz: 0.016, p: 2.2, back: 0.8 },
-    { y: -0.038, rx: 0.05 * j, rz: 0.07, cz: 0.024, back: 0.62 },
+    { y: 0.13, rx: 0.078, rz: 0.1, cz: 0.006, p: 2.1 },
+    { y: 0.085, rx: 0.076, rz: 0.1, cz: 0.008, p: 2.2, front: 0.97 },
+    { y: 0.055, rx: 0.072 * o, rz: 0.098, cz: 0.01, p: 2.3, front: 0.96 },
+    { y: 0.025, rx: 0.069 * o * (f ? 0.96 : 1), rz: 0.094, cz: 0.012, p: 2.3, front: 0.97 },
+    { y: -0.008, rx: 0.061 * j * o, rz: 0.086, cz: 0.016, p: 2.2, back: 0.8 },
+    { y: -0.038, rx: 0.049 * j, rz: 0.07, cz: 0.024, back: 0.62 },
     { y: -0.058, rx: 0.03 * j, rz: 0.042, cz: 0.05, back: 0.4 },
     { y: -0.066, rx: 0.012, rz: 0.015, cz: 0.066 },
   ];
+}
+
+const HEAD_Y1 = 0.205, HEAD_Y0 = -0.066, HEAD_N = 20;
+const vOfY = (y: number) => Math.min(1, Math.max(0, (HEAD_Y1 - y) / (HEAD_Y1 - HEAD_Y0)));
+const yOfV = (v: number) => lerp(HEAD_Y1, HEAD_Y0, v);
+
+/** Skull resampled at uniform heights so the sculpt field can address features by y. */
+function uniformSkull(sex: Sex, old: boolean): Ring[] {
+  const base = skullRings(sex, old);
+  const out: Ring[] = [];
+  for (let i = 0; i <= HEAD_N; i++) out.push(ringAtY(base, lerp(HEAD_Y1, HEAD_Y0, i / HEAD_N)));
+  return out;
+}
+
+const angD = (a: number, b: number) => { let d = (a - b) % TAU_; if (d > Math.PI) d -= TAU_; if (d < -Math.PI) d += TAU_; return d; };
+
+/** Facial sculpt: eye sockets, brow, cheekbones, temples, jaw angle, muzzle and chin. */
+function sculpt(sex: Sex, old: boolean): (th: number, v: number) => number {
+  const f = sex === 'f';
+  const g = (th: number, y: number, t0: number, y0: number, st: number, sy: number) =>
+    Math.exp(-((angD(th, t0) / st) ** 2) - ((y - y0) / sy) ** 2);
+  return (th, v) => {
+    const y = yOfV(v);
+    let k = 1;
+    for (const s of [1, -1]) {
+      k -= (old ? 0.08 : 0.065) * g(th, y, s * 0.36, 0.056, 0.2, 0.016);
+      k += (f ? 0.04 : 0.032) * g(th, y, s * 0.74, f ? 0.036 : 0.03, 0.24, 0.018);
+      k -= 0.028 * g(th, y, s * 1.1, 0.1, 0.25, 0.03);
+      k += (f ? 0.008 : 0.04) * g(th, y, s * 1.0, -0.03, 0.3, 0.02);
+      k -= (old ? 0.045 : f ? 0.0 : 0.018) * g(th, y, s * 0.6, 0.0, 0.22, 0.018);
+    }
+    k += (f ? 0.012 : 0.028) * g(th, y, 0, 0.074, 0.42, 0.01);
+    k += 0.035 * g(th, y, 0, 0.004, 0.3, 0.018);
+    k += (f ? 0.03 : 0.05) * g(th, y, 0, -0.045, 0.3, 0.015);
+    return k;
+  };
 }
 
 const HAIR: Record<string, string> = {
   dark: 'hair_dark', fair: 'hair_fair', grey: 'hair_fair|t=b4aea6', auburn: 'hair_dark|t=d08a60', none: 'hair_dark',
 };
 
-/** Face and hair on the head bone (and a hair fall skinned down to the chest for long styles). */
-export function addHead(b: CharBuilder, o: HeadOpts) {
-  const skin = o.skin ?? 'skin';
-  const f = o.sex === 'f';
-  const rings = skullRings(o.sex, o.old);
-  b.loft('head', rings, skin, { segs: 18, capTop: true }, { crack: o.unlived ? 0.8 : 0 });
-  const hm = HAIR[o.hair ?? 'dark'];
-  // nose
-  b.add('head', sweep([[0, 0.078, 0.093], [0, 0.05, 0.107], [0, 0.03, 0.116], [0, 0.021, 0.108]], {
-    w: (t) => lerp(0.007, f ? 0.012 : 0.015, t), h: (t) => lerp(0.004, 0.011, Math.sin(t * Math.PI * 0.8)), up: [1, 0, 0], sides: 6, segs: 6, caps: true,
-  }), skin);
-  // brow ridge + cheekbones
-  b.add('head', sweep([[-0.055, 0.075, 0.078], [-0.025, 0.08, 0.094], [0, 0.077, 0.097], [0.025, 0.08, 0.094], [0.055, 0.075, 0.078]], { r: f ? 0.006 : 0.009, sides: 6, segs: 10 }), skin);
-  for (const s of [1, -1]) {
-    b.add('head', xf(ellipsoid(0.02, 0.012, 0.014, { segs: 8, rows: 5 }), { p: [s * 0.048, 0.035, 0.078] }), skin);
-    // ears
-    b.add('head', xf(ellipsoid(0.01, 0.028, 0.018, { segs: 8, rows: 5 }), { p: [s * 0.076, 0.05, -0.002], r: [0, s * 0.25, 0] }), skin);
-    // eyes (glowing for the Unlived)
-    b.add('head', xf(ellipsoid(0.0125, 0.0095, 0.009, { segs: 8, rows: 5 }), { p: [s * 0.03, 0.055, 0.084] }), o.unlived ? 'unlived_crack' : 'hair_dark|c=18110d|r=0.25');
-    // brows
-    b.add('head', sweep([[s * 0.012, 0.072, 0.098], [s * 0.03, 0.076, 0.096], [s * 0.05, 0.072, 0.086]], { w: f ? 0.0025 : 0.0042, h: 0.0022, up: [0, 1, 0], sides: 4, segs: 4 }), hm);
+/** Hairline height around the head (a = |θ|: 0 front … π back). */
+function hairline(a: number, style: string): number {
+  const P: [number, number][] = style === 'long' || style === 'braid'
+    ? [[0, 0.15], [0.55, 0.142], [1.0, 0.118], [1.4, 0.09], [1.9, 0.04], [2.5, -0.01], [Math.PI, -0.03]]
+    : [[0, 0.15], [0.55, 0.142], [1.0, 0.12], [1.4, 0.096], [1.9, 0.062], [2.5, 0.02], [Math.PI, 0.004]];
+  for (let i = 0; i < P.length - 1; i++) {
+    if (a <= P[i + 1][0]) { const t = (a - P[i][0]) / (P[i + 1][0] - P[i][0]); return lerp(P[i][1], P[i + 1][1], t * t * (3 - 2 * t)); }
   }
-  // mouth / lips
-  b.add('head', xf(ellipsoid(f ? 0.021 : 0.022, f ? 0.0065 : 0.005, 0.008, { segs: 10, rows: 5 }), { p: [0, 0.003, 0.094] }), f ? 'skin|t=c98b84' : 'skin|t=b88a80');
-  // chin
-  b.add('head', xf(ellipsoid(f ? 0.018 : 0.024, 0.016, 0.014, { segs: 8, rows: 5 }), { p: [0, -0.04, 0.08] }), skin);
-  if (o.soot) {
-    b.add('head', xf(ellipsoid(0.02, 0.012, 0.004, { segs: 8, rows: 4 }), { p: [0.045, 0.03, 0.081], r: [0, 0.6, 0.3] }), 'cloth_black|t=5a5048|r=1');
-  }
-  if (o.unlived) {
-    // faint gold seam across the cheek
-    b.add('head', sweep([[-0.06, 0.07, 0.07], [-0.045, 0.04, 0.085], [-0.04, 0.0, 0.08], [-0.03, -0.03, 0.075]], { r: 0.0025, sides: 4, segs: 8 }), 'unlived_crack');
-  }
-  // beard
-  const beard = o.beard ?? 'none';
-  if (beard !== 'none') {
-    const th = beard === 'stubble' ? 0.002 : beard === 'short' ? 0.008 : 0.018;
-    const br = slice(rings, 0.04, -0.066).map((r) => ({ ...r, rx: r.rx + th, rz: (r.rz ?? r.rx) + th }));
-    b.loft('head', br, beard === 'stubble' ? hm + '|t=a09080' : hm, { segs: 16, phi0: -1.9, phiLen: 3.8, radial: beard === 'full' ? (t, v) => 1 + v * 0.18 : undefined }, {});
-    if (beard !== 'stubble') {
-      b.add('head', sweep([[-0.028, 0.017, 0.105], [0, 0.021, 0.112], [0.028, 0.017, 0.105]], { r: 0.006, sides: 5, segs: 6 }), hm); // moustache
-    }
-  }
-  addHair(b, o, rings, hm);
+  return P[P.length - 1][1];
 }
 
-function addHair(b: CharBuilder, o: HeadOpts, rings: Ring[], hm: string) {
+/** A shell following the sculpted skull between yTop and a per-angle lower edge. */
+function shell(ur: Ring[], lo: LoftOpts, th0: number, th1: number, yTop: (th: number) => number, yLow: (th: number) => number, lift: (th: number, v: number) => number, cols = 28, rows = 8): G {
+  return panel((u, v) => {
+    const th = lerp(th0, th1, u);
+    const y = lerp(yTop(th), yLow(th), v);
+    const f = loftFrame(ur, th, vOfY(y) * HEAD_N, lo, lift(th, v));
+    return [f.p.x, f.p.y, f.p.z];
+  }, cols, rows, { single: true });
+}
+
+/** Face and hair on the head bone (and a hair fall skinned down to the chest for long styles). */
+export function addHead(b: CharBuilder, o: HeadOpts) {
+  let skin = o.skin ?? 'skin';
+  if (o.shade) {
+    const k = Math.round(255 * (1 - o.shade)).toString(16).padStart(2, '0');
+    skin += `|t=${k}${k}${k}`;
+  }
+  const f = o.sex === 'f';
+  const ur = uniformSkull(o.sex, !!o.old);
+  const lo: LoftOpts = { segs: 26, radial: sculpt(o.sex, !!o.old) };
+  b.add('head', loft(ur, { ...lo, capTop: true }), skin);
+  if (o.unlived) b.crackOn('head', ur, lo, { crack: 0.8 });
+  const at = (th: number, y: number, lift = 0) => loftFrame(ur, th, vOfY(y) * HEAD_N, lo, lift);
+  const hm = HAIR[o.hair ?? 'dark'];
+  const eyeMat = o.unlived ? 'unlived_crack' : 'hair_dark|c=1a120e|r=0.2';
+  for (const s of [1, -1]) {
+    // eyeball bulging slightly out of the socket
+    const e = at(s * 0.36, 0.056);
+    const c = e.p.clone().addScaledVector(e.n, f ? -0.0035 : -0.005);
+    b.add('head', xf(ellipsoid(f ? 0.0125 : 0.0115, f ? 0.0085 : 0.0075, 0.009, { segs: 10, rows: 6 }), { p: [c.x, c.y, c.z], r: [0, s * 0.3, 0] }), eyeMat);
+    // upper lid crease + brow
+    const lid: V3[] = [], brow: V3[] = [];
+    for (let i = 0; i <= 4; i++) {
+      const t = i / 4;
+      const p = at(s * lerp(0.2, 0.52, t), 0.064 + Math.sin(t * Math.PI) * 0.004, 0.0015).p;
+      lid.push([p.x, p.y, p.z]);
+      const q = at(s * lerp(0.1, 0.6, t), (f ? 0.077 : 0.074) + Math.sin(t * Math.PI * 0.9) * (f ? 0.007 : 0.004), 0.002).p;
+      brow.push([q.x, q.y, q.z]);
+    }
+    b.add('head', sweep(lid, { r: 0.0022, sides: 4, segs: 6 }), skin);
+    b.add('head', sweep(brow, { w: f ? 0.0022 : 0.0038, h: 0.0018, up: [0, 1, 0], sides: 4, segs: 6, caps: true }), hm);
+    // ears
+    const ear = at(s * 1.52, 0.048);
+    b.add('head', xf(ellipsoid(0.009, 0.027, 0.017, { segs: 8, rows: 5 }), { p: [ear.p.x + s * 0.003, ear.p.y, ear.p.z], r: [0, s * 0.3, 0] }), skin);
+  }
+  // nose: bridge → tip → base, with nostrils
+  const nb = at(0, 0.07).p, nt = at(0, 0.03), nbase = at(0, 0.017);
+  const tip = nt.p.clone().addScaledVector(nt.n, f ? 0.02 : 0.024);
+  const base = nbase.p.clone().addScaledVector(nbase.n, 0.008);
+  b.add('head', sweep([[nb.x, nb.y, nb.z - 0.003], [0, lerp(nb.y, tip.y, 0.5), lerp(nb.z, tip.z, 0.55)], [0, tip.y, tip.z], [0, base.y + 0.002, base.z]], {
+    w: (t) => lerp(0.0055, f ? 0.0095 : 0.0115, Math.min(1, t * 1.3)), h: (t) => lerp(0.004, 0.009, t), up: [1, 0, 0], sides: 6, segs: 7, caps: true,
+  }), skin);
+  for (const s of [1, -1]) b.add('head', xf(ellipsoid(f ? 0.006 : 0.0075, 0.0055, 0.007, { segs: 6, rows: 4 }), { p: [s * (f ? 0.008 : 0.0095), base.y + 0.003, base.z - 0.004] }), skin);
+  // lips
+  const m = at(0, 0.003, f ? 0.004 : 0.003).p;
+  const lipMat = f ? 'skin|t=c07a78' : 'skin|t=b08078';
+  b.add('head', xf(ellipsoid(f ? 0.019 : 0.02, f ? 0.0045 : 0.0035, 0.006, { segs: 10, rows: 5 }), { p: [m.x, m.y + 0.0035, m.z - 0.002] }), o.shade ? skin : lipMat);
+  b.add('head', xf(ellipsoid(f ? 0.017 : 0.018, f ? 0.005 : 0.004, 0.0065, { segs: 10, rows: 5 }), { p: [m.x, m.y - 0.004, m.z - 0.0025] }), o.shade ? skin : lipMat);
+  if (o.soot) b.add('head', shell(ur, lo, 0.45, 0.95, () => 0.05, () => 0.012, () => 0.0009, 5, 3), 'cloth_black|t=4a4440|r=1');
+  if (o.unlived) {
+    const seam: V3[] = [];
+    for (let i = 0; i <= 6; i++) { const p = at(-0.55 - i * 0.04, 0.09 - i * 0.02, 0.001).p; seam.push([p.x, p.y, p.z]); }
+    b.add('head', sweep(seam, { r: 0.0022, sides: 4, segs: 8 }), 'unlived_crack');
+  }
+  // beard (chin-strap + moustache, lower lip left clear) or full beard
+  const beard = o.beard ?? 'none';
+  if (beard === 'short' || beard === 'full') {
+    const full = beard === 'full';
+    const top = (th: number) => { const a = Math.abs(th); return a < 0.4 ? -0.013 : a < 0.8 ? lerp(-0.013, 0.02, (a - 0.4) / 0.4) : lerp(0.02, 0.075, Math.min(1, (a - 0.8) / 0.7)); };
+    b.add('head', shell(ur, lo, -1.62, 1.62, top, () => -0.066, (th, v) => (full ? 0.005 + v * 0.02 : 0.004 + v * 0.003), 22, 6), hm);
+    if (full) b.add('head', xf(ellipsoid(0.04, 0.045, 0.03, { segs: 10, rows: 6, radial: (th, v) => 1 + 0.1 * Math.abs(Math.sin(th * 5)) * v }), { p: [0, -0.07, 0.07] }), hm);
+    const ms: V3[] = [];
+    for (let i = 0; i <= 6; i++) {
+      const t = lerp(-1, 1, i / 6);
+      const p = at(t * 0.42, 0.011 - Math.abs(t) ** 2 * 0.012, 0.004).p;
+      ms.push([p.x, p.y, p.z]);
+    }
+    b.add('head', sweep(ms, { r: (t) => 0.0045 * (1 - Math.abs(t - 0.5) * 0.9), sides: 5, segs: 10 }), hm);
+  }
+  addHair(b, o, ur, lo, hm);
+}
+
+function addHair(b: CharBuilder, o: HeadOpts, ur: Ring[], lo: LoftOpts, hm: string) {
   const style = o.style ?? 'short';
   if (style === 'none' || o.hair === 'none') return;
   const rng = b.rng;
-  const shag = (amp: number, freq: number) => (th: number, v: number) => 1 + amp * Math.abs(Math.sin(th * freq + v * 3)) * v;
+  const thick = style === 'cropped' ? 0.0045 : style === 'shaggy' ? 0.014 : 0.01;
+  const shag = style === 'shaggy' ? (th: number, v: number) => 0.012 * Math.abs(Math.sin(th * 9 + v * 4)) * v : () => 0;
   if (style === 'balding') {
-    // ring of hair around back and sides
-    b.loft('head', grow(slice(rings, 0.13, 0.03), 0.008), hm, { segs: 16, phi0: 1.1, phiLen: TAU_ - 2.2, radial: shag(0.05, 9) });
+    b.add('head', shell(ur, lo, 1.1, TAU_ - 1.1, () => 0.14, (th) => hairline(Math.abs(angD(th, 0)), 'short'), () => 0.007, 18, 5), hm);
     return;
   }
-  const top = style === 'cropped' ? 0.005 : 0.011;
-  // cap over the crown
-  b.loft('head', grow(slice(rings, 0.205, 0.11), top), hm, { segs: 18, capTop: true, radial: style === 'shaggy' ? shag(0.08, 7) : undefined });
-  // back & sides down to the nape (front left open for the face)
-  const low = style === 'long' || style === 'braid' ? -0.02 : style === 'cropped' ? 0.03 : 0.0;
-  b.loft('head', grow(slice(rings, 0.115, low), top * 0.9), hm, { segs: 18, phi0: 0.95, phiLen: TAU_ - 1.9, radial: style === 'shaggy' ? shag(0.12, 11) : undefined });
-  // fringe / locks framing the face
-  if (style === 'shaggy' || style === 'long' || style === 'short') {
-    const n = style === 'short' ? 4 : 7;
+  // main shell over the crown down to the hairline (seam at the back)
+  b.add('head', shell(ur, lo, -Math.PI, Math.PI, () => HEAD_Y1, (th) => hairline(Math.abs(th), style),
+    (th, v) => thick * (1 - v * 0.45) + shag(th, v), 32, 9), hm);
+  // a side part and a few locks for texture
+  if (style === 'short' || style === 'shaggy' || style === 'long') {
+    const n = style === 'short' ? 3 : 6;
     for (let i = 0; i < n; i++) {
-      const a = lerp(-0.7, 0.7, i / (n - 1)) + rng.range(-0.08, 0.08);
-      const len = style === 'long' ? rng.range(0.05, 0.08) : rng.range(0.035, 0.06);
-      const x = Math.sin(a) * 0.085, z = Math.cos(a) * 0.098;
-      b.add('head', sweep([[x * 0.9, 0.17, z * 0.85], [x * 1.05, 0.125, z * 1.02], [x * 1.08, 0.125 - len, z * 1.0]], {
-        w: (t) => 0.012 * (1 - t * 0.7), h: 0.004, up: [Math.cos(a), 0, -Math.sin(a)], sides: 4, segs: 5,
+      const a = lerp(-0.6, 0.6, i / Math.max(1, n - 1)) + rng.range(-0.1, 0.1);
+      const p0 = loftFrame(ur, a, vOfY(0.19) * HEAD_N, lo, thick).p;
+      const p1 = loftFrame(ur, a * 1.2, vOfY(0.15) * HEAD_N, lo, thick * 1.2).p;
+      const p2 = loftFrame(ur, a * 1.35, vOfY(style === 'short' ? 0.132 : 0.1) * HEAD_N, lo, thick * 0.9).p;
+      b.add('head', sweep([[p0.x, p0.y, p0.z], [p1.x, p1.y, p1.z], [p2.x, p2.y, p2.z]], {
+        w: (t) => 0.011 * (1 - t * 0.7), h: 0.0035, up: [p1.x, p1.y * 0.2, p1.z], sides: 4, segs: 5,
       }), hm);
     }
   }
@@ -311,33 +395,32 @@ function addHair(b: CharBuilder, o: HeadOpts, rings: Ring[], hm: string) {
     const fall: Ring[] = [];
     for (let i = 0; i <= 6; i++) {
       const t = i / 6;
-      fall.push({ y: 0.1 - t * 0.36, rx: lerp(0.085, 0.07, t), rz: lerp(0.03, 0.018, t), cz: lerp(-0.07, -0.1 - 0.03 * t, t), p: 2.2 });
+      fall.push({ y: 0.08 - t * 0.34, rx: lerp(0.08, 0.068, t), rz: lerp(0.03, 0.018, t), cz: lerp(-0.075, -0.105 - 0.03 * t, t), p: 2.2 });
     }
     b.loft('head', fall, hm, { segs: 14, capBottom: true, radial: (th, v) => 1 + 0.12 * Math.abs(Math.sin(th * 7)) * v }, {
       skin: (p) => { const w = Math.min(1, Math.max(0, (0.02 - p.y) / 0.25)); return [['head', 1 - w], ['chest', w]]; },
     });
-    // side locks falling over the shoulders
+    // locks falling in front of the shoulders
     for (const s of [1, -1]) {
-      b.add('head', sweep([[s * 0.07, 0.1, 0.03], [s * 0.085, 0.02, 0.02], [s * 0.09, -0.08, 0.0], [s * 0.1, -0.16, -0.01]], {
-        w: (t) => 0.018 * (1 - t * 0.5), h: 0.008, up: [0, 0, 1], sides: 5, segs: 7,
-      }), hm, { skin: (p) => { const w = Math.min(1, Math.max(0, (0.02 - p.y) / 0.18)); return [['head', 1 - w], ['chest', w]]; } });
+      const p0 = loftFrame(ur, s * 1.3, vOfY(0.1) * HEAD_N, lo, 0.008).p;
+      b.add('head', sweep([[p0.x, p0.y, p0.z], [s * 0.084, 0.02, 0.015], [s * 0.09, -0.08, 0.005], [s * 0.1, -0.17, -0.005]], {
+        w: (t) => 0.019 * (1 - t * 0.45), h: 0.008, up: [0, 0, 1], sides: 5, segs: 7,
+      }), hm, { skin: (p) => { const w = Math.min(1, Math.max(0, (0.03 - p.y) / 0.18)); return [['head', 1 - w], ['chest', w]]; } });
     }
   }
   if (style === 'braid') {
-    // tied back, thick braid down the spine (skinned head → chest)
-    b.add('head', xf(ellipsoid(0.03, 0.028, 0.026, { segs: 10, rows: 6 }), { p: [0, 0.06, -0.1] }), hm);
+    // gathered at the nape, one thick braid down the spine (skinned head → chest)
+    b.add('head', xf(ellipsoid(0.034, 0.03, 0.028, { segs: 10, rows: 6 }), { p: [0, 0.035, -0.098] }), hm);
     const links: G[] = [];
     for (let i = 0; i < 9; i++) {
       const t = i / 8;
-      const r = lerp(0.022, 0.012, t);
-      links.push(xf(ellipsoid(r, r * 1.35, r * 0.9, { segs: 8, rows: 5 }), { p: [(i % 2 ? 1 : -1) * 0.006, 0.03 - i * 0.034, -0.105 - t * 0.02], r: [0, 0, (i % 2 ? 1 : -1) * 0.5] }));
+      const r = lerp(0.021, 0.012, t);
+      links.push(xf(ellipsoid(r, r * 1.4, r * 0.9, { segs: 8, rows: 5 }), { p: [(i % 2 ? 1 : -1) * 0.006, 0.005 - i * 0.034, -0.108 - t * 0.02], r: [0, 0, (i % 2 ? 1 : -1) * 0.5] }));
     }
-    links.push(xf(ellipsoid(0.014, 0.012, 0.014, { segs: 8, rows: 4 }), { p: [0, 0.03 - 9 * 0.034, -0.125] }));
-    b.add('head', merge(links), hm, { skin: (p) => { const w = Math.min(1, Math.max(0, (0.04 - p.y) / 0.2)); return [['head', 1 - w], ['chest', w]]; } });
-    // leather tie
-    b.add('head', xf(loft([{ y: 0.006, rx: 0.016 }, { y: -0.006, rx: 0.016 }], { segs: 8 }), { p: [0, 0.01 - 9 * 0.034 + 0.04, -0.124] }), 'leather', {
-      skin: () => [['chest', 1]],
-    });
+    links.push(xf(ellipsoid(0.014, 0.018, 0.014, { segs: 8, rows: 4, radial: (th, v) => 1 + 0.2 * Math.abs(Math.sin(th * 5)) * v }), { p: [0, 0.005 - 9 * 0.034 - 0.01, -0.128] }));
+    const braidSkin = (p: THREE.Vector3): [BoneName, number][] => { const w = Math.min(1, Math.max(0, (0.03 - p.y) / 0.2)); return [['head', 1 - w], ['chest', w]]; };
+    b.add('head', merge(links), hm, { skin: braidSkin });
+    b.add('head', xf(loft([{ y: 0.007, rx: 0.015 }, { y: -0.007, rx: 0.015 }], { segs: 8 }), { p: [0, 0.005 - 8.6 * 0.034, -0.126] }), 'leather', { skin: braidSkin });
   }
 }
 const TAU_ = Math.PI * 2;

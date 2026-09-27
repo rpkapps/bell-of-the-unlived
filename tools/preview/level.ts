@@ -9,12 +9,14 @@
  *     &env=arena                                 override the environment preset
  *     &check=1                                   run the connectivity walk and print results
  *     &free=1                                    orbit controls (interactive)
+ *     &basic=1                                   plain renderer (no post) instead of GameRenderer
  * Exposes window.__ready, window.__stats, window.__check for headless screenshots.
  */
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GameRenderer } from '../../src/render/Renderer';
-import { initMaterials } from '../../src/render/materials';
+import { initMaterials, updateMaterials } from '../../src/render/materials';
+import { initLightPool, updateLights, lightBudgetFor } from '../../src/render/lights';
 import { defaultSettings, type Quality } from '../../src/game/settings';
 import type { EnvironmentPreset } from '../../src/render/contract';
 import { CollisionWorld } from '../../src/world/Collision';
@@ -57,13 +59,75 @@ const viewName = params.get('view') ?? 'overlook';
 const view = VIEWS[viewName] ?? VIEWS.overlook;
 const q = (params.get('q') ?? 'medium') as Quality;
 
+/** The subset of the game renderer this preview uses. */
+interface PreviewRenderer {
+  renderer: THREE.WebGLRenderer; scene: THREE.Scene; camera: THREE.PerspectiveCamera; sun: THREE.DirectionalLight;
+  setEnvironment(p: EnvironmentPreset, s?: number): void; setFocus(p: THREE.Vector3): void; setShadowExtent(h: number): void;
+  render(dt: number): void; stats(): { drawCalls: number; triangles: number };
+}
+
+/** Fallback: plain WebGLRenderer, sky colour, exp fog, the sun with shadows, the light pool. */
+function basicRenderer(canvas: HTMLCanvasElement, fov: number): PreviewRenderer {
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setSize(canvas.clientWidth || innerWidth, canvas.clientHeight || innerHeight, false);
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(fov, (canvas.clientWidth || innerWidth) / (canvas.clientHeight || innerHeight), 0.1, 2000);
+  const sun = new THREE.DirectionalLight(0xb7c6de, 1.9);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.bias = -0.0003; sun.shadow.normalBias = 0.04;
+  let ext = 40;
+  const setExt = (h: number) => { ext = h; const c = sun.shadow.camera; c.left = -h; c.right = h; c.top = h; c.bottom = -h; c.near = 1; c.far = 500; c.updateProjectionMatrix(); };
+  setExt(ext);
+  scene.add(sun, sun.target);
+  const hemi = new THREE.HemisphereLight(0x8898ad, 0x3b3530, 0.85);
+  scene.add(hemi);
+  initLightPool(scene, 12);
+  const presets: Record<string, [number, number, number]> = { // fog colour, density, exposure
+    ashbridgeDusk: [0x5b6977, 0.0085, 1.0], undercroft: [0x1d1712, 0.035, 1.5], hospiceInterior: [0x2b2119, 0.02, 1.3],
+    arena: [0x4d4c5a, 0.007, 1.05], battlefield: [0x9c9178, 0.006, 1.0], title: [0x272b31, 0.01, 1],
+  };
+  let focus = new THREE.Vector3();
+  let time = 0;
+  const dir = new THREE.Vector3(0.62, 0.52, -0.58).normalize();
+  return {
+    renderer, scene, camera, sun,
+    setEnvironment(p) { const [c, d, e] = presets[p] ?? presets.ashbridgeDusk; scene.fog = new THREE.FogExp2(c, d); scene.background = new THREE.Color(c); renderer.toneMappingExposure = e; },
+    setFocus(p) { focus = p.clone(); },
+    setShadowExtent: setExt,
+    render(dt) {
+      time += dt;
+      sun.target.position.copy(focus); sun.position.copy(focus).addScaledVector(dir, 200);
+      sun.target.updateMatrixWorld(); sun.updateMatrixWorld();
+      updateMaterials(time);
+      updateLights(time, camera.position);
+      renderer.render(scene, camera);
+    },
+    stats() { return { drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles }; },
+  };
+}
+
 async function main() {
   const canvas = document.getElementById('c') as HTMLCanvasElement;
   const settings = defaultSettings();
   settings.graphics.quality = q;
   settings.graphics.filmGrain = false;
   settings.graphics.fov = view.fov ?? 60;
-  const r = new GameRenderer(canvas, settings.graphics);
+  let r: PreviewRenderer;
+  let rendererName = 'GameRenderer';
+  try {
+    if (params.get('basic') === '1') throw new Error('basic requested');
+    r = new GameRenderer(canvas, settings.graphics) as unknown as PreviewRenderer;
+  } catch (e) {
+    console.warn('GameRenderer unavailable, using the basic preview renderer:', String(e));
+    rendererName = 'basic';
+    r = basicRenderer(canvas, settings.graphics.fov);
+  }
+  void lightBudgetFor;
   await initMaterials(r.renderer, q);
   const world = new CollisionWorld();
   const layout = buildAshbridge({ scene: r.scene, collision: world, quality: q, sun: r.sun });
@@ -113,8 +177,8 @@ async function main() {
   };
   for (let i = 0; i < 3; i++) frame(1 / 30);
   const st = r.stats();
-  window.__stats = { view: viewName, ...st, level: layout.stats, programs: r.renderer.info.programs?.length ?? 0 };
-  hud.textContent = `${viewName}  ·  draw calls ${st.drawCalls}  ·  tris ${(st.triangles / 1000).toFixed(0)}k  ·  level tris ${(layout.stats.triangles / 1000).toFixed(0)}k  ·  lights ${layout.stats.lights}  ·  build ${layout.stats.buildMs.toFixed(0)} ms`;
+  window.__stats = { view: viewName, renderer: rendererName, ...st, level: layout.stats, programs: r.renderer.info.programs?.length ?? 0 };
+  hud.textContent = `${viewName} (${rendererName})  ·  draw calls ${st.drawCalls}  ·  tris ${(st.triangles / 1000).toFixed(0)}k  ·  level tris ${(layout.stats.triangles / 1000).toFixed(0)}k  ·  lights ${layout.stats.lights}  ·  build ${layout.stats.buildMs.toFixed(0)} ms`;
   window.__ready = true;
   let last = performance.now();
   const loop = () => {

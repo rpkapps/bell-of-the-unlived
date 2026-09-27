@@ -31,6 +31,14 @@ export const staffClips = {
     { t: 0.8, handR: H([-0.08, 1.34, 0.36], [0.02, 1, 0.05], { up: [0, 0, 1] }), chest: [-6, 6, 0], head: [-8, 0, 0] },
     rest(1.15),
   ]),
+  /** Guard overlay without a shield: staff held crosswise before the chest, off-hand bracing it. */
+  guardStaff: new Clip('guardStaff', [
+    { t: 0, handR: H([-0.24, 1.22, 0.32], [0.92, 0.35, 0.1], { up: [0, -0.3, 0.95], elbow: [-0.8, -0.5, -0.2] }), handL: { p: [0.18, 1.28, 0.34], dir: [0.3, 0.9, 0.3], elbow: [0.8, -0.5, -0.2] }, chest: [4, 6, 0], spine: [4, 2, 0], head: [-4, -4, 0] },
+  ], { loop: true, duration: 1 }),
+  /** Guard overlay with a one-handed weapon and no shield: blade raised across the body. */
+  guardBlade: new Clip('guardBlade', [
+    { t: 0, handR: { p: [-0.08, 1.2, 0.36], dir: [0.55, 0.75, 0.3], up: [0.5, -0.6, 0.6], elbow: [-0.8, -0.5, -0.2] }, chest: [4, 10, 0], spine: [4, 4, 0], head: [-4, -6, 0] },
+  ], { loop: true, duration: 1 }),
   /** Staff bash: flat horizontal sweep. */
   staffLight: new Clip('staffLight', [
     rest(0),

@@ -51,7 +51,7 @@ export function buildBattlefield(shared: KitShared, parent: THREE.Object3D, cent
     p.setY(i, (hills * Math.min(1, Math.max(0, (r - 60) / 140))) + riverBed + (r > 330 ? (r - 330) * 0.25 : 0));
   }
   plain.computeVertexNormals();
-  const plainMesh = new THREE.Mesh(plain, getMaterial('dirt'));
+  const plainMesh = new THREE.Mesh(plain, getMaterial('mud'));
   plainMesh.position.set(center.x, floorY, center.z);
   plainMesh.receiveShadow = true;
   group.add(plainMesh);
@@ -184,9 +184,9 @@ export function buildBattlefield(shared: KitShared, parent: THREE.Object3D, cent
     const x = center.x + Math.cos(a) * r, z = center.z + Math.sin(a) * r;
     cols.push({ pos: new THREE.Vector3(x, Y + groundAt(x - center.x, z - center.z) + 1, z), height: rng.range(6, 16), size0: 18, size1: 46, count: 3, life: 40, drift: new THREE.Vector3(rng.range(-8, 8), 0, rng.range(-8, 8)), spread: 12 });
   }
-  const haze = new PuffField(cols, { color: 0xffe2a8, baseColor: 0xd8b070, opacity: 0.12, additive: true }, 77);
+  const haze = new PuffField(cols, { color: 0xffe2a8, baseColor: 0xd8b070, opacity: 0.045, additive: true }, 77);
   group.add(haze.mesh);
-  const shaftMat = new THREE.MeshBasicMaterial({ color: 0xffdf9a, transparent: true, opacity: 0.07, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: true });
+  const shaftMat = new THREE.MeshBasicMaterial({ color: 0xffdf9a, transparent: true, opacity: 0.028, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: true });
   const shaft = new THREE.Mesh(new THREE.CylinderGeometry(8, 22, 8 - floorY, 24, 1, true), shaftMat);
   shaft.position.set(center.x, (8 + floorY) / 2, center.z);
   shaft.renderOrder = 6;

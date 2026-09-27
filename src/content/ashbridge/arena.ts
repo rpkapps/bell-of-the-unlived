@@ -2,8 +2,10 @@
  * Commander's Yard (boss arena): a flat circular yard centred (4, 8, -166), radius 16, enclosed by a
  * blind-arcaded ring wall with four turrets. South entrance with the fog gate; Corvane's
  * bell-standard at the north edge (shatters on set(1)); the central floor (r < 8) cracks and falls
- * away on the battlefield reveal, exposing the impossible battlefield 68 m below.
+ * away on the battlefield reveal, exposing the impossible battlefield ~36 m below.
  */
+/** Height of the impossible battlefield's plain beneath the Commander's Yard. */
+export const BATTLEFIELD_Y = -28;
 import * as THREE from 'three';
 import type { Anchor, DynamicPiece, EnemySpawn } from '../../world/levelTypes';
 import type { Collider } from '../../world/Collision';
@@ -99,7 +101,7 @@ export function buildArena(ctx: AreaCtx): ArenaBuild {
   // ---------------------------------------------------------------- dynamic pieces
   const fogGate = buildFogGate(ctx, C.x, Y, -149.5);
   const anchorBell = buildBellStandard(ctx, k, C.x, Y, C.z - 14.2);
-  const battlefield = buildBattlefield(ctx.shared, ctx.dynamicRoot, C, -60);
+  const battlefield = buildBattlefield(ctx.shared, ctx.dynamicRoot, C, BATTLEFIELD_Y);
   const reveal = buildReveal(ctx, C, battlefield, col ? { col } : null);
 
   return {
@@ -314,7 +316,7 @@ function buildReveal(ctx: AreaCtx, C: THREE.Vector3, bf: Battlefield, c: { col: 
   }
   const m = new THREE.Matrix4(), T = new THREE.Matrix4(), Rt = new THREE.Matrix4(), Ry = new THREE.Matrix4(), Tb = new THREE.Matrix4();
   const q = new THREE.Quaternion();
-  const drop = Y - (-60) + 1.5;
+  const drop = Y - BATTLEFIELD_Y + 1.5;
   const piece: DynamicPiece = {
     object: root,
     collider: floorCol,

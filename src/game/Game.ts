@@ -313,7 +313,10 @@ export class Game implements Services {
       this.cam.shakeScale = this.settings.graphics.cameraShake;
       this.cam.autoRecenter = this.settings.gameplay.cameraAutoRecenter;
       const mv = this.input.move();
-      this.cam.update(realDt, this.player, blocked ? { x: 0, y: 0 } : lk, Math.hypot(mv.x, mv.y) > 0.2);
+      if (!(this.cameraOverride && this.cameraOverride(realDt, r.camera))) {
+        this.cameraOverride = null;
+        this.cam.update(realDt, this.player, blocked ? { x: 0, y: 0 } : lk, Math.hypot(mv.x, mv.y) > 0.2);
+      }
       r.setFocus(this.player.object.position);
       // fill light: between camera and player, slightly above
       this.fill.position.copy(r.camera.position).lerp(this.player.object.position, 0.35);
@@ -387,6 +390,8 @@ export class Game implements Services {
 
   /** Death handler (the Session sets this); default respawns in the sandbox. */
   onDeath: (() => void) | null = null;
+  /** Scripted camera (reveals, cutscenes): return true while it controls the camera. */
+  cameraOverride: ((dt: number, cam: THREE.PerspectiveCamera) => boolean) | null = null;
   /** Title-screen camera animation (set by the region). */
   titleView: ((t: number) => void) | null = null;
 

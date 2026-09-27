@@ -464,6 +464,17 @@ export class AshbridgeRegion implements Region {
     g.shake(0.8);
     this.tween(this.L.battlefieldReveal, 0, 1, 6);
     this.game.deps.renderer.setEnvironment('battlefield', 4);
+    // Look over the edge: a slow push from the rim down toward the army below.
+    const c = this.L.arenaCenter;
+    const from = new THREE.Vector3(c.x, c.y + 6, c.z + 14), to = new THREE.Vector3(c.x, c.y + 3.5, c.z + 6.5);
+    let t = 0;
+    this.game.cameraOverride = (dt, cam) => {
+      t += dt;
+      const k = Math.min(1, t / 10), e = k * k * (3 - 2 * k);
+      cam.position.lerpVectors(from, to, e);
+      cam.lookAt(c.x, c.y - 40 - 20 * e, c.z - 18);
+      return t < 11 && !this.game.player.dead;
+    };
     this.session.audio?.setMusic('battlefield', 4);
     this.setFlag(F.reveal);
     await wait(6500);

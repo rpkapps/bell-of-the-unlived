@@ -101,7 +101,7 @@ export const ENVIRONMENTS: Record<EnvironmentPreset, EnvDef> = {
     glow: '#ecd6a2', glowStrength: 1.3, glowPower: 1.8,
     cloudColor: '#6a6452', cloudLit: '#cabb92', cloudCover: 0.72, cloudOpacity: 0.8, cloudSpeed: 0.35,
     skyline: 0.75, skylineColor: '#5a5446', skylineWindows: 0,
-    fogColor: '#9c9178', fogDensity: 0.006, fogFalloff: 0.012, fogBase: -62, fogStart: 14,
+    fogColor: '#9c9178', fogDensity: 0.0035, fogFalloff: 0.02, fogBase: -30, fogStart: 20,
     sunColor: '#e8d4a2', sunIntensity: 1.25, sunAzimuth: 120, sunElevation: 22,
     rimColor: '#ecca90', rimIntensity: 0.95,
     hemiSky: '#b3a784', hemiGround: '#3b3529', hemiIntensity: 2.47,

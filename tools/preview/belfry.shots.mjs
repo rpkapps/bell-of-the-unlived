@@ -19,6 +19,7 @@ page.on('pageerror', (e) => console.log('pageerror:', e.message));
 await page.goto(base + '?region=belfry&quality=low&skipintro', { waitUntil: 'load' });
 await page.waitForFunction(() => window.__ready === true && window.__game?.mode === 'play', null, { timeout: 600000 });
 await page.waitForTimeout(3000);
+await page.addStyleTag({ content: '.banner, .sub-line, .hud-prompt, .hint, .toast, .notice, .practice { display: none !important; }' });
 const stats = await page.evaluate(() => { const L = window.__region?.L; return L?.stats; });
 console.log('stats', JSON.stringify(stats));
 for (const v of list) {

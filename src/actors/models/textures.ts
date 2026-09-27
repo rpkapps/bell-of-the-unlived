@@ -161,7 +161,7 @@ export function tatterMask(seed = 1, depth = 0.16, holes = 6): THREE.DataTexture
   for (let i = 0; i < 4; i++) rips.push({ u: hash2(i, 7, seed), h: depth + hash2(i, 9, seed) * 0.28, w: 0.006 + hash2(i, 5, seed) * 0.012 });
   const hl: { u: number; v: number; r: number }[] = [];
   for (let i = 0; i < holes; i++) hl.push({ u: 0.08 + hash2(i, 13, seed) * 0.84, v: depth + 0.03 + hash2(i, 17, seed) * 0.35, r: 0.012 + hash2(i, 19, seed) * 0.03 });
-  return make(`tatter:${seed}:${depth}:${holes}`, W, H, (u, v) => {
+  const t = make(`tatter:${seed}:${depth}:${holes}`, W, H, (u, v) => {
     const x = Math.min(W - 1, Math.floor(u * W));
     const edge = cut[x] + (fbm(u * 40, v * 40, seed) - 0.5) * 0.03;
     if (v < edge) return 0;
@@ -175,6 +175,9 @@ export function tatterMask(seed = 1, depth = 0.16, holes = 6): THREE.DataTexture
     }
     return 1;
   });
+  // cloth sims carry a 0..1 'uv1' set for this mask (their main 'uv' is metric)
+  t.channel = 1;
+  return t;
 }
 
 /** Gilt embroidery band (repeats along U): border lines, lozenge chain and pearl dots. */

@@ -11,7 +11,7 @@ import {
   armourStand, barrel, crate, sack, shelves, trainingDummy, plaque, stillbellShrine, bucket, trough, wallBanner,
   crenellation, buttress, cyl, rubble, hay, type StillbellShrine,
 } from '../../world/kit';
-import { type AreaCtx, newKit, anchor, YAW_N, YAW_S, YAW_E, YAW_W } from './common';
+import { type AreaCtx, newKit, anchor, YAW_N, YAW_S, YAW_W } from './common';
 
 export interface HospiceBuild {
   shrine: StillbellShrine;
@@ -65,7 +65,7 @@ export function buildHospice(ctx: AreaCtx): HospiceBuild {
   for (const x of [26.5, 30.5, 34.5, 38.5]) buttress(k, 'stone_wall', x, 0, z1, 0, Y + 7, 1.3, 0.9);
   // gable roof over the nave (ridge along X), lean-to roofs north
   gableRoof(k, 33, Y + naveH, (nZ0 - 1.2 + z1) / 2, Math.PI / 2, z1 - (nZ0 - 1.2), x1 - x0 + 0.4, { pitch: (48 * Math.PI) / 180, gableMat: 'stone_wall', overhang: 0.6, endOverhang: 0.3 });
-  shedRoof(k, 33, Y + 5.3, (z0 + nZ0 - 1.2) / 2, 0, x1 - x0 + 0.6, nZ0 - 1.2 - z0 + 1.4, 2.6);
+  shedRoof(k, 33, Y + 7, (z0 + nZ0 - 1.2) / 2, Math.PI, x1 - x0 + 0.6, nZ0 - 1.2 - z0 + 1.4, 2.4);
   k.bmm('timber_dark', x0 + 0.01, Y + 4.5, z0 + 1, ix1, Y + 4.7, nZ0 - 1.2, { cast: false }); // lean-to ceiling
   // bell-cote on the west gable apex (seen from the tower)
   const apexY = Y + naveH + ((z1 - (nZ0 - 1.2)) / 2) * Math.tan((48 * Math.PI) / 180);
@@ -78,8 +78,7 @@ export function buildHospice(ctx: AreaCtx): HospiceBuild {
     k.box('timber_dark', x, Y + naveH + 3, (nZ0 + nZ1) / 2, 0.22, 6, 0.22, { cast: false });
   }
   // chimney from the forge
-  k.bmm('stone_dark', 27.3, Y + 4.5, -123.8, 28.3, Y + 12.5, -122.8);
-  k.bmm('stone_trim', 27.2, Y + 12.5, -123.9, 28.4, Y + 12.7, -122.7, { cast: false });
+  k.bmm('stone_trim', 27.2, Y + 12.5, -123.4, 28.4, Y + 12.7, -122.4, { cast: false });
 
   // ---------------------------------------------------------------- nave furnishings
   const curtainX: number[] = [];
@@ -92,7 +91,8 @@ export function buildHospice(ctx: AreaCtx): HospiceBuild {
     k.box('cloth_linen', cx, Y + 1.4, -101.1, 0.03, 1.9, 1.9, { cast: false, variant: 1 });
     k.box('iron', cx, Y + 2.4, -101.1, 0.03, 0.03, 2.0, { cast: false });
   }
-  for (let i = 0; i < 4; i++) cot(k, 26.8 + i * 1.9, Y, -113.8, Math.PI, i === 2);
+  cot(k, 26.5, Y, -105.4, Math.PI / 2, false);
+  cot(k, 26.5, Y, -107.4, Math.PI / 2, true);
   table(k, 32, Y, -108, Math.PI / 2, 3.2, 1.0, 0.8, true);
   candles(k, 32, Y + 0.8, -107.2, 4, 0.15);
   bucket(k, 31.9, Y + 0.8, -108.8, 'planks', 'water');
@@ -102,6 +102,7 @@ export function buildHospice(ctx: AreaCtx): HospiceBuild {
   k.bmm('stone_trim', 37.2, Y, -111.2, ix1, Y + 0.28, -104.8, { col: true });
   k.bmm('stone_wall', 37.3, Y + 0.28, -111.1, ix1, Y + 0.3, -104.9, { cast: false });
   const shrine = stillbellShrine(k, 38.8, Y + 0.3, -108, YAW_W, 8);
+  shrine.anchor.pos.y = Y; // the resting spot is on the nave floor in front of the dais
   candelabrum(k, 37.6, Y + 0.3, -110.6, 5);
   candelabrum(k, 37.6, Y + 0.3, -105.4, 5);
   wallBanner(k, 39.95, Y + 7.4, -104.5, YAW_W, 1.2, 3.2);
@@ -109,7 +110,7 @@ export function buildHospice(ctx: AreaCtx): HospiceBuild {
   k.light(0xffc27a, 5, 12, 32, Y + 2.2, -107.5, 0.4);
 
   // ---------------------------------------------------------------- forge lean-to (Hesper)
-  const coals = forge(k, 27.8, Y, -122.9, YAW_S, Y + 12.5);
+  const coals = forge(k, 27.8, Y, -122.9, YAW_S, 12.5);
   anvil(k, 30.4, Y, -121.0, 0.4);
   bellows(k, 25.95, Y, -121.4, Math.PI / 2);
   weaponRack(k, 33.7, Y, -120.6, YAW_W, 2.4);
@@ -125,7 +126,7 @@ export function buildHospice(ctx: AreaCtx): HospiceBuild {
   // the rack with the other origin's starting gear (in the nave, north wall between the openings)
   weaponRack(k, 33.3, Y, -115.6, YAW_S, 1.6);
   armourStand(k, 35.2, Y, -115.3, YAW_S, 'steel_armor', 'cloth_blue');
-  armourStand(k, 31.4 + 0.6, Y, -115.3 + 0.1, YAW_S, 'leather', 'cloth_red');
+  armourStand(k, 32.35, Y, -115.3, YAW_S, 'leather', 'cloth_red');
 
   // ---------------------------------------------------------------- practice yard (x ∈ [41, 55])
   const yx0 = 41, yx1 = 55, yz0 = -124, yz1 = -100;
@@ -140,7 +141,7 @@ export function buildHospice(ctx: AreaCtx): HospiceBuild {
   // terrace retaining wall below the yard (seen from the town)
   k.bmm('stone_wall', yx0, -2, yz1 + 0.4, yx1 + 0.6, Y, yz1 + 0.9, { cast: false });
   k.bmm('stone_wall', yx1 + 0.4, -2, yz0 - 0.4, yx1 + 0.9, Y, yz1 + 0.9, { cast: false });
-  const dummies = [anchor(46.5, Y, -105.5, YAW_S + Math.PI), anchor(50.2, Y, -112, YAW_W), anchor(46.5, Y, -118.5, YAW_N + Math.PI)];
+  const dummies = [anchor(46.5, Y, -105.5, YAW_W), anchor(50.2, Y, -112, YAW_W), anchor(46.5, Y, -118.5, YAW_W)];
   for (const d of dummies) trainingDummy(k, d.pos.x, Y, d.pos.z, d.yaw);
   hay(k, 42.3, Y, -122.8, 0.3); rubble(k, 53.4, Y, -122.6, 0.6, false);
   const plaqueSpots: [string, number, number, number][] = [
@@ -167,7 +168,6 @@ export function buildHospice(ctx: AreaCtx): HospiceBuild {
     practicePlaques,
     practiceDummies: dummies,
   };
-  void YAW_E;
 }
 
 export const HOSPICE_ZONE = new THREE.Box3(new THREE.Vector3(22.1, 2, -125), new THREE.Vector3(55.5, 24, -99));

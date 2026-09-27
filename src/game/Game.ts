@@ -274,7 +274,10 @@ export class Game implements Services {
 
   private render(alpha: number, realDt: number) {
     const r = this.deps.renderer;
-    if (this.player) {
+    if (this.mode === 'title' && this.titleView) {
+      this.titleView(this.realTime);
+      this.region?.frame(realDt);
+    } else if (this.player) {
       const lk = this.input.look();
       const sw = this.input.targetSwitch();
       if (sw && this.cam.lock) this.cam.switchTarget(sw, this.player, this.enemies);
@@ -354,8 +357,14 @@ export class Game implements Services {
     if (this.cam.lock === e) this.cam.lock = null;
   }
 
+  /** Death handler (the Session sets this); default respawns in the sandbox. */
+  onDeath: (() => void) | null = null;
+  /** Title-screen camera animation (set by the region). */
+  titleView: ((t: number) => void) | null = null;
+
   private onPlayerDeath() {
     this.mode = 'dead';
+    if (this.onDeath) { this.onDeath(); return; }
     this.deps.ui?.banner('death', 'THE BELL RECALLS YOU');
     setTimeout(() => this.respawn(), 3500);
   }

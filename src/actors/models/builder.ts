@@ -135,6 +135,9 @@ export class CharBuilder {
       const si = new Uint16Array(nv * 4), sw = new Float32Array(nv * 4);
       const idx = nv > 65535 ? new Uint32Array(ni) : new Uint16Array(ni);
       let ov = 0, oi = 0;
+      // texture density per material family (UVs are authored metric: 1 unit = 1 m)
+      const base = key.split('|')[0];
+      const dens = base.startsWith('cloth_') ? 2.5 : base.startsWith('hair_') ? 2 : base === 'rope' ? 3 : base.startsWith('leather') ? 1.6 : 1;
       for (const p of list) {
         const pa = p.g.attributes.position, na = p.g.attributes.normal, ua = p.g.attributes.uv;
         this.boneScale(p.bone, bs);
@@ -157,7 +160,7 @@ export class CharBuilder {
           const l = Math.hypot(nx, ny, nz) || 1;
           nx /= l; ny /= l; nz /= l;
           nor[k * 3] = nx; nor[k * 3 + 1] = ny; nor[k * 3 + 2] = nz;
-          uv[k * 2] = ua.getX(i); uv[k * 2 + 1] = ua.getY(i);
+          uv[k * 2] = ua.getX(i) * dens; uv[k * 2 + 1] = ua.getY(i) * dens;
         }
         const ix = p.g.index!;
         for (let i = 0; i < ix.count; i++) idx[oi + i] = ix.getX(i) + ov;

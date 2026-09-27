@@ -67,6 +67,8 @@ export interface ClothSpec {
   windScale?: number;
   /** Extra distance kept from colliders (cloth thickness), metres. */
   margin?: number;
+  /** Texture tiles per metre on the main UV set (default 2.5). */
+  uvDensity?: number;
 }
 
 const H = 1 / 120;
@@ -196,11 +198,19 @@ export class Cloth {
       const p = this.restLocal[i].clone().add(ctx.restRoot[spec.frame]);
       gp[i * 3] = p.x; gp[i * 3 + 1] = p.y; gp[i * 3 + 2] = p.z;
     }
-    const uv = new Float32Array(n * 2);
+    // 'uv' is metric (× uvDensity) for the tiling cloth textures; 'uv1' is 0..1 over the sheet
+    // for the tatter alpha mask (hem at uv1.y = 0; masks sample channel 1).
+    const uv = new Float32Array(n * 2), uv1 = new Float32Array(n * 2);
+    const dens = spec.uvDensity ?? 2.5;
+    let width = 0, length = 0;
+    for (let c = 1; c < cols; c++) width += this.restLocal[idx(rows - 1, c)].distanceTo(this.restLocal[idx(rows - 1, c - 1)]);
+    for (let r = 1; r < rows; r++) length += this.restLocal[idx(r, cols >> 1)].distanceTo(this.restLocal[idx(r - 1, cols >> 1)]);
     for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
       const i = idx(r, c);
-      uv[i * 2] = c / (cols - 1);
-      uv[i * 2 + 1] = 1 - r / (rows - 1); // hem at uv.y = 0 (tatter masks cut from there)
+      uv1[i * 2] = c / (cols - 1);
+      uv1[i * 2 + 1] = 1 - r / (rows - 1);
+      uv[i * 2] = uv1[i * 2] * width * dens;
+      uv[i * 2 + 1] = uv1[i * 2 + 1] * length * dens;
     }
     const index: number[] = [];
     for (let r = 0; r < rows - 1; r++) for (let c = 0; c < cols - 1; c++) {
@@ -209,6 +219,7 @@ export class Cloth {
     }
     geo.setAttribute('position', new THREE.BufferAttribute(gp, 3).setUsage(THREE.DynamicDrawUsage));
     geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+    geo.setAttribute('uv1', new THREE.BufferAttribute(uv1, 2));
     geo.setIndex(index);
     geo.computeVertexNormals();
     // Front faces must point away from the body (so one-sided decals sit on the outside).

@@ -17,13 +17,18 @@ import { getMaterial, getMaterialVariant } from '../../render/materials';
 import type { Quality } from '../../game/settings';
 import { Rng } from '../../core/rng';
 import { normalizeGeometry } from './geom';
+import { registerLight } from '../../render/lights';
 
 export interface DrawOpts {
   /** Casts shadows (default true — pass false for small props). */
   cast?: boolean;
   /** Receives shadows (default true). */
   receive?: boolean;
-  /** 'world' (default) re-projects box UVs in world metres; 'keep' preserves authored UVs. */
+  /**
+   * 'keep' (default) preserves the geometry's own UVs (per-face 0..1 for boxes — what 'uv' and
+   * 'uvWorld' materials expect); 'world' re-projects box UVs in world metres (0.5 UV / m).
+   * Triplanar architecture materials ignore UVs entirely.
+   */
   uv?: 'world' | 'keep';
   /** Material variant index (getMaterialVariant) for visual variety. */
   variant?: number;
@@ -119,6 +124,11 @@ export class Kit {
   private stack: THREE.Matrix4[] = [new THREE.Matrix4()];
   /** Triangle count of merged geometry (for budgeting/debug). */
   triangles = 0;
+  /**
+   * World Y used as the merged meshes' origin (geometry is offset so mesh.position.y = originY).
+   * Materials derive ground grime from the object origin, so set it to the area's floor level.
+   */
+  originY = 0;
 
   constructor(public readonly name: string, public readonly shared: KitShared, seed = 1) {
     this.rng = new Rng(seed);
@@ -157,7 +167,7 @@ export class Kit {
     const world = local ? this.m.clone().multiply(local) : this.m;
     const n = normalizeGeometry(g);
     n.applyMatrix4(world);
-    if ((o.uv ?? 'world') === 'world') worldUV(n);
+    if (o.uv === 'world') worldUV(n);
     const cast = o.cast ?? true, receive = o.receive ?? true;
     const key = `${mat}|${o.variant ?? ''}|${cast ? 1 : 0}${receive ? 1 : 0}`;
     let b = this.buckets.get(key);
@@ -226,15 +236,11 @@ export class Kit {
     l.castShadow = false;
     l.position.copy(this.wp(x, y, z));
     l.name = `${this.name}:light${this.shared.lights.length}`;
+    l.userData.baseIntensity = intensity;
     this.group.add(l);
     this.shared.lights.push(l);
-    if (flicker > 0) {
-      const base = intensity, ph = this.shared.lights.length * 1.7;
-      this.shared.updaters.push((_dt, t) => {
-        const n = Math.sin(t * 7.3 + ph) * 0.5 + Math.sin(t * 13.1 + ph * 2.1) * 0.3 + Math.sin(t * 23.7 + ph * 0.7) * 0.2;
-        l.intensity = base * (1 + n * 0.22 * flicker);
-      });
-    }
+    // Served by the renderer's nearest-N light pool (which also animates the flicker).
+    registerLight(l, { flicker: flicker > 0.3 });
     return l;
   }
   onUpdate(fn: Updater): this { this.shared.updaters.push(fn); return this; }
@@ -246,10 +252,13 @@ export class Kit {
       const merged = concat(b.geoms);
       if (!merged) continue;
       const mat = b.variant !== undefined ? getMaterialVariant(b.mat, b.variant) : getMaterial(b.mat);
+      if (this.originY !== 0) { merged.translate(0, -this.originY, 0); merged.computeBoundingSphere(); merged.computeBoundingBox(); }
       const mesh = new THREE.Mesh(merged, mat);
+      mesh.position.y = this.originY;
       mesh.name = `${this.name}:${b.mat}${b.variant !== undefined ? '#' + b.variant : ''}`;
       mesh.castShadow = b.cast;
       mesh.receiveShadow = b.receive;
+      mesh.updateMatrix();
       mesh.matrixAutoUpdate = false;
       this.triangles += merged.attributes.position.count / 3;
       this.group.add(mesh);

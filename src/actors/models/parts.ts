@@ -24,6 +24,7 @@ export const DEG = Math.PI / 180;
 
 /** Normalise any geometry to indexed position/normal/uv, no groups. */
 export function norm(g: G): G {
+  if (!g.attributes.position) g.setAttribute('position', new THREE.Float32BufferAttribute([], 3));
   for (const k of Object.keys(g.attributes)) {
     if (k !== 'position' && k !== 'normal' && k !== 'uv') g.deleteAttribute(k);
   }

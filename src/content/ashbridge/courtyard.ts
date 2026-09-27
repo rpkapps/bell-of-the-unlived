@@ -10,7 +10,7 @@ import type { Anchor, DynamicPiece, EnemySpawn } from '../../world/levelTypes';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import {
   Kit, wall, crenellation, parapet, floor, stairs, bellPost, cart, brazier, weaponRack, barrel, crate, crateStack,
-  sack, hay, trough, wallBanner, wallShield, shedRoof, armourStand, rubble, cyl, towerSolid, slit, bound,
+  sack, hay, trough, wallBanner, wallShield, shedRoof, armourStand, rubble, cyl, slit, bound,
 } from '../../world/kit';
 import { getMaterial } from '../../render/materials';
 import { type AreaCtx, newKit, anchor, PLAN, yawTo, YAW_W } from './common';
@@ -188,6 +188,7 @@ export function buildCourtyard(ctx: AreaCtx): CourtyardBuild {
  */
 function buildDrawbridge(ctx: AreaCtx, hingeX: number, y: number, z0: number, z1: number): DynamicPiece {
   const L = 10.6, W = z1 - z0, T = 0.3, top = 0.08;
+  const RAIL = 8.6; // rails stop at the ravine edge so the ledge end can be stepped off sideways
   const root = new THREE.Group();
   root.name = 'drawbridge';
   ctx.dynamicRoot.add(root);
@@ -206,8 +207,8 @@ function buildDrawbridge(ctx: AreaCtx, hingeX: number, y: number, z0: number, z1
   for (const xx of [-0.6, -L / 2, -L + 0.6]) deck.bmm('iron', xx - 0.06, 0, -W / 2, xx + 0.06, 0.012, W / 2, { cast: false });
   for (const s of [-1, 1]) {
     const zz = s * (W / 2 - 0.06);
-    deck.bmm('timber_dark', -L + 0.1, 0.85, zz - 0.06, -0.1, 0.97, zz + 0.06, { cast: false });
-    for (let i = 0; i < 6; i++) deck.bmm('timber_dark', -0.3 - i * 2, 0, zz - 0.06, -0.18 - i * 2, 0.95, zz + 0.06, { cast: false });
+    deck.bmm('timber_dark', -RAIL, 0.85, zz - 0.06, -0.1, 0.97, zz + 0.06, { cast: false });
+    for (let i = 0; i < 5; i++) deck.bmm('timber_dark', -0.3 - i * 2, 0, zz - 0.06, -0.18 - i * 2, 0.95, zz + 0.06, { cast: false });
   }
   deck.bmm('iron', -L, -0.2, -W / 2, -L + 0.12, 0.02, W / 2, { cast: false });
   deck.finish(pivot);
@@ -237,8 +238,8 @@ function buildDrawbridge(ctx: AreaCtx, hingeX: number, y: number, z0: number, z1
   if (col) {
     const parts = [
       new THREE.BoxGeometry(L, T, W).translate(-L / 2, -T / 2, 0),
-      new THREE.BoxGeometry(L, 1.3, 0.2).translate(-L / 2, 0.65, -W / 2 + 0.1),
-      new THREE.BoxGeometry(L, 1.3, 0.2).translate(-L / 2, 0.65, W / 2 - 0.1),
+      new THREE.BoxGeometry(RAIL, 1.3, 0.2).translate(-RAIL / 2, 0.65, -W / 2 + 0.1),
+      new THREE.BoxGeometry(RAIL, 1.3, 0.2).translate(-RAIL / 2, 0.65, W / 2 - 0.1),
     ].map((g) => g.toNonIndexed());
     for (const g of parts) { g.deleteAttribute('normal'); g.deleteAttribute('uv'); }
     deckCol = col.addDynamicGeometry('ashbridge:drawbridge', mergeGeometries(parts, false), 'wood');
@@ -308,4 +309,3 @@ function buildLever(ctx: AreaCtx, k: Kit, wallX: number, y: number, z: number): 
 }
 
 export const COURTYARD_ZONE = new THREE.Box3(new THREE.Vector3(-17, 2, -133.5), new THREE.Vector3(25, 16, -94.7));
-export { towerSolid };

@@ -1,6 +1,7 @@
 /** Minimal IRenderer used until/if the full post-processed renderer is unavailable (tests, fallback). */
 import * as THREE from 'three';
 import type { EnvironmentPreset, IRenderer } from '../render/contract';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import type { Settings } from './settings';
 
 export class BasicRenderer implements IRenderer {
@@ -21,6 +22,9 @@ export class BasicRenderer implements IRenderer {
     const c = this.sun.shadow.camera; c.left = -30; c.right = 30; c.top = 30; c.bottom = -30; c.far = 150;
     this.scene.add(this.sun, this.sun.target);
     this.scene.add(new THREE.HemisphereLight(0x9aa8c0, 0x2a2622, 1.1));
+    const pm = new THREE.PMREMGenerator(this.renderer);
+    this.scene.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture;
+    this.scene.environmentIntensity = 0.35;
     this.applySettings(g);
     this.resize();
   }

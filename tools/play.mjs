@@ -9,7 +9,7 @@ const errs = [];
 page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') errs.push(m.type() + ': ' + m.text()); });
 page.on('pageerror', (e) => errs.push('pageerror: ' + e.message));
 await page.goto(url, { waitUntil: 'load' });
-await page.waitForFunction(() => window.__ready === true, null, { timeout: 120000 });
+await page.waitForFunction(() => window.__ready === true, null, { timeout: 120000 }).catch(async (e) => { for (const x of errs) console.log(x); await page.screenshot({ path: `tools/out/${prefix}-fail.png` }); throw e; });
 let n = 0;
 for (const s of script) {
   if (s.wait) await page.waitForTimeout(s.wait);

@@ -231,7 +231,7 @@ export class TextureGenerator {
     fu.tB.value = scratch.textures[1];
     (fu.uTexel.value as THREE.Vector2).set(1 / w, 1 / h);
     // Normal strength is expressed per 512 px of texture so every resolution looks alike.
-    const k = spec.normal * 0.012;
+    const k = spec.normal * 0.028;
     (fu.uNormalK.value as THREE.Vector2).set(k * w, k * h);
     fu.uAoStrength.value = spec.ao ?? 2;
     fu.uAoRadius.value = 3 * (w / 512);

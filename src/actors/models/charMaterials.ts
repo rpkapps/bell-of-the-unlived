@@ -18,7 +18,7 @@
  *   e=RRGGBB, ei=2                emissive colour and intensity
  */
 import * as THREE from 'three';
-import { getMaterial } from '../../render/materials';
+import { getMaterial, cloneMaterial } from '../../render/materials';
 import type { MaterialId } from '../../render/materialIds';
 import { armyInsigniaMask, bellMask, cathedralMask, embroideryMask, royalArmsMask, tatterMask } from './textures';
 
@@ -109,7 +109,8 @@ export function patchFx(mat: THREE.Material, U: FxUniforms, ghost: boolean) {
   mat.onBeforeCompile = (shader, renderer) => {
     prev.call(mat, shader, renderer);
     const fs = shader.fragmentShader;
-    if (!fs.includes('#include <emissivemap_fragment>') || !fs.includes('#include <clipping_planes_fragment>')) return;
+    // Anchors the render module's weathering patch leaves intact (it rewrites emissivemap/aomap).
+    if (!fs.includes('#include <lights_fragment_begin>') || !fs.includes('#include <clipping_planes_fragment>')) return;
     Object.assign(shader.uniforms, U);
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\n' + VERT_HEAD)
@@ -117,7 +118,7 @@ export function patchFx(mat: THREE.Material, U: FxUniforms, ghost: boolean) {
     shader.fragmentShader = (ghost ? '#define BOTU_GHOST\n' : '') + fs
       .replace('#include <common>', '#include <common>\n' + FRAG_HEAD)
       .replace('#include <clipping_planes_fragment>', '#include <clipping_planes_fragment>\n' + FRAG_DISSOLVE)
-      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n' + FRAG_EMISSIVE);
+      .replace('#include <lights_fragment_begin>', FRAG_EMISSIVE + '\n#include <lights_fragment_begin>');
   };
   mat.customProgramCacheKey = () => prevKey() + (ghost ? '|botu-ghost' : '|botu');
   if (ghost) {
@@ -151,10 +152,8 @@ function alphaFor(name: string, rep: number): THREE.Texture | null {
 export function materialFromKey(key: string): THREE.Material {
   const [id, ...opts] = key.split('|');
   const base = getMaterial(id as MaterialId);
-  const m = base.clone();
-  // clone() drops onBeforeCompile hooks — keep the render module's patch if it has one
-  m.onBeforeCompile = base.onBeforeCompile;
-  m.customProgramCacheKey = base.customProgramCacheKey;
+  // cloneMaterial keeps the render module's weathering extension (plain clone() drops it)
+  const m = cloneMaterial(base);
   m.name = key;
   const std = m as THREE.MeshStandardMaterial;
   let alphaName = '', rep = 1;

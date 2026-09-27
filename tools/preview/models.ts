@@ -261,13 +261,14 @@ async function main() {
   const yaw0 = Number(qs.get('angle') ?? 20) * Math.PI / 180;
   const distK = Number(qs.get('dist') ?? 1);
   const camY = Number(qs.get('y') ?? (group === 'weapons' ? 1.5 : 1.25));
-  const target = new THREE.Vector3(0, group === 'weapons' ? 1.4 : 0.95, 0);
+  const target = new THREE.Vector3(Number(qs.get('tx') ?? 0), Number(qs.get('ty') ?? (group === 'weapons' ? 1.4 : 0.95)), 0);
+  const dAbs = qs.get('d') ? Number(qs.get('d')) : 0;
   const tick = () => {
     const dt = Math.min(0.05, clock.getDelta());
     const t = clock.elapsedTime;
     const yaw = orbit ? yaw0 + t * 0.15 : yaw0;
-    const d = Math.max(4.5, span * 1.05) * distK * (group === 'hands' ? 0.5 : 1);
-    camera.position.set(Math.sin(yaw) * d, camY + (group === 'hands' ? 0.1 : 0), Math.cos(yaw) * d);
+    const d = dAbs || Math.max(4.5, span * 1.05) * distK * (group === 'hands' ? 0.5 : 1);
+    camera.position.set(target.x + Math.sin(yaw) * d, camY + (group === 'hands' ? 0.1 : 0), Math.cos(yaw) * d);
     camera.lookAt(target);
     for (const a of actors) {
       a.solver.apply(a.pose);

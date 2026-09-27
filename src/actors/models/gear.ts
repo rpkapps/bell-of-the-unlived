@@ -445,8 +445,8 @@ export function pauldrons(b: CharBuilder, o: PauldronOpts = {}) {
     const tall = o.style === 'tall' ? 1.35 : 1;
     // dome
     const domeR = 0.1 * k;
-    const dome = ellipsoid(domeR, 0.085 * k * tall, 0.1 * k, { segs: 16, rows: 7, lat1: Math.PI * 0.55, radial: ridge(centre, o.style === 'tall' ? 0.12 : 0.05, 0.5) });
-    b.add(up, xf(dome, { p: [side * 0.012, 0.03, 0], r: [0, 0, -side * 0.3] }), mat, { skin: skinDome });
+    const dome = ellipsoid(domeR, 0.062 * k * tall, 0.098 * k, { segs: 16, rows: 7, lat1: Math.PI * 0.6, radial: ridge(centre, o.style === 'tall' ? 0.12 : 0.05, 0.5) });
+    b.add(up, xf(dome, { p: [side * 0.014, 0.012, 0], r: [0, 0, -side * 0.38] }), mat, { skin: skinDome });
     if (o.style === 'tall') {
       // raised haute-piece guarding the neck
       b.add(up, xf(loft([{ y: 0.07, rx: 0.075, rz: 0.012 }, { y: 0.0, rx: 0.085, rz: 0.012 }], { segs: 10, capTop: true }), { p: [side * -0.035, 0.12, 0], r: [0, 0, -side * 0.35] }), mat, { skin: skinDome });
@@ -942,10 +942,10 @@ export function bodyColliders(pad = 0): ClothCollider[] {
 export function cloak(b: CharBuilder, style: CloakStyle, o: { mat?: string; pad?: number; seed?: number; heraldry?: boolean; fur?: boolean } = {}) {
   const pad = o.pad ?? 0;
   const presets: Record<CloakStyle, { len: number; w0: number; w1: number; a0: number; a1: number; cols: number; rows: number; tat: number; holes: number; mat: string }> = {
-    long: { len: 1.22, w0: 0.19, w1: 0.36, a0: 1.25, a1: 1.3, cols: 11, rows: 16, tat: 0.16, holes: 7, mat: M.black },
-    mantle: { len: 1.12, w0: 0.2, w1: 0.38, a0: 1.45, a1: 1.45, cols: 12, rows: 15, tat: 0.12, holes: 4, mat: M.blue },
-    cape: { len: 0.62, w0: 0.19, w1: 0.32, a0: 1.3, a1: 1.35, cols: 11, rows: 10, tat: 0.2, holes: 3, mat: M.brown },
-    heavy: { len: 1.3, w0: 0.22, w1: 0.42, a0: 1.35, a1: 1.4, cols: 12, rows: 16, tat: 0.12, holes: 4, mat: M.red },
+    long: { len: 1.22, w0: 0.19, w1: 0.34, a0: 1.45, a1: 1.6, cols: 13, rows: 16, tat: 0.16, holes: 7, mat: M.black },
+    mantle: { len: 1.12, w0: 0.2, w1: 0.36, a0: 1.5, a1: 1.65, cols: 13, rows: 15, tat: 0.12, holes: 4, mat: M.blue },
+    cape: { len: 0.62, w0: 0.19, w1: 0.3, a0: 1.45, a1: 1.55, cols: 11, rows: 10, tat: 0.2, holes: 3, mat: M.brown },
+    heavy: { len: 1.3, w0: 0.22, w1: 0.4, a0: 1.5, a1: 1.65, cols: 13, rows: 16, tat: 0.12, holes: 4, mat: M.red },
     rag: { len: 0.7, w0: 0.18, w1: 0.3, a0: 1.2, a1: 1.1, cols: 9, rows: 10, tat: 0.3, holes: 9, mat: 'cloth_brown|t=8a8070' },
     shroud: { len: 1.2, w0: 0.19, w1: 0.34, a0: 1.3, a1: 1.3, cols: 11, rows: 15, tat: 0.22, holes: 8, mat: M.black },
   };
@@ -958,7 +958,9 @@ export function cloak(b: CharBuilder, style: CloakStyle, o: { mat?: string; pad?
     const a = lerp(-1, 1, u) * lerp(P.a0, P.a1, v);
     const zk = lerp(0.55, 0.62, v);
     const y = top - v * P.len;
-    return [Math.sin(a) * R * 1.05, y, -Math.cos(a) * R * zk - 0.05 - pad * 0.6 - v * 0.04];
+    // vertical folds grow below the shoulder blades (bend constraints keep them alive)
+    const fold = 0.028 * Math.sin(u * Math.PI * 7 + 0.6) * sm(0.08, 0.5, v) * (1 - Math.abs(u - 0.5));
+    return [Math.sin(a) * R * 1.05, y, -Math.cos(a) * R * zk - 0.05 - pad * 0.6 - v * 0.04 + fold];
   };
   b.addCloth({
     cols: P.cols, rows: P.rows, frame: 'chest', rest, pinRows: 2,

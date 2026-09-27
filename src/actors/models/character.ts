@@ -182,7 +182,8 @@ const OATH: LookDef = {
     bandolier(b, c.sex, { over: 0.04 });
     bandolier(b, c.sex, { over: 0.045, fromLeft: false, mat: M.leatherDark });
     belt(b, c.sex, { y: 0.08, over: 0.04, pouches: 2 });
-    b.addLR('upperArmL', 'upperArmR', (s) => s > 0 ? loft([{ y: 0.06, rx: 0.07, rz: 0.075, cx: 0.01 }, { y: -0.08, rx: 0.08, rz: 0.08, cx: 0.012 }], { segs: 12, phi0: 0.2, phiLen: 2.7 }) : new THREE.BufferGeometry(), M.leather);
+    // single leather pauldron on the lead (left) shoulder
+    b.add('upperArmL', loft([{ y: 0.07, rx: 0.075, rz: 0.08, cx: 0.01 }, { y: -0.09, rx: 0.084, rz: 0.086, cx: 0.012 }], { segs: 12, phi0: 0.2, phiLen: 2.7 }), M.leather);
   },
   arms: (b, c) => {
     addArms(b, c.sex, M.leatherDark, { inflate: 0.014 });

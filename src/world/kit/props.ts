@@ -1,7 +1,11 @@
 /**
  * Prop library. Every prop is placed at (x, y, z) with a yaw (its local front is +Z) and draws
  * into the Kit's merged buckets; small repeated bits (candles, flames) go through the shared
- * Instancer. Props that matter for movement add a coarse collider when `col` is true.
+ * Instancer. Anything that reads as solid and reaches waist height (≈ 0.45 m) or more adds a coarse
+ * collider by default (barrels, crates, furniture, statues, posts, rocks …) so the player never walks
+ * through it; pass `col = false` only for props that sit inside another collider (a crate on a
+ * stall, a barrel in a stack) or on a moving piece. Low clutter (sacks, buckets, papers, rubble
+ * scatter) stays non-solid.
  */
 import * as THREE from 'three';
 import type { MaterialId } from '../../render/materialIds';
@@ -39,7 +43,7 @@ export function candles(kit: Kit, x: number, y: number, z: number, n = 5, spread
 // ------------------------------------------------------------------ containers
 
 const barrelProfile: [number, number][] = [[0.001, 0], [0.26, 0], [0.3, 0.2], [0.32, 0.45], [0.3, 0.7], [0.26, 0.9], [0.001, 0.9]];
-export function barrel(kit: Kit, x: number, y: number, z: number, yaw = 0, col = false, lying = false) {
+export function barrel(kit: Kit, x: number, y: number, z: number, yaw = 0, col = true, lying = false) {
   kit.push(x, y, z, yaw);
   const t = lying ? { y: 0.3, z: -0.45, rx: HALF_PI } : {};
   kit.add('planks', lathe(barrelProfile, 10), t, { cast: false, variant: 2 });
@@ -48,7 +52,7 @@ export function barrel(kit: Kit, x: number, y: number, z: number, yaw = 0, col =
   kit.pop();
 }
 
-export function crate(kit: Kit, x: number, y: number, z: number, yaw = 0, s = 0.8, col = false) {
+export function crate(kit: Kit, x: number, y: number, z: number, yaw = 0, s = 0.8, col = s >= 0.45) {
   kit.push(x, y, z, yaw);
   kit.box('planks', 0, s / 2, 0, s, s, s, { cast: false });
   const t = 0.06;
@@ -65,10 +69,10 @@ export function sack(kit: Kit, x: number, y: number, z: number, yaw = 0, s = 1) 
 
 export function crateStack(kit: Kit, x: number, y: number, z: number, yaw = 0, col = true) {
   kit.push(x, y, z, yaw);
-  crate(kit, 0, 0, 0, 0.1, 0.9);
-  crate(kit, 0.95, 0, 0.1, -0.1, 0.8);
-  crate(kit, 0.4, 0.9, 0.05, 0.3, 0.7);
-  barrel(kit, -0.9, 0, 0.3, 0.4);
+  crate(kit, 0, 0, 0, 0.1, 0.9, !col);
+  crate(kit, 0.95, 0, 0.1, -0.1, 0.8, !col);
+  crate(kit, 0.4, 0.9, 0.05, 0.3, 0.7, false);
+  barrel(kit, -0.9, 0, 0.3, 0.4, !col);
   sack(kit, 0.5, 0, 0.8, 1);
   if (col) kit.solid(-1.25, 0, -0.5, 1.4, 1.5, 0.75, 'wood');
   kit.pop();
@@ -85,18 +89,20 @@ export function table(kit: Kit, x: number, y: number, z: number, yaw = 0, w = 1.
   kit.pop();
 }
 
-export function bench(kit: Kit, x: number, y: number, z: number, yaw = 0, w = 1.6) {
+export function bench(kit: Kit, x: number, y: number, z: number, yaw = 0, w = 1.6, col = true) {
   kit.push(x, y, z, yaw);
   kit.box('planks', 0, 0.43, 0, w, 0.06, 0.32, { cast: false });
   for (const s of [-1, 1]) kit.box('timber_dark', s * (w / 2 - 0.15), 0.2, 0, 0.07, 0.4, 0.28, { cast: false });
+  if (col) kit.solid(-w / 2, 0, -0.16, w / 2, 0.46, 0.16, 'wood');
   kit.pop();
 }
 
-export function chair(kit: Kit, x: number, y: number, z: number, yaw = 0) {
+export function chair(kit: Kit, x: number, y: number, z: number, yaw = 0, col = true) {
   kit.push(x, y, z, yaw);
   kit.box('planks', 0, 0.45, 0, 0.45, 0.05, 0.45, { cast: false });
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) kit.box('timber_dark', sx * 0.19, 0.22, sz * 0.19, 0.05, 0.45, 0.05, { cast: false });
   kit.box('timber_dark', 0, 0.75, -0.2, 0.45, 0.5, 0.05, { cast: false });
+  if (col) kit.solid(-0.23, 0, -0.23, 0.23, 1.0, 0.23, 'wood');
   kit.pop();
 }
 
@@ -169,7 +175,7 @@ export function desk(kit: Kit, x: number, y: number, z: number, yaw = 0, col = t
   kit.push(x, y, z, yaw);
   table(kit, 0, 0, 0, 0, 1.5, 0.8, 0.8, col, 'planks');
   kit.box('timber_dark', 0, 0.55, -0.3, 1.4, 0.45, 0.1, { cast: false });
-  chair(kit, 0, 0, 0.75, Math.PI);
+  chair(kit, 0, 0, 0.75, Math.PI, col);
   kit.pop();
 }
 
@@ -223,11 +229,12 @@ export function bracketLantern(kit: Kit, x: number, y: number, z: number, yaw = 
 }
 
 /** Tall iron candelabrum with several candles. */
-export function candelabrum(kit: Kit, x: number, y: number, z: number, arms = 5) {
+export function candelabrum(kit: Kit, x: number, y: number, z: number, arms = 5, col = true) {
   kit.push(x, y, z);
   kit.add('iron', cyl(0.25, 0.3, 0.06, 8), {}, { cast: false });
   kit.add('iron', cyl(0.03, 0.04, 1.7, 6), { y: 0.05 }, { cast: false });
   kit.box('iron', 0, 1.65, 0, 0.9, 0.04, 0.04, { cast: false });
+  if (col) kit.solid(-0.15, 0, -0.15, 0.15, 1.7, 0.15, 'metal');
   kit.pop();
   for (let i = 0; i < arms; i++) {
     const ox = -0.45 + (0.9 * i) / (arms - 1);
@@ -302,7 +309,7 @@ export function weaponRack(kit: Kit, x: number, y: number, z: number, yaw = 0, w
 }
 
 /** Armour stand (cross + cuirass silhouette + helm). */
-export function armourStand(kit: Kit, x: number, y: number, z: number, yaw = 0, mat: MaterialId = 'steel_armor', cloak: MaterialId | null = 'cloth_black') {
+export function armourStand(kit: Kit, x: number, y: number, z: number, yaw = 0, mat: MaterialId = 'steel_armor', cloak: MaterialId | null = 'cloth_black', col = true) {
   kit.push(x, y, z, yaw);
   kit.box('timber_dark', 0, 0.05, 0, 0.5, 0.1, 0.5, { cast: false });
   kit.box('timber_dark', 0, 0.8, 0, 0.07, 1.5, 0.07, { cast: false });
@@ -310,6 +317,7 @@ export function armourStand(kit: Kit, x: number, y: number, z: number, yaw = 0, 
   kit.add(mat, lathe([[0.2, 0], [0.23, 0.2], [0.26, 0.45], [0.22, 0.55], [0.08, 0.6]], 8), { y: 0.92, s: [1, 1, 0.7] }, { cast: false });
   kit.add(mat, sphere(0.14, 8, 6), { y: 1.68 }, { cast: false });
   if (cloak) kit.box(cloak, 0, 1.0, -0.14, 0.6, 0.9, 0.04, { rx: 0.08, cast: false });
+  if (col) kit.solid(-0.3, 0, -0.28, 0.3, 1.8, 0.28, 'metal');
   kit.pop();
 }
 
@@ -387,7 +395,7 @@ export function cart(kit: Kit, x: number, y: number, z: number, yaw = 0, fallen 
   if (fallen) {
     // loose wheel and spilled sacks/crates
     kit.add('timber_dark', cyl(0.55, 0.55, 0.08, 12), { x: 1.9, y: 0.05, z: 0.9, rz: 0.05 }, { cast: false });
-    sack(kit, -1.3, 0, 0.4, 0.3); sack(kit, -1.1, 0, -0.5, 1.2); crate(kit, -1.5, 0, 1.3, 0.5, 0.6);
+    sack(kit, -1.3, 0, 0.4, 0.3); sack(kit, -1.1, 0, -0.5, 1.2); crate(kit, -1.5, 0, 1.3, 0.5, 0.6, col);
     if (col) kit.solid(-0.9, 0, -1.3, 1.4, 1.5, 1.3, 'wood');
   } else if (col) kit.solid(-0.9, 0, -1.3, 0.9, 1.3, 2.8, 'wood');
   kit.pop();
@@ -414,7 +422,7 @@ export function marketStall(kit: Kit, x: number, y: number, z: number, yaw = 0, 
   kit.box('planks', 0, 0.9, 0.1, 2.4, 0.08, 1.2, { cast: false });
   kit.box(cloth, 0, 2.2, 0, 2.7, 0.04, 1.8, { rx: 0.18 });
   kit.box(cloth, 0, 1.95, 0.9, 2.7, 0.45, 0.03, { cast: false });
-  crate(kit, -0.6, 0.94, 0.1, 0.2, 0.4); sack(kit, 0.5, 0.94, 0.2, 0.2, 0.7); barrel(kit, 1.5, 0, 0.6, 0.3);
+  crate(kit, -0.6, 0.94, 0.1, 0.2, 0.4, false); sack(kit, 0.5, 0.94, 0.2, 0.2, 0.7); barrel(kit, 1.5, 0, 0.6, 0.3, col);
   if (col) kit.solid(-1.3, 0, -0.8, 1.3, 1.2, 0.8, 'wood');
   kit.pop();
 }
@@ -455,13 +463,18 @@ export function deadTree(kit: Kit, x: number, y: number, z: number, h = 6, seed 
   };
   kit.push(x, y, z, rng.range(0, 6));
   branch(new THREE.Matrix4().makeRotationZ(rng.range(-0.12, 0.12)), h * 0.5, h * 0.045, 3);
+  const tr = Math.max(0.12, h * 0.045);
+  kit.solid(-tr, 0, -tr, tr, h * 0.45, tr, 'wood');
   kit.pop();
 }
 
-/** Rock (visual, optional collider approximated by a box). */
-export function rockProp(kit: Kit, x: number, y: number, z: number, r: number, seed: number, sy = 0.7, mat: MaterialId = 'rock_cliff', col = false) {
+/**
+ * Rock. Collides with its own (low-poly) shape unless `col` is false; by default only rocks that
+ * rise more than ~0.3 m above their base point are solid (pebbles stay walk-through).
+ */
+export function rockProp(kit: Kit, x: number, y: number, z: number, r: number, seed: number, sy = 0.7, mat: MaterialId = 'rock_cliff', col = r * sy > 0.3) {
   kit.add(mat, rock(r, seed, sy), { x, y, z, ry: seed * 1.3 });
-  if (col) kit.solid(x - r * 0.7, y - r * sy, z - r * 0.7, x + r * 0.7, y + r * sy * 0.8, z + r * 0.7);
+  if (col) kit.colGeo(rock(r, seed, sy), { x, y, z, ry: seed * 1.3 });
 }
 
 /** Pile of broken masonry and charred timber. */
@@ -496,6 +509,7 @@ export function headstone(kit: Kit, x: number, y: number, z: number, yaw = 0, h 
   const outline: [number, number][] = [[-w / 2, 0], [w / 2, 0], [w / 2, h - w / 2], ...top.slice().reverse(), [-w / 2, h - w / 2]];
   kit.push(x, y, z, yaw);
   kit.add(mat, extrudeXY(outline, 0.14), { rx: tilt, rz: tilt * 0.5 }, { cast: false });
+  if (h >= 0.45) kit.solidC(0, h / 2, 0, w, h, 0.2, [tilt, 0, tilt * 0.5]);
   kit.box('stone_trim', 0, 0.02, 0.7, w + 0.2, 0.1, 1.6, { cast: false });
   kit.box('grass_dead', 0, 0.03, 0.7, w, 0.08, 1.4, { cast: false });
   kit.pop();
@@ -504,7 +518,7 @@ export function headstone(kit: Kit, x: number, y: number, z: number, yaw = 0, h 
 /** Stone memorial relief panel with raised figures (soldiers, banners); front +Z. */
 export function reliefPanel(kit: Kit, x: number, y: number, z: number, yaw: number, w = 3.6, h = 2.0) {
   kit.push(x, y, z, yaw);
-  kit.box('stone_trim', 0, h / 2, 0, w + 0.5, h + 0.5, 0.25);
+  kit.box('stone_trim', 0, h / 2, 0, w + 0.5, h + 0.5, 0.25, { col: true });
   kit.box('stone_trim', 0, h + 0.35, 0.12, w + 0.8, 0.22, 0.2, { cast: false });
   kit.box('stone_trim', 0, -0.2, 0.12, w + 0.8, 0.2, 0.2, { cast: false });
   // raised figures: a rank of soldiers with spears, a mounted captain, a banner
@@ -548,6 +562,7 @@ export function wallBanner(kit: Kit, x: number, y: number, z: number, yaw = 0, w
 export function standardBanner(kit: Kit, x: number, y: number, z: number, yaw = 0, h = 5, w = 1.2, bh = 2.4) {
   kit.push(x, y, z, yaw);
   kit.add('timber_dark', cyl(0.06, 0.08, h, 6), {}, { cast: true });
+  kit.solid(-0.1, 0, -0.1, 0.1, h, 0.1, 'wood');
   kit.box('timber_dark', 0, h - 0.3, 0, w + 0.2, 0.08, 0.08, { cast: false });
   kit.add('gold_trim', cone(0.08, 0.35, 6), { y: h }, { cast: false });
   kit.add('heraldry_banner', bannerGeo(w, bh), { y: h - 0.32, z: 0.05 }, { uv: 'keep' });
@@ -646,6 +661,7 @@ export function bars(kit: Kit, x: number, y: number, z: number, yaw: number, w: 
 /** Simple standing torch post for exteriors. */
 export function torchPost(kit: Kit, x: number, y: number, z: number) {
   kit.add('timber_dark', cyl(0.05, 0.07, 2.0, 5), { x, y, z });
+  kit.solid(x - 0.09, y, z - 0.09, x + 0.09, y + 2.0, z + 0.09, 'wood');
   kit.add('iron', cyl(0.12, 0.06, 0.18, 6, true), { x, y: y + 2.0, z }, { cast: false });
   kit.shared.instances.add(FLAME_KEY, flameGeo, 'fire', new THREE.Matrix4().makeScale(1.5, 1.8, 1.5).setPosition(kit.wp(x, y + 2.1, z)));
 }
@@ -655,16 +671,17 @@ export function torchPost(kit: Kit, x: number, y: number, z: number) {
 /**
  * Rough rock face along a line from (x0,z0) to (x1,z1): a backing slab plus overlapping jittered
  * rocks, from yBase up to roughly yTop. `side` = which side (±1, relative to the line direction's
- * left normal) the rocks bulge toward. No collider (add bounds separately).
+ * left normal) the rocks bulge toward. The backing slab and every rock collide with their own shape
+ * (pass `col = false` for far scenery), so nothing drawn here can be walked into.
  */
-export function rockFace(kit: Kit, x0: number, z0: number, x1: number, z1: number, yBase: number, yTop: number, seed: number, side = 1, thick = 2, mat: MaterialId = 'rock_cliff', rMax = 2.8) {
+export function rockFace(kit: Kit, x0: number, z0: number, x1: number, z1: number, yBase: number, yTop: number, seed: number, side = 1, thick = 2, mat: MaterialId = 'rock_cliff', rMax = 2.8, col = true) {
   const len = Math.hypot(x1 - x0, z1 - z0);
   const dx = (x1 - x0) / len, dz = (z1 - z0) / len;
   const nx = -dz * side, nz = dx * side; // left normal × side
   const H = yTop - yBase;
   // backing slab
   kit.push((x0 + x1) / 2 - nx * thick / 2, yBase, (z0 + z1) / 2 - nz * thick / 2, Math.atan2(-dz, dx));
-  kit.bmm(mat, -len / 2, 0, -thick / 2, len / 2, H * 0.92, thick / 2, { cast: true });
+  kit.bmm(mat, -len / 2, 0, -thick / 2, len / 2, H * 0.92, thick / 2, { cast: true, col });
   kit.pop();
   const n = Math.max(2, Math.round(len / Math.max(2.6, rMax * 1.1)));
   for (let i = 0; i <= n; i++) {
@@ -675,7 +692,9 @@ export function rockFace(kit: Kit, x0: number, z0: number, x1: number, z1: numbe
     for (let k = 0; k < layers; k++) {
       const yy = yBase + (H * (k + 0.5)) / layers + kit.rng.range(-0.5, 0.5);
       const out = kit.rng.range(-0.2, 0.5);
-      kit.add(mat, rock(r, seed * 97 + i * 13 + k, kit.rng.range(0.8, 1.3), 1), { x: px + nx * out, y: yy, z: pz + nz * out, ry: kit.rng.range(0, 6) }, { cast: true });
+      const g = rock(r, seed * 97 + i * 13 + k, kit.rng.range(0.8, 1.3), 1), t = { x: px + nx * out, y: yy, z: pz + nz * out, ry: kit.rng.range(0, 6) };
+      if (col) kit.colGeo(g, t);
+      kit.add(mat, g, t, { cast: true });
     }
   }
 }

@@ -3,10 +3,12 @@
 // temporal difference |f(t+1) - 2 f(t) + f(t-1)|; pixels that toggle (shadow shimmer, z-fighting,
 // light pops, sparkle) have a large one.
 //
-//   node tools/flicker-probe.mjs <region> <spec>... [--q=medium] [--mode=static|pan|walk|dolly]
-//        [--frames=10] [--thr=0.06] [--out=tools/out/flicker] [--hide=player,enemies] [--off=bloom,gtao,grade,fxaa,smaa,lights]
-//        [--dt=0.016667] [--speed=1.5] [--tag=name]
+//   node tools/flicker-probe.mjs <region> <run>... [--q=medium] [--frames=10] [--thr=0.06]
+//        [--out=tools/out/flicker] [--hide=player,enemies] [--dt=0.016667] [--speed=1.5] [--settle=30]
+//   run  = spec[|mode[|off,off...]]  (one browser session serves every run; loading is the slow part)
 //   spec (like region-shots): anchorName | bell:<id> | x,y,z[@yaw]  optional ~pitch
+//   mode = static | pan (camera yaw 0.14 deg/frame) | walk (player forward, camera follows) | dolly (sideways)
+//   off  = grain | bloom | gtao | smaa | fxaa | motion | grade | fill | sun (shadows) | anim (renderer clock frozen)
 //
 // Prints per view: flicker pixels (% of the frame whose max second difference > thr), mean second
 // difference, plus the first frame and a heat map PNG (red = flicker energy) in --out.
@@ -28,24 +30,31 @@ await page.goto(`${base}?region=${region}&origin=${opt.origin ?? 'householdKnigh
 await page.waitForFunction(() => window.__ready && window.__game.mode === 'play', null, { timeout: 580000 });
 await page.waitForTimeout(1500);
 await page.addStyleTag({ content: 'body *:not(canvas):not(:has(canvas)) { visibility: hidden !important; }' });
-await page.evaluate(({ off, hide }) => {
-  const g = window.__game, R = g.deps.renderer;
+await page.evaluate(({ hide }) => {
+  const g = window.__game;
   g.loop.stop();
   for (const e of g.enemies) { e.aware = false; if (hide.includes('enemies')) e.object.visible = false; }
   if (hide.includes('player')) g.player.object.visible = false;
-  const set = (k, v) => { if (R[k]) R[k].enabled = v; };
-  for (const k of off) {
-    if (k === 'lights') { for (const c of R.scene.children) if (c.isPointLight) c.visible = false; }
-    else if (k === 'grain') R.settings.filmGrain = false;
-    else set(k, false);
-  }
-  if (off.includes('fxaa') || off.includes('smaa')) { /* both off: no AA */ }
-}, { off: (opt.off ?? '').split(',').filter(Boolean), hide: (opt.hide ?? '').split(',').filter(Boolean) });
+  // feature toggles, undone after each run
+  window.__probeOff = (off) => {
+    const R = g.deps.renderer, undo = [];
+    const setp = (o, k, v) => { if (!o) return; const old = o[k]; o[k] = v; undo.push(() => { o[k] = old; }); };
+    for (const k of off) {
+      if (k === 'grain') setp(R.settings, 'filmGrain', false);
+      else if (k === 'fill') setp(g.fill, 'intensity', 0);
+      else if (k === 'sun') setp(R.sun, 'castShadow', false);
+      else if (k === 'anim') { const f = g.deps.renderer.render.bind(R); setp(R, 'render', () => f(0)); }
+      else setp(R[k], 'enabled', false);
+    }
+    return () => { for (const u of undo.reverse()) u(); };
+  };
+}, { hide: (opt.hide ?? '').split(',').filter(Boolean) });
 
 const frames = +(opt.frames ?? 10), thr = +(opt.thr ?? 0.06), dt = +(opt.dt ?? 1 / 60);
-for (const spec of specs) {
+for (const run of specs) {
+  const [spec, mode = opt.mode ?? 'static', offs = ''] = run.split('|');
   const [where, pitch] = spec.split('~');
-  const r = await page.evaluate(({ where, pitch }) => {
+  const r = await page.evaluate(({ where, pitch, settle }) => {
     const g = window.__game, R = window.__region, T = window.THREE;
     let pos, yaw = g.player.yaw;
     if (where.startsWith('bell:')) { const b = R.stillbells().find((x) => x.id === where.slice(5)); if (!b) return 'no bell ' + where; pos = b.pos.clone(); yaw = b.yaw; }
@@ -55,11 +64,12 @@ for (const spec of specs) {
     if (pitch) g.cam.pitch = +pitch;
     g.deps.renderer.cameraCut?.();
     // settle: camera damping, light fades, env capture
-    for (let i = 0; i < 90; i++) g.loop.advance(1 / 30);
+    for (let i = 0; i < settle; i++) g.loop.advance(1 / 30);
     window.__probeStart = { pos: pos.clone(), yaw };
     return 'ok ' + pos.toArray().map((v) => v.toFixed(1)).join(',');
-  }, { where, pitch });
+  }, { where, pitch, settle: +(opt.settle ?? 30) });
   if (!r.startsWith('ok')) { console.log(spec, r); continue; }
+  await page.evaluate((offs) => { window.__probeUndo = window.__probeOff(offs); }, offs.split(',').filter(Boolean));
   const t0 = Date.now();
   const res = await page.evaluate(({ frames, thr, dt, mode, speed }) => {
     const g = window.__game, cv = g.deps.renderer.renderer.domElement;
@@ -96,14 +106,15 @@ for (const spec of specs) {
     for (let i = 0; i < N; i++) {
       const f = mx[i] > thr;
       if (f) { flick++; const x = i % W, y = (i / W) | 0; grid[Math.min(2, (y * 3 / H) | 0) * 3 + Math.min(2, (x * 3 / W) | 0)]++; }
-      const gv = base[i] * 110;
-      const e = Math.min(1, sum[i] / (frames - 2) / 0.05);
+      const gv = 40 + base[i] * 150;
+      const e = Math.min(1, Math.max(0, (sum[i] / (frames - 2) - 0.012) / 0.06));
       img.data[i * 4] = gv + e * (255 - gv); img.data[i * 4 + 1] = gv * (1 - e); img.data[i * 4 + 2] = gv * (1 - e); img.data[i * 4 + 3] = 255;
     }
     ctx.putImageData(img, 0, 0);
     return { flickPct: (100 * flick) / N, mean: tot / (N * (frames - 2)), grid: grid.map((v) => ((100 * v) / (N / 9)).toFixed(1)), first, heat: c2.toDataURL('image/png') };
-  }, { frames, thr, dt, mode: opt.mode ?? 'static', speed: +(opt.speed ?? 1.5) });
-  const tag = `${region}-${where.replace(/[^\w.-]+/g, '_')}-${opt.mode ?? 'static'}${opt.tag ? '-' + opt.tag : ''}`;
+  }, { frames, thr, dt, mode, speed: +(opt.speed ?? 1.5) });
+  await page.evaluate(() => window.__probeUndo?.());
+  const tag = `${region}-${where.replace(/[^\w.-]+/g, '_')}-${mode}${offs ? '-no_' + offs.replace(/,/g, '_') : ''}${opt.tag ? '-' + opt.tag : ''}`;
   writeFileSync(`${out}/${tag}.png`, Buffer.from(res.first.split(',')[1], 'base64'));
   writeFileSync(`${out}/${tag}-heat.png`, Buffer.from(res.heat.split(',')[1], 'base64'));
   console.log(`${tag}: flicker ${res.flickPct.toFixed(3)}%  mean2nd ${(res.mean * 1000).toFixed(3)}e-3  grid[${res.grid.join(' ')}]  (${((Date.now() - t0) / 1000).toFixed(0)}s)`);

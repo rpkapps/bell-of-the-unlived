@@ -36,6 +36,12 @@ export interface MatDef {
   opacity?: number;
   doubleSided?: boolean;
   alphaTest?: number;
+  /**
+   * Surface overlay (windows, panes, cracks, water, moss, banners) laid a few cm over another
+   * surface: drawn with a depth-proportional polygon offset so it never z-fights the surface
+   * under it, even hundreds of metres away where 24-bit depth steps exceed the gap.
+   */
+  decal?: boolean;
   /** Shader-only materials built by hand in materials.ts. */
   special?: 'fire' | 'fogVeil';
 }
@@ -111,7 +117,7 @@ export const MATERIAL_DEFS: Record<MaterialId, MatDef> = {
   },
   moss: {
     gen: g('ground', GK.moss, ['#3c4a22', '#6d7a38', '#1c2410', '#000000'], [14, 0.6, 0, 0], [0, 0, 0, 0], 17, 'std', 1),
-    mapping: 'triplanar', scale: 1.5, weather: [0, 0, 0, 0], porosity: 0.4,
+    decal: true, mapping: 'triplanar', scale: 1.5, weather: [0, 0, 0, 0], porosity: 0.4,
   },
   rock_cliff: {
     gen: g('masonry', MK.cliff, ['#75736e', '#5d5b57', '#000000', '#6b4f36'], [5, 7, 0, 0], [0.6, 0.35, 0, 0], 18, 'hero', 1.8),
@@ -169,34 +175,34 @@ export const MATERIAL_DEFS: Record<MaterialId, MatDef> = {
   // ------------------------------------------------------------------ special
   glass: {
     gen: g('special', SK.glass, ['#4a5550', '#6a6250', '#000000', '#000000'], [0.6, 0.4, 0.6, 0.3], [0, 0, 0, 0], 42, 'small', 0.4),
-    mapping: 'uv', scale: 1, transparent: true, doubleSided: true, envMapIntensity: 1.5,
+    decal: true, mapping: 'uv', scale: 1, transparent: true, doubleSided: true, envMapIntensity: 1.5,
   },
   water: {
     gen: g('special', SK.water, ['#1a2226', '#000000', '#000000', '#000000'], [1, 0, 0, 0.88], [0, 0, 0, 0], 43, 'std', 0.6),
-    mapping: 'triplanar', scale: 6, transparent: true, envMapIntensity: 1.6, variation: 0,
+    decal: true, mapping: 'triplanar', scale: 6, transparent: true, envMapIntensity: 1.6, variation: 0,
   },
   fire: { mapping: 'uv', scale: 1, special: 'fire' },
   ember_glow: {
     gen: g('metal', TK.ember, ['#141010', '#ff6a20', '#6a6460', '#000000'], [8, 0.6, 0.4, 0], [0, 0, 0, 0], 44, 'small', 1),
-    mapping: 'uv', scale: 1, emissive: { color: '#ff5a18', intensity: 4.5, anim: [0.35, 2.2, 0.15, 0.7] },
+    mapping: 'uv', scale: 1, emissive: { color: '#ff5a18', intensity: 4.5, anim: [0.18, 1.2, 0.1, 0.7] },
   },
   window_warm: {
     gen: g('special', SK.window, ['#d89040', '#1c1a18', '#6a3a18', '#000000'], [3, 4, 0.02, 0.55], [0, 0, 0, 0], 45, 'small', 0.6),
-    mapping: 'uv', scale: 1, emissive: { color: '#ff9a48', intensity: 1.3, anim: [0.12, 1.3, 0, 0] },
+    decal: true, mapping: 'uv', scale: 1, emissive: { color: '#ff9a48', intensity: 1.3, anim: [0.06, 0.9, 0, 0] },
   },
   bell_light: {
     gen: g('special', SK.bellLight, ['#ffe8b0', '#000000', '#000000', '#000000'], [0, 0, 0, 0], [0, 0, 0, 0], 46, 'small', 0.3),
-    mapping: 'uv', scale: 1, emissive: { color: '#ffd890', intensity: 1.5, anim: [0.05, 0.8, 0.2, 1.1] },
+    decal: true, mapping: 'uv', scale: 1, emissive: { color: '#ffd890', intensity: 1.5, anim: [0.05, 0.8, 0.2, 1.1] },
   },
   unlived_crack: {
     gen: g('metal', TK.crack, ['#1f1b17', '#ffc860', '#2e2820', '#000000'], [5, 11, 0.05, 0], [0.3, 0, 0, 0], 47, 'std', 1),
-    mapping: 'uv', scale: 1, emissive: { color: '#ffb54a', intensity: 5.0, anim: [0.1, 1.7, 0.35, 1.6] },
+    decal: true, mapping: 'uv', scale: 1, emissive: { color: '#ffb54a', intensity: 5.0, anim: [0.1, 1.7, 0.35, 1.6] },
   },
   fog_veil: { mapping: 'uv', scale: 1, special: 'fogVeil' },
   heraldry_banner: {
     gen: g('organic', OK.banner, ['#4c1515', '#6a2a24', '#1a0a08', '#c9a45a'], [120, 1, 0.5, 0.3], [0.12, 0.4, 1, 0], 48, 'std', 0.8,
       { aspect: 2, mask: { kind: 'royal', fill: 0.6, cy: 0.44 } }),
-    mapping: 'uv', scale: 1, doubleSided: true, alphaTest: 0.5,
+    decal: true, mapping: 'uv', scale: 1, doubleSided: true, alphaTest: 0.5,
   },
   shield_household: {
     gen: g('wood', WK.shield, ['#4a3524', '#161513', '#b08a52', '#8a7a66'], [5, 0.55, 0.5, 0], [0, 0, 0, 0], 49, 'std', 0.9,

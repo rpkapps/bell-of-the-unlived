@@ -18,6 +18,7 @@ import { MATERIAL_DEFS, type MatDef } from './materialDefs';
 import { TextureGenerator, getNoiseTexture, texSize, type TexSet } from './textures';
 import { WX_GLOBALS, applyWeathering, cloneWeathered, setWeatherSeed, isWeathered, materialDefines } from './weathering';
 import './fog';
+import './chunks';
 
 const cache = new Map<MaterialId, THREE.Material>();
 /** Every material instance per id (base + variants) so textures can be (re)attached. */
@@ -199,6 +200,7 @@ function build(id: MaterialId): THREE.Material {
   if (d.transparent) { m.transparent = true; m.depthWrite = false; }
   if (d.opacity !== undefined) m.opacity = d.opacity;
   if (d.alphaTest !== undefined) m.alphaTest = d.alphaTest;
+  if (d.decal) { m.polygonOffset = true; m.polygonOffsetFactor = -1; m.polygonOffsetUnits = -4; }
   if (d.envMapIntensity !== undefined) m.envMapIntensity = d.envMapIntensity;
   if (d.normalScale !== undefined) m.normalScale.setScalar(d.normalScale);
   if (d.emissive) { m.emissive.set(d.emissive.color); m.emissiveIntensity = d.emissive.intensity; }
@@ -348,7 +350,9 @@ export function updateMaterials(time: number): void {
   WX_GLOBALS.wxTime.value = time;
   SHARED.uTime.value = time;
   const fire = cache.get('fire') as THREE.ShaderMaterial | undefined;
-  if (fire) fire.uniforms.uIntensity.value = 2.2 + 0.3 * Math.sin(time * 9.1) * Math.sin(time * 3.7 + 1.3);
+  // A shared pulse moves every fire in the level in lockstep (reads as the screen flickering);
+  // the flames' own scrolling noise does the licking, this only breathes slightly.
+  if (fire) fire.uniforms.uIntensity.value = 2.2 + 0.07 * Math.sin(time * 2.3) + 0.04 * Math.sin(time * 5.3 + 1.3);
 }
 
 /** Global wetness 0..1 (environment presets set this; rain could raise it). */

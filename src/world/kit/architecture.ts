@@ -93,10 +93,10 @@ export function parapet(kit: Kit, mat: MaterialId, x0: number, z0: number, x1: n
 }
 
 /** Stepped buttress against a wall face; local frame at the foot, projecting toward +Z. */
-export function buttress(kit: Kit, mat: MaterialId, x: number, y: number, z: number, yaw: number, h: number, depth = 1.2, width = 0.9) {
+export function buttress(kit: Kit, mat: MaterialId, x: number, y: number, z: number, yaw: number, h: number, depth = 1.2, width = 0.9, col = true) {
   kit.push(x, y, z, yaw);
   const h1 = h * 0.55;
-  kit.bmm(mat, -width / 2, 0, 0, width / 2, h1, depth);
+  kit.bmm(mat, -width / 2, 0, 0, width / 2, h1, depth, { col });
   kit.add('stone_trim', slopeCap(width + 0.06, 0.5, depth), { y: h1, z: depth / 2 });
   kit.bmm(mat, -width / 2 + 0.08, h1, 0, width / 2 - 0.08, h, depth * 0.55);
   kit.add('stone_trim', slopeCap(width - 0.1, 0.6, depth * 0.55), { y: h, z: depth * 0.275 });
@@ -174,7 +174,7 @@ export function stairs(kit: Kit, mat: MaterialId, a: [number, number, number], b
     const sm = o.sideMat ?? mat;
     for (const s of [-1, 1]) {
       const L = Math.hypot(run, dy), ang = Math.atan2(dy, run);
-      kit.box(sm, s * (width / 2 + 0.15), dy / 2 + o.sideWalls / 2 - 0.2, run / 2, 0.3, o.sideWalls + 0.4, L + 0.2, { rx: -ang });
+      kit.box(sm, s * (width / 2 + 0.15), dy / 2 + o.sideWalls / 2 - 0.2, run / 2, 0.3, o.sideWalls + 0.4, L + 0.2, { rx: -ang, col: o.col ?? true });
     }
   }
   kit.pop();

@@ -23,7 +23,8 @@ import { HeightFog } from './fog';
 import { Sky } from './Sky';
 import { ENVIRONMENTS, cloneEnv, envStateFrom, lerpEnv, type EnvState } from './environments';
 import { ScenePass, MotionBlurPass, GradePass } from './post';
-import { initLightPool, lightBudgetFor, updateLights } from './lights';
+import { adoptStrayLights, initLightPool, lightBudgetFor, updateLights } from './lights';
+import './chunks';
 import { setMaterialQuality, setWetness, updateMaterials } from './materials';
 
 type Graphics = Settings['graphics'];
@@ -42,6 +43,52 @@ class DepthGTAOPass extends GTAOPass {
   override setSize(w: number, h: number): void {
     super.setSize(w, h);
     (this as unknown as { normalRenderTarget: THREE.WebGLRenderTarget }).normalRenderTarget.setSize(1, 1);
+  }
+}
+
+/**
+ * UnrealBloomPass with a soft threshold. The stock high-pass is a hard step (smoothWidth 0.01):
+ * a pixel at luminance 0.99 adds no bloom, at 1.01 its full colour, so anything hovering around
+ * the threshold (flickering flame light, pulsing emissives, sub-pixel speculars as the camera
+ * moves) switches its halo on and off from frame to frame. Here the high-pass ramps in smoothly
+ * and prefilters with 4 bilinear taps weighted by 1 / (1 + luma) (Karis average), which keeps
+ * single-pixel sparkles from blooming.
+ */
+const SOFT_HIGHPASS = /* glsl */ `
+uniform sampler2D tDiffuse;
+uniform float luminosityThreshold;
+uniform float smoothWidth;
+uniform vec2 uTexel;
+varying vec2 vUv;
+float bLum( vec3 c ) { return dot( c, vec3( 0.2126, 0.7152, 0.0722 ) ); }
+vec3 bTap( vec2 o, inout float wsum ) {
+  vec3 c = min( texture2D( tDiffuse, vUv + o * uTexel ).rgb, vec3( 32.0 ) );
+  float w = 1.0 / ( 1.0 + bLum( c ) );
+  wsum += w;
+  return c * w;
+}
+void main() {
+  float ws = 0.0;
+  vec3 c = bTap( vec2( -0.5, -0.5 ), ws ) + bTap( vec2( 0.5, -0.5 ), ws ) + bTap( vec2( -0.5, 0.5 ), ws ) + bTap( vec2( 0.5, 0.5 ), ws );
+  c /= ws;
+  float a = smoothstep( luminosityThreshold - 0.25 * smoothWidth, luminosityThreshold + smoothWidth, bLum( c ) );
+  gl_FragColor = vec4( c * a, 1.0 );
+}`;
+
+class SoftBloomPass extends UnrealBloomPass {
+  private readonly texel = new THREE.Vector2(1, 1);
+  constructor(res: THREE.Vector2, strength: number, radius: number, threshold: number) {
+    super(res, strength, radius, threshold);
+    const self = this as unknown as { materialHighPassFilter: THREE.ShaderMaterial; highPassUniforms: Record<string, THREE.IUniform> };
+    self.highPassUniforms.smoothWidth.value = 0.8;
+    self.highPassUniforms.uTexel = { value: this.texel };
+    self.materialHighPassFilter.uniforms.uTexel = self.highPassUniforms.uTexel;
+    self.materialHighPassFilter.fragmentShader = SOFT_HIGHPASS;
+    self.materialHighPassFilter.needsUpdate = true;
+  }
+  override setSize(w: number, h: number): void {
+    super.setSize(w, h);
+    this.texel.set(1 / Math.max(1, w), 1 / Math.max(1, h));
   }
 }
 
@@ -71,7 +118,7 @@ export class GameRenderer implements IRenderer {
   private readonly composer: EffectComposer;
   private readonly scenePass: ScenePass;
   private readonly gtao: DepthGTAOPass;
-  private readonly bloom: UnrealBloomPass;
+  private readonly bloom: SoftBloomPass;
   private readonly motion: MotionBlurPass;
   private readonly grade: GradePass;
   private readonly output: OutputPass;
@@ -116,8 +163,8 @@ export class GameRenderer implements IRenderer {
     this.sun = new THREE.DirectionalLight(0xb7c6de, 1.7);
     this.sun.name = 'sun';
     this.sun.castShadow = true;
-    this.sun.shadow.bias = -0.00025;
-    this.sun.shadow.normalBias = 0.035;
+    this.sun.shadow.bias = -0.00015;
+    this.sun.shadow.normalBias = 0.035; // re-derived from the texel size in updateShadowBias()
     this.scene.add(this.sun, this.sun.target);
     this.rim = new THREE.DirectionalLight(0xa8bbd4, 0.9);
     this.rim.name = 'rim';
@@ -143,7 +190,7 @@ export class GameRenderer implements IRenderer {
     this.gtao = new DepthGTAOPass(this.scene, this.camera, this.scenePass.depthTexture);
     this.gtao.blendIntensity = 0.85;
     this.gtao.updateGtaoMaterial({ radius: 0.7, distanceExponent: 1.5, thickness: 1.2, scale: 1.1, samples: 12 });
-    this.bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.5, 0.55, 1.0);
+    this.bloom = new SoftBloomPass(new THREE.Vector2(1, 1), 0.5, 0.55, 1.0);
     this.motion = new MotionBlurPass(this.scenePass.depthTexture);
     this.grade = new GradePass();
     this.output = new OutputPass();
@@ -170,6 +217,7 @@ export class GameRenderer implements IRenderer {
       this.sun.shadow.map = null;
     }
     this.shadowExtent = sh.extent;
+    this.updateShadowBias();
     const cam = this.sun.shadow.camera;
     cam.left = -sh.extent; cam.right = sh.extent; cam.top = sh.extent; cam.bottom = -sh.extent;
     cam.near = 1; cam.far = 400;
@@ -190,6 +238,9 @@ export class GameRenderer implements IRenderer {
 
   // ------------------------------------------------------------------------------ environment
   setEnvironment(p: EnvironmentPreset, blendSeconds = 2): void {
+    // Re-entering the preset already shown or blending in (zones sharing a preset, a player
+    // standing on a zone border) must not restart the blend or the reflection capture.
+    if (p === this.envPreset && blendSeconds > 0 && ENVIRONMENTS[p]) return;
     this.envPreset = p;
     this.envFrom = cloneEnv(this.env);
     this.envTo = envStateFrom(ENVIRONMENTS[p]);
@@ -246,15 +297,28 @@ export class GameRenderer implements IRenderer {
   /** Override the shadow frustum half-size (metres) — e.g. larger in open areas. */
   setShadowExtent(halfSize: number): void {
     this.shadowExtent = halfSize;
+    this.updateShadowBias();
     const c = this.sun.shadow.camera;
     c.left = -halfSize; c.right = halfSize; c.top = halfSize; c.bottom = -halfSize;
     c.updateProjectionMatrix();
+  }
+
+  /**
+   * Normal offset of about one shadow texel: less leaves acne that crawls as the (snapped) box
+   * slides, much more detaches contact shadows. The texel grows with the box and shrinks with the
+   * map size, so the bias follows both.
+   */
+  private updateShadowBias(): void {
+    const texel = (2 * this.shadowExtent) / Math.max(1, this.sun.shadow.mapSize.x);
+    this.sun.shadow.normalBias = THREE.MathUtils.clamp(texel * 1.1, 0.02, 0.08);
   }
 
   private readonly _x = new THREE.Vector3();
   private readonly _y = new THREE.Vector3();
   private readonly _z = new THREE.Vector3();
   private readonly _v = new THREE.Vector3();
+  private readonly _f = new THREE.Vector3();
+  private readonly _cf = new THREE.Vector3();
 
   private updateShadowFrustum(): void {
     const dir = this.env.sunDir; // light travel direction
@@ -264,7 +328,14 @@ export class GameRenderer implements IRenderer {
     const z = this._z.copy(dir).negate();
     const x = this._x.crossVectors(THREE.Object3D.DEFAULT_UP, z).normalize();
     const y = this._y.crossVectors(z, x);
-    const f = this.focus;
+    // Centre the box ahead of the focus along the view (little of what is behind the player is on
+    // screen), so the shadow border — and its fade — sits farther out in the visible scene.
+    const f = this._f.copy(this.focus);
+    const cf = this.camera.getWorldDirection(this._cf);
+    cf.y = 0;
+    if (cf.lengthSq() > 1e-6) f.addScaledVector(cf.normalize(), this.shadowExtent * 0.35);
+    // Snap the centre to whole shadow-map texels in light space: the rasterised shadow then stays
+    // put while the box slides with the player (no shimmering edges).
     const fx = Math.round(f.dot(x) / texel) * texel;
     const fy = Math.round(f.dot(y) / texel) * texel;
     const fz = f.dot(z);
@@ -308,7 +379,8 @@ export class GameRenderer implements IRenderer {
       lerpEnv(this.env, this.envFrom, this.envTo, k);
       this.pushEnv();
       this.envCaptureTimer -= dt;
-      if (this.envCaptureTimer <= 0 || this.envT >= 1) { this.envDirty = true; this.envCaptureTimer = 0.4; }
+      // re-capture often enough that reflections (wet floors) glide instead of stepping
+      if (this.envCaptureTimer <= 0 || this.envT >= 1) { this.envDirty = true; this.envCaptureTimer = 0.12; }
     }
     // storm lightning (title)
     const st = this.storm;
@@ -325,7 +397,8 @@ export class GameRenderer implements IRenderer {
     this.sky.update(this.camera, t);
     if (this.envDirty) this.captureEnvironment();
     updateMaterials(t);
-    updateLights(t, this.camera.position);
+    adoptStrayLights(this.scene);
+    updateLights(t, this.camera.position, this.camera);
     this.updateShadowFrustum();
     this.updateRim();
 
@@ -343,7 +416,7 @@ export class GameRenderer implements IRenderer {
     gu.uMemory.value = gs.memory;
     gu.uFlash.value = Math.min(gs.flash * fx, flashCap) * 0.6 + flicker * 0.08 * flashCap * fx;
     (gu.uFlashColor.value as THREE.Color).copy(gs.flashColor);
-    gu.uGrain.value = this.settings.filmGrain ? 0.06 : 0;
+    gu.uGrain.value = this.settings.filmGrain ? 0.022 : 0;
     gu.uTime.value = t;
 
     if (this.motion.enabled) this.motion.updateCamera(this.camera);

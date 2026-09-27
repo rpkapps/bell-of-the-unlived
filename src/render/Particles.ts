@@ -28,9 +28,17 @@ varying float vShape;
 varying float vLife;
 varying float vSeed;
 varying float vNear;
+varying float vPx;
+uniform float uViewH;
 void main() {
   vec4 mv = viewMatrix * vec4( aPosSize.xyz, 1.0 );
   float size = aPosSize.w;
+  // Keep billboards at least ~2 px wide: sub-pixel sprites alias (twinkle on and off between
+  // pixels as they drift). Grow them and spread the same energy over the larger quad instead.
+  float pxW = 2.0 * max( -mv.z, 1e-3 ) / ( projectionMatrix[ 1 ][ 1 ] * uViewH );
+  float minS = 2.0 * pxW;
+  vPx = 1.0;
+  if ( size < minS ) { vPx = ( size * size ) / ( minS * minS ); size = minS; }
   vec2 corner = position.xy;
   vec2 offs;
   if ( aVelShape.w == 1.0 || aVelShape.w == 5.0 ) {
@@ -69,6 +77,7 @@ varying float vShape;
 varying float vLife;
 varying float vSeed;
 varying float vNear;
+varying float vPx;
 void main() {
   vec2 p = vUv - 0.5;
   float r = length( p ) * 2.0;
@@ -96,13 +105,13 @@ void main() {
     col = mix( vec3( 0.9, 0.18, 0.03 ), vec3( 1.0, 0.62, 0.18 ), smoothstep( 0.2, 0.6, heat ) );
     col = mix( col, vec3( 1.0, 0.92, 0.7 ), smoothstep( 0.65, 1.0, heat ) ) * vColor.rgb;
   } else if ( shape == 4 ) {     // twinkling mote
-    float tw = 0.65 + 0.35 * sin( uTime * 9.0 + vSeed * 40.0 );
+    float tw = 0.78 + 0.22 * sin( uTime * 6.0 + vSeed * 40.0 );
     a = ( exp( -r * r * 9.0 ) + 0.25 * exp( -r * r * 2.0 ) ) * tw * ( 1.0 - smoothstep( 0.85, 1.0, r ) );
   } else {                       // droplet
     float d = length( vec2( p.x * 2.0, p.y ) ) * 2.0;
     a = smoothstep( 1.0, 0.6, d );
   }
-  a *= vColor.a * vNear;
+  a *= vColor.a * vNear * vPx;
   if ( a < 0.003 ) discard;
   float ff = 0.0;
   #if defined( USE_FOG ) && !defined( FOG_EXP2 )
@@ -156,7 +165,7 @@ class BillboardPool {
     this.geo = geo;
     const mat = new THREE.ShaderMaterial({
       name: additive ? 'particles:add' : 'particles:alpha',
-      uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { uAdditive: { value: additive ? 1 : 0 } }]),
+      uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { uAdditive: { value: additive ? 1 : 0 }, uViewH: { value: 540 } }]),
       vertexShader: VERT, fragmentShader: FRAG,
       transparent: true, depthWrite: false, fog: true,
       blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending,
@@ -166,6 +175,11 @@ class BillboardPool {
     this.mesh = new THREE.Mesh(geo, mat);
     this.mesh.frustumCulled = false;
     this.mesh.renderOrder = additive ? 11 : 10;
+    const viewH = mat.uniforms.uViewH, size = new THREE.Vector2();
+    this.mesh.onBeforeRender = (renderer) => {
+      const rt = renderer.getRenderTarget();
+      viewH.value = rt ? rt.height : renderer.getDrawingBufferSize(size).y;
+    };
   }
 
   spawn(): number {
@@ -226,13 +240,30 @@ class BillboardPool {
     }
   }
 
-  upload(): void {
+  private order: number[] = [];
+  private depth: Float32Array = new Float32Array(0);
+
+  /**
+   * Write live particles to the GPU. With `eye`, back-to-front (alpha blending needs it: the pool
+   * reorders on every death — swap-remove — so unsorted overlapping smoke would pop in front of
+   * and behind itself from frame to frame).
+   */
+  upload(eye?: THREE.Vector3): void {
     const n = this.n;
     const ps = this.aPosSize.array as Float32Array, co = this.aColor.array as Float32Array;
     const vs = this.aVelShape.array as Float32Array, mi = this.aMisc.array as Float32Array;
+    const order = this.order;
+    order.length = 0;
+    for (let i = 0; i < n; i++) if (!(this.delay[i] > 0)) order.push(i);
+    if (eye && order.length > 1) {
+      if (this.depth.length < this.cap) this.depth = new Float32Array(this.cap);
+      const d = this.depth;
+      const P = this.pos;
+      for (const i of order) { const dx = P[i * 3] - eye.x, dy = P[i * 3 + 1] - eye.y, dz = P[i * 3 + 2] - eye.z; d[i] = dx * dx + dy * dy + dz * dz; }
+      order.sort((a, b) => d[b] - d[a] || a - b);
+    }
     let w = 0;
-    for (let i = 0; i < n; i++) {
-      if (this.delay[i] > 0) continue;
+    for (const i of order) {
       const t = this.age[i] / this.life[i];
       const fadeIn = Math.min(1, this.age[i] / 0.06);
       const fadeOut = 1 - t * t;
@@ -597,7 +628,7 @@ export class Particles implements IParticles {
       while (e.acc >= 1 && guard++ < 64) { e.acc -= 1; this.emit(e.kind, e.pos, { count: 1 }); }
     }
     this.add.update(dt, this.time); this.alpha.update(dt, this.time);
-    this.add.upload(); this.alpha.upload();
+    this.add.upload(); this.alpha.upload(_camera?.position);
     this.shards.update(dt); this.rubble.update(dt);
   }
 

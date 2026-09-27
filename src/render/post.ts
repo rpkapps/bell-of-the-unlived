@@ -177,9 +177,10 @@ export class GradePass extends ShaderPass {
           c = mix( c, c * vec3( 0.45, 0.14, 0.08 ) + vec3( 0.03, 0.006, 0.002 ), clamp( lh, 0.0, 0.85 ) );
           // flash
           c += uFlashColor * uFlash;
-          // film grain (multiplicative, luminance aware)
+          // film grain (multiplicative, luminance aware). Kept faint: per-pixel noise that changes
+          // every frame reads as the image flickering, most of all in the dark scenes this game has.
           float n = hash( gl_FragCoord.xy + fract( uTime * 13.7 ) * 311.0 ) - 0.5;
-          c *= 1.0 + n * uGrain * ( 0.6 + 0.8 * smoothstep( 0.2, 0.0, l ) );
+          c *= 1.0 + n * uGrain * ( 0.7 + 0.5 * smoothstep( 0.2, 0.0, l ) );
           gl_FragColor = vec4( c, 1.0 );
         }`,
     });

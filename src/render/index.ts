@@ -13,8 +13,7 @@ import type { IParticles, IRenderer, ITrails } from './contract';
 import { GameRenderer } from './Renderer';
 import { Particles } from './Particles';
 import { Trails } from './Trails';
-import { initMaterials, updateMaterials } from './materials';
-import { updateLights } from './lights';
+import { initMaterials } from './materials';
 
 export { GameRenderer } from './Renderer';
 export { Particles } from './Particles';
@@ -38,9 +37,9 @@ export async function createRenderer(canvas: HTMLCanvasElement, g: Settings['gra
   const particles = new Particles(renderer.scene);
   particles.setIntensity(g.effectsIntensity);
   const trails = new Trails(renderer.scene);
-  const onFrame = (time: number, camera: THREE.Camera) => {
-    updateMaterials(time);
-    updateLights(time, camera.position);
-  };
+  // GameRenderer.render() already drives the materials clock and the light budget with its own
+  // clock; calling them here too (with the game's clock) made the two clocks fight: the light
+  // budget saw time jump back and forth every frame, so its fades ran in ~1 frame (visible pops).
+  const onFrame = (_time: number, _camera: THREE.Camera) => {};
   return { renderer, particles, trails, onFrame };
 }

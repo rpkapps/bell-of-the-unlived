@@ -111,8 +111,8 @@ export function buildTown(ctx: AreaCtx): TownBuild {
   }
   mountainRing(bd, 0, -100, 900, Math.round(22 * d) + 6, 11, -40);
   // western heights beyond the watchtower: high rock and dead trees
-  rockFace(bd, -60, -200, -60, 20, 0, 34, 95, -1, 8, 'rock_cliff', 7);
-  rockFace(bd, -90, -260, -90, 60, 10, 60, 96, -1, 10, 'stone_dark', 9);
+  rockFace(bd, -60, -200, -60, 20, 0, 34, 95, -1, 8, 'rock_cliff', 7, false);
+  rockFace(bd, -90, -260, -90, 60, 10, 60, 96, -1, 10, 'stone_dark', 9, false);
   for (let i = 0; i < 12; i++) deadTree(bd, rng.range(-58, -48), rng.range(20, 30), rng.range(-180, 0), rng.range(5, 9));
   for (let i = 0; i < 20; i++) rockProp(bd, rng.range(-56, -40), rng.range(6, 16), rng.range(-160, -20), rng.range(3, 7), 400 + i, 0.8);
   bd.finish(ctx.root);

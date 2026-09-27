@@ -538,7 +538,8 @@ export function draftingBoard(ctx: AreaCtx, k: Kit, x: number, y: number, z: num
 /**
  * Cliff face along (x0,z0)→(x1,z1) from y0 to y1: a backing slab BEHIND the line plus jittered
  * rocks whose centres sit behind the line so they bulge out at most ~0.35 r. `side` = +1 bulges
- * toward the line direction's left normal (for a west→east line that is +Z, south). Visual only.
+ * toward the line direction's left normal (for a west→east line that is +Z, south). The rocks
+ * collide with their own shape (their jitter lets them bulge up to ~0.6 r past the line).
  */
 export function cliffWall(k: Kit, x0: number, z0: number, x1: number, z1: number, y0: number, y1: number, seed: number, side = 1, rMax = 3.2, mat: MaterialId = 'rock_cliff') {
   const len = Math.hypot(x1 - x0, z1 - z0);
@@ -558,7 +559,9 @@ export function cliffWall(k: Kit, x0: number, z0: number, x1: number, z1: number
       const rr = r * k.rng.range(0.8, 1.15);
       const yy = y0 + (H * (j + 0.5)) / layers + k.rng.range(-0.4, 0.4);
       const back = rr * k.rng.range(0.62, 0.85);
-      k.add(mat, rock(rr, seed * 97 + i * 13 + j, k.rng.range(0.85, 1.35), 1), { x: px - nx * back, y: yy, z: pz - nz * back, ry: k.rng.range(0, 6) }, { cast: true });
+      const g = rock(rr, seed * 97 + i * 13 + j, k.rng.range(0.85, 1.35), 1), t = { x: px - nx * back, y: yy, z: pz - nz * back, ry: k.rng.range(0, 6) };
+      k.colGeo(g, t); // the rocks bulge past the line (and poke above the top): collide with their shape
+      k.add(mat, g, t, { cast: true });
     }
   }
 }

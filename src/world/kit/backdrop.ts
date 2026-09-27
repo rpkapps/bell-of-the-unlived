@@ -30,7 +30,8 @@ export function silhouetteHouse(kit: Kit, rng: Rng, x: number, y: number, z: num
 /** Square tower with a tall slate spire. */
 export function spireTower(kit: Kit, x: number, y: number, z: number, w: number, h: number, spireH: number, mat: MaterialId = 'stone_dark') {
   kit.bmm(mat, x - w / 2, y - 2, z - w / 2, x + w / 2, y + h, z + w / 2, { cast: false, receive: false });
-  kit.bmm('stone_trim', x - w / 2 - 0.4, y + h - 0.6, z - w / 2 - 0.4, x + w / 2 + 0.4, y + h, z + w / 2 + 0.4, { cast: false, receive: false });
+  // cornice rises 0.15 m above the tower top: flush tops of two materials z-fight at backdrop distance
+  kit.bmm('stone_trim', x - w / 2 - 0.4, y + h - 0.6, z - w / 2 - 0.4, x + w / 2 + 0.4, y + h + 0.15, z + w / 2 + 0.4, { cast: false, receive: false });
   kit.add('roof_slate', cone(w * 0.62, spireH, 8), { x, y: y + h, z }, { cast: false, receive: false });
   for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) kit.add('roof_slate', cone(w * 0.14, spireH * 0.3, 6), { x: x + sx * w / 2, y: y + h, z: z + sz * w / 2 }, { cast: false, receive: false });
   if (h > 16) kit.box('window_warm', x, y + h * 0.7, z + w / 2 + 0.03, w * 0.18, 1.6, 0.05, { cast: false, receive: false });

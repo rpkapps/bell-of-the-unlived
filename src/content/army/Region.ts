@@ -99,6 +99,8 @@ registerDialogue({
   ],
 });
 
+const _occA = new THREE.Vector3(), _occB = new THREE.Vector3();
+
 const F = {
   postern: 'army.postern',
   eastGate: 'army.eastGate',
@@ -107,6 +109,7 @@ const F = {
   muster: 'muster.army',
   musterMet: 'army.musterMet',
   arrival: 'army.arrived',
+  reveal: 'army.bellRevealed',
 };
 
 export class ArmyRegion extends RegionBase {
@@ -181,7 +184,7 @@ export class ArmyRegion extends RegionBase {
     this.add('muster', this.A('musterSoldier'), 2.6, () => 'Speak with the soldier', () => void this.talkMuster(), false);
 
     // triggers
-    this.onTrigger('roadStart', () => { for (const l of DIALOGUE_LINES('army_arrival')) this.subtitle(l.text, l.speaker, l.duration ?? 5); this.record('siegeholm', 'mem_victory'); });
+    this.onTrigger('roadStart', () => { this.revealBell(); for (const l of DIALOGUE_LINES('army_arrival')) this.subtitle(l.text, l.speaker, l.duration ?? 5); this.record('siegeholm', 'mem_victory'); });
     this.onTrigger('magazineYard', () => {
       if (this.ws.npcs.tallis !== 'imprisoned') return;
       this.memoryFlash();
@@ -263,6 +266,29 @@ export class ArmyRegion extends RegionBase {
     if (!this.flag('boss.varr')) return this.arena('varr').entry.pos;
     return null;
   }
+  /**
+   * First arrival: the Stillbell shrine stands between the player and the keep, so the opening
+   * view is a short push from beside the shrine up to the Great Bell between its two towers (the
+   * region's landmark and goal). Any player movement hands the camera back at once.
+   */
+  private revealBell() {
+    if (this.flag(F.reveal)) return;
+    this.setFlag(F.reveal);
+    const g = this.game, p = g.player;
+    if (!p) return;
+    const start = p.pos.clone();
+    const bell = new THREE.Vector3(0, 78, -231);
+    const from = new THREE.Vector3(start.x + 5.5, start.y + 2.2, start.z + 3.5), to = new THREE.Vector3(start.x + 6.5, start.y + 3.2, start.z - 1.5);
+    let t = 0;
+    g.cameraOverride = (dt, cam) => {
+      t += dt;
+      const k = Math.min(1, t / 5.5), e = k * k * (3 - 2 * k);
+      cam.position.lerpVectors(from, to, e);
+      cam.lookAt(bell.x, 30 + 48 * e, bell.z);
+      return t < 5.5 && !p.dead && p.pos.distanceToSquared(start) < 1.2 && g.mode === 'play';
+    };
+  }
+
   private arena(id: string) { return this.L.arenas.find((a) => a.bossId === id)!; }
 
   // ------------------------------------------------------------------ enemies: region classes, pike walls, the bombard
@@ -379,6 +405,41 @@ export class ArmyRegion extends RegionBase {
       for (const l of DIALOGUE_LINES('army_bell_silent')) this.subtitle(l.text, l.speaker, l.duration ?? 6);
       this.game.deps.ui?.banner('regionComplete', 'SIEGEHOLM REMEMBERED', 'The Army\'s Great Bell is silent');
     }
+  }
+
+  // ------------------------------------------------------------------ per frame: distance culling of actors
+
+  /**
+   * The long northward sightlines put much of the garrison inside the view frustum at once, and
+   * characters are skinned meshes with one draw call per material. Actors are therefore not drawn
+   * (the AI keeps thinking) when they are beyond ~38 m (46 m once alerted), or when the walls hide them from the camera:
+   * a round-robin line-of-sight test against the static world (head and chest, two consecutive
+   * blocked tests before hiding, shown again at the first clear one). The dead dissolve untouched.
+   */
+  private occluded = new WeakMap<object, number>();
+  private occlCursor = 0;
+  override frame(dt: number) {
+    super.frame(dt);
+    const cam = this.game.deps.renderer.camera.position;
+    const fightBoss = this.fight?.boss ?? null;
+    const list = this.game.enemies, n = list.length;
+    const world = this.game.world;
+    for (let k = 0, checks = Math.min(n, 10); k < checks; k++) {
+      const e = list[this.occlCursor++ % n];
+      if (!e || e.dead || e === fightBoss) continue;
+      const d2 = e.pos.distanceToSquared(cam);
+      if (d2 > 46 * 46 || d2 < 10 * 10) { this.occluded.set(e, 0); continue; }
+      const head = _occA.set(e.pos.x, e.pos.y + 1.75, e.pos.z), chest = _occB.set(e.pos.x, e.pos.y + 0.9, e.pos.z);
+      const blocked = !world.lineOfSight(cam, head) && !world.lineOfSight(cam, chest);
+      this.occluded.set(e, blocked ? (this.occluded.get(e) ?? 0) + 1 : 0);
+    }
+    for (const e of list) {
+      if (e.dead || e.deathT >= 0) continue;
+      const far = e === fightBoss ? Infinity : e.isBoss ? 60 : e.aware ? 46 : 38;
+      const vis = e === fightBoss || (e.pos.distanceToSquared(cam) < far * far && (this.occluded.get(e) ?? 0) < 2);
+      if (e.object.visible !== vis) e.object.visible = vis;
+    }
+    for (const n of this.npcs.values()) n.object.visible = n.pos.distanceToSquared(cam) < 46 * 46;
   }
 
   // ------------------------------------------------------------------ per step

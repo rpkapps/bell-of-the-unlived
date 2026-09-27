@@ -62,7 +62,7 @@ export function buildArmy(ctx: LevelContext): ArmyLayout {
   const keep = buildKeep(actx);
   const back = buildBackdrop(actx);
 
-  const originY: Record<string, number> = { road: 0, bailey: 0, barbican: 6, passage: 6, ward: 6, keep: 14, backdrop: 0 };
+  const originY: Record<string, number> = { south: 0, mid: 6, north: 14, backdrop: 0 };
   let triangles = 0, meshes = 0;
   const perKit: Record<string, number> = {};
   for (const k of actx.kits) {
@@ -127,10 +127,31 @@ export function buildArmy(ctx: LevelContext): ArmyLayout {
   const pieces = Object.assign({}, ...areas.map((a) => a.pieces), { odericGate: passage.gate, varrStandard: keep.anchorStandard, greatBell: keep.bell });
   const triggers = Object.assign({}, ...areas.map((a) => a.triggers));
 
+  // ---------------------------------------------------------------- distance culling of small dynamic pieces
+  // Doors, veils, the war standard and the magazine are a few meshes each and sit behind walls from
+  // most far vantage points; beyond ~80 m they are dropped (the Great Bell always stays). Each piece is
+  // wrapped in an identity group so its own visibility logic is untouched.
+  const culls: { g: THREE.Group; c: THREE.Vector3; r2: number }[] = [];
+  for (const child of [...dynamicRoot.children]) {
+    if ((child as THREE.Light).isLight || child === keep.bell.object) continue;
+    const box = new THREE.Box3().setFromObject(child, true);
+    if (box.isEmpty()) continue;
+    const sph = box.getBoundingSphere(new THREE.Sphere());
+    const wrap = new THREE.Group();
+    wrap.name = 'cull:' + (child.name || child.type);
+    dynamicRoot.add(wrap);
+    wrap.add(child);
+    const far = 78 + sph.radius;
+    culls.push({ g: wrap, c: sph.center, r2: far * far });
+  }
+  // the backdrop is beyond the shadow-relevant range
+  for (const k of actx.kits) if (k.name === 'backdrop') k.group.traverse((o) => { o.castShadow = false; });
+
   // ---------------------------------------------------------------- per-frame animation
   const updaters = shared.updaters;
   const update = (dt: number, time: number, camera: THREE.Camera) => {
     for (const u of updaters) u(dt, time, camera);
+    for (const c of culls) { const v = c.c.distanceToSquared(camera.position) < c.r2; if (c.g.visible !== v) c.g.visible = v; }
     flicker?.(time);
     for (const p of back.smoke) p.update(time);
     snowfall.update(time, camera);

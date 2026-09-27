@@ -145,6 +145,9 @@ async function rescueBranch() {
   console.log('--- rescue branch');
   await commonChecks();
   console.log(await act('bell:army.road', 0, 1.2));
+  await wait(2500);
+  await ev(() => { window.__session.leaveStillbell?.(); window.__game.deps.ui.closeAll(); window.__game.resumePlay(); });
+  await settle();
   await mechanics();
   // the two histories
   console.log(await act('inspect:army_victory_relief', 0, 0));
@@ -253,6 +256,8 @@ async function lossBranch() {
   console.log('--- loss branch');
   await boot();
   console.log(await act('bell:army.road', 0, 1.2));
+  await wait(2500);
+  await ev(() => { window.__session.leaveStillbell?.(); window.__game.deps.ui.closeAll(); window.__game.resumePlay(); });
   await ev(() => window.__peace());
   console.log(await act('fog:oderic', 0, 1.2));
   await until(() => window.__region.fight?.boss.spec.id === 'oderic', 30000);
@@ -270,6 +275,7 @@ async function shotsMode(list) {
   await page.goto(base + '?region=army&quality=' + (process.env.ARMY_Q ?? 'low') + '&origin=householdKnight');
   await page.waitForFunction(() => window.__ready && window.__game.mode === 'play' && window.__region?.id === 'army', null, { timeout: 240000 });
   await wait(4000);
+  await page.addStyleTag({ content: 'body * { visibility: hidden !important; } canvas { visibility: visible !important; }' });
   await ev(() => { window.__game.deps.ui.setHudVisible(false); window.__peace = () => { for (const e of window.__game.enemies) if (!e.isBoss) { e.aware = false; e.target = null; } }; });
   const views = {
     spawn: null,
@@ -279,7 +285,16 @@ async function shotsMode(list) {
     barbican: { cam: [14, 9, -63], look: [-4, 7, -86], player: [10, 6, -66] },
     passage: { cam: [0, 9.5, -89], look: [0, 7, -115], player: [0, 6, -92] },
     hall: { cam: [-16, 9, -134], look: [-30, 6.5, -158], player: [-17, 6, -140] },
-    ward: { cam: [30, 10, -130], look: [-4, 10, -165], player: [26, 6, -133] },
+    ward: { cam: [22, 12, -136], look: [-8, 11, -168], player: [18, 6, -140] },
+    pikes: { cam: [7.5, 1.9, -35.2], look: [5.6, 1.1, -40], player: [6, 0, -29] },
+    knight: { actor: 'siegeKnight', dist: 4.2, h: 1.5, side: 0.35, player: [8, 6, -70] },
+    oderic: { actor: 'oderic', isBoss: true, dist: 5.2, h: 1.7, side: 0.3, player: [0, 6, -95] },
+    varr: { actor: 'varr', isBoss: true, dist: 3.8, h: 1.5, side: 0.3, player: [0, 24, -214] },
+    varr2: { actor: 'varr', isBoss: true, phase2: true, dist: 3.8, h: 1.5, side: -0.3, player: [0, 24, -214] },
+    crew: { actor: 'cannonCrew', dist: 3.2, h: 1.3, side: 0.4, player: [2, 8, -21] },
+    xbow: { actor: 'crossbowman', dist: 3.4, h: 1.3, side: 0.4, player: [0, 0, 20] },
+    sapper: { actor: 'sapper', dist: 3.4, h: 1.3, side: 0.4, player: [0, 0, 20] },
+    twice: { actor: 'twiceSlain', dist: 3.4, h: 1.3, side: 0.4, player: [0, 0, 20] },
     keep: { cam: [-12, 18, -176], look: [0, 50, -228], player: [-10, 14, -178] },
     rampart: { cam: [0, 29, -210], look: [0, 40, -232], player: [0, 24, -214] },
     bell: { cam: [0, 40, -205], look: [0, 78, -231], player: [0, 24, -214] },
@@ -291,12 +306,27 @@ async function shotsMode(list) {
     await ev((vv) => {
       const g = window.__game, T = window.THREE;
       window.__peace();
-      if (vv) {
+      if (vv && vv.actor) {
+        const pp = new T.Vector3(...vv.player);
+        g.player.teleport(vv.isBoss ? pp : new T.Vector3(-8, 0, 52), Math.PI);
+        const pool = g.enemies.filter((e) => !e.dead && (e.spec?.id === vv.actor || e.def?.kind === vv.actor));
+        pool.sort((a, b) => a.pos.distanceToSquared(pp) - b.pos.distanceToSquared(pp));
+        const e = pool[0];
+        if (!e) { g.cameraOverride = null; return; }
+        if (vv.phase2 && e.advancePhase && e.phase === 1) e.advancePhase();
+        window.__shotActor = e;
+        g.cameraOverride = (dt, cam) => {
+          const f = e.forward, r = new T.Vector3(-f.z, 0, f.x);
+          cam.position.copy(e.pos).addScaledVector(f, vv.dist).addScaledVector(r, vv.dist * vv.side).add(new T.Vector3(0, vv.h, 0));
+          cam.lookAt(e.pos.x, e.pos.y + vv.h * 0.8, e.pos.z);
+          return true;
+        };
+      } else if (vv) {
         g.player.teleport(new T.Vector3(...vv.player), Math.PI);
         g.cameraOverride = (dt, cam) => { cam.position.set(...vv.cam); cam.lookAt(...vv.look); return true; };
       } else g.cameraOverride = null;
     }, v);
-    await wait(name === 'spawn' ? 2000 : 9000);
+    await wait(name === 'spawn' ? 9000 : 9000);
     await page.screenshot({ path: `${out}/army-${name}.png` });
     const st = await ev(() => { const r = window.__game.deps.renderer; return { ...r.stats(), area: window.__region.currentAreaName() }; });
     console.log('shot', name, JSON.stringify(st));

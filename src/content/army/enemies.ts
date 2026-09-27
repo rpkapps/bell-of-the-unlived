@@ -157,6 +157,9 @@ export class Formation {
     for (const m of this.members) this.center.add(m.home);
     this.center.divideScalar(Math.max(1, this.members.length));
     this.yaw = this.members[0]?.homeYaw ?? 0;
+    // slots follow where each bearer stands along the wall's right-hand direction
+    const rx = -Math.cos(this.yaw), rz = Math.sin(this.yaw);
+    [...this.members].sort((a, b) => ((a.home.x - this.center.x) * rx + (a.home.z - this.center.z) * rz) - ((b.home.x - this.center.x) * rx + (b.home.z - this.center.z) * rz)).forEach((m, i) => { m.slot = i; });
     this.volleyCd = 1.2; this.bashCd = 3; this.behindT = 0; this.pending = []; this.stamp = -1;
   }
   alive() { return this.members.filter((m) => !m.dead); }

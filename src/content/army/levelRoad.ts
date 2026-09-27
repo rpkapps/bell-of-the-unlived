@@ -53,18 +53,19 @@ export function buildRoad(ctx: AreaCtx): RoadBuild {
   // valley terrain: snowfields rising into rock slopes west, east and south
   const hf = (x: number, z: number) => {
     let h = Math.abs(x) < 9.6 ? -0.06 : 0.02 + fbm2(x * 0.25, z * 0.25, 7) * 0.12;
-    if (x < -46) h = Math.max(h, Math.pow((-46 - x) * 0.95, 1.18) + fbm2(x * 0.12, z * 0.12, 3) * 3);
-    if (x > 28) h = Math.max(h, Math.pow((x - 28) * 0.85, 1.18) + fbm2(x * 0.12, z * 0.12, 4) * 3);
-    if (z > 67) h = Math.max(h, Math.pow((z - 67) * 0.8, 1.15) + fbm2(x * 0.1, z * 0.1, 5) * 2);
+    const ridge = (a: number, b: number, s: number) => Math.abs(fbm2(a * 0.22, b * 0.22, s) - 0.5) * 9 + fbm2(a * 0.6, b * 0.6, s + 3) * 2.2;
+    if (x < -46) h = Math.max(h, Math.pow((-46 - x) * 0.95, 1.18) + fbm2(x * 0.12, z * 0.12, 3) * 3 + ridge(x, z, 13) * Math.min(1, (-46 - x) / 6));
+    if (x > 28) h = Math.max(h, Math.pow((x - 28) * 0.85, 1.18) + fbm2(x * 0.12, z * 0.12, 4) * 3 + ridge(x, z, 14) * Math.min(1, (x - 28) / 6));
+    if (z > 67) h = Math.max(h, Math.pow((z - 67) * 0.8, 1.15) + fbm2(x * 0.1, z * 0.1, 5) * 2 + ridge(x, z, 15) * Math.min(1, (z - 67) / 6));
     return h;
   };
   const mud = (x: number, z: number) => (Math.abs(x) < 10.5 ? 1 - Math.max(0, Math.abs(x) - 8.5) / 2 : 0) + (x < -12 && x > -36 && z > 16 && z < 46 ? 0.45 * fbm2(x * 0.4, z * 0.4, 9) : 0);
   terrainPatch(ctx, -80, -19, 60, 95, 1.6, hf, mud);
-  for (let i = 0; i < 16; i++) {
+  for (let i = 0; i < 40; i++) {
     const west = i % 2 === 0;
-    const x = west ? k.rng.range(-62, -50) : k.rng.range(31, 44);
+    const x = west ? k.rng.range(-66, -48.5) : k.rng.range(30, 48);
     const z = k.rng.range(-15, 80);
-    const r = k.rng.range(2, 4.5);
+    const r = k.rng.range(2.2, 6);
     rockProp(k, x, hf(x, z) - r * 0.3, z, r, 500 + i, 0.8);
     snowDrift(ctx, x, hf(x, z) + r * 0.25, z, r * 0.9, r * 0.8, r * 0.35, 600 + i);
   }

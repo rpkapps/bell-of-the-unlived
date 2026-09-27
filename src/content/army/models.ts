@@ -244,16 +244,65 @@ function scaledY(base: WeaponModelExt, k: number): WeaponModelExt {
     offhandGrip: base.offhandGrip !== undefined ? base.offhandGrip * k : undefined,
   };
 }
+/**
+ * Collapse a rigid weapon model to one mesh per material (transforms baked relative to its root),
+ * so a pike wall of three bearers costs a handful of draw calls instead of dozens.
+ */
+function mergeByMaterial(w: WeaponModelExt): WeaponModelExt {
+  const root = w.object;
+  root.updateMatrixWorld(true);
+  const inv = new THREE.Matrix4().copy(root.matrixWorld).invert();
+  const byMat = new Map<THREE.Material, THREE.BufferGeometry[]>();
+  let cast = false;
+  root.traverse((o) => {
+    const m = o as THREE.Mesh;
+    if (!m.isMesh || Array.isArray(m.material) || (m as THREE.SkinnedMesh).isSkinnedMesh) return;
+    const g = (m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone());
+    g.applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv, m.matrixWorld));
+    if (!g.attributes.normal) g.computeVertexNormals();
+    const list = byMat.get(m.material) ?? [];
+    list.push(g);
+    byMat.set(m.material, list);
+    cast ||= m.castShadow;
+  });
+  const out = new THREE.Group();
+  out.name = root.name;
+  // geometry is baked in the root's local space; the root keeps its own transform
+  out.position.copy(root.position); out.quaternion.copy(root.quaternion); out.scale.copy(root.scale);
+  for (const [mat, list] of byMat) {
+    let n = 0;
+    for (const g of list) n += g.attributes.position.count;
+    const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), uv = new Float32Array(n * 2);
+    let o = 0;
+    for (const g of list) {
+      const c = g.attributes.position.count;
+      pos.set((g.attributes.position as THREE.BufferAttribute).array as Float32Array, o * 3);
+      nor.set((g.attributes.normal as THREE.BufferAttribute).array as Float32Array, o * 3);
+      const u = g.attributes.uv as THREE.BufferAttribute | undefined;
+      if (u && u.itemSize === 2) uv.set(u.array as Float32Array, o * 2);
+      o += c;
+      g.dispose();
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+    geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.castShadow = cast;
+    out.add(mesh);
+  }
+  return { ...w, object: out };
+}
 const mesh = (g: THREE.BufferGeometry, key: string) => { const m = new THREE.Mesh(g, weaponMaterial(key)); m.castShadow = true; return m; };
 
-registerWeaponModel('army_pike', () => scaledY(buildWeapon('enemy_spear'), 1.45));
+registerWeaponModel('army_pike', () => mergeByMaterial(scaledY(buildWeapon('enemy_spear'), 1.45)));
 registerWeaponModel('army_pavise', () => {
   const w = buildWeapon('tower_shield');
   const face = mesh(new THREE.PlaneGeometry(0.46, 0.62), M.army);
   face.position.set(0, 0.06, 0.07);
   w.object.add(face);
   w.object.scale.set(1.15, 1.1, 1);
-  return w;
+  return mergeByMaterial(w);
 });
 registerWeaponModel('army_rammer', () => {
   const g = new THREE.Group();
@@ -261,7 +310,7 @@ registerWeaponModel('army_rammer', () => {
   g.add(mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.28, 10).translate(0, 1.5, 0), 'cloth_brown|t=4a4038'));
   g.add(mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.04, 10).translate(0, 1.36, 0), 'iron'));
   g.add(mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.12, 6).translate(0, -0.6, 0), 'iron'));
-  return { object: g, hit: { from: 1.1, to: 1.62, radius: 0.1 }, trail: { from: 1.2, to: 1.6 }, offhandGrip: 0.5, triangles: 200 };
+  return mergeByMaterial({ object: g, hit: { from: 1.1, to: 1.62, radius: 0.1 }, trail: { from: 1.2, to: 1.6 }, offhandGrip: 0.5, triangles: 200 });
 });
 function ramMaul(scale: number): WeaponModelExt {
   const g = new THREE.Group();
@@ -278,7 +327,7 @@ function ramMaul(scale: number): WeaponModelExt {
   }
   g.add(mesh(cyl(0.015, 0.015, -0.6, -0.5, 6), 'iron'));
   g.scale.setScalar(scale);
-  return { object: g, hit: { from: 1.0 * scale, to: 1.75 * scale, radius: 0.24 * scale }, trail: { from: 1.1 * scale, to: 1.7 * scale }, offhandGrip: 0.62 * scale, triangles: 900 };
+  return mergeByMaterial({ object: g, hit: { from: 1.0 * scale, to: 1.75 * scale, radius: 0.24 * scale }, trail: { from: 1.1 * scale, to: 1.7 * scale }, offhandGrip: 0.62 * scale, triangles: 900 });
 }
 registerWeaponModel('oderic_ram', () => ramMaul(1.0));
 registerWeaponModel('ram_knight_maul', () => ramMaul(0.82));
@@ -293,5 +342,5 @@ registerWeaponModel('varr_halberd', () => {
   m.position.set(0, 1.12, -0.02);
   w.object.add(m);
   w.object.add(mesh(new THREE.TorusGeometry(0.03, 0.008, 5, 12).rotateX(Math.PI / 2).translate(0, 1.2, 0), M.gold));
-  return w;
+  return mergeByMaterial(w);
 });

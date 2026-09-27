@@ -394,15 +394,51 @@ export function warStandard(ctx: AreaCtx, k: Kit, x: number, y: number, z: numbe
  * warm light beneath the mouth. set(1) = silenced: cracks go dark, the shackles shatter, the light
  * dies and the bell settles a little askew.
  */
+const _tmpV = new THREE.Vector3();
+let _halo: THREE.Texture | null = null;
+function haloTexture() {
+  if (_halo) return _halo;
+  const n = 64, data = new Uint8Array(n * n * 4);
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+    const dx = (x + 0.5) / n * 2 - 1, dy = (y + 0.5) / n * 2 - 1;
+    const d = Math.sqrt(dx * dx + dy * dy);
+    const a = Math.pow(clamp01(1 - d), 2.2);
+    const i = (y * n + x) * 4;
+    data[i] = data[i + 1] = data[i + 2] = 255; data[i + 3] = Math.round(a * 255);
+  }
+  _halo = new THREE.DataTexture(data, n, n);
+  _halo.needsUpdate = true;
+  return _halo;
+}
+
 export function greatBell(ctx: AreaCtx, x: number, top: number, z: number, h: number): Piece {
   const root = new THREE.Group();
   root.name = 'greatBell';
   root.position.set(x, top, z);
   ctx.dynamicRoot.add(root);
-  const body = new THREE.Mesh(bellGeo(h, 40), getMaterial('bronze_bell'));
+  // double-sided: the bell is seen from below, into its mouth
+  const bronzeDS = cloneMaterial(getMaterial('bronze_bell')) as THREE.MeshStandardMaterial;
+  bronzeDS.side = THREE.DoubleSide;
+  const body = new THREE.Mesh(bellGeo(h, 40), bronzeDS);
   body.castShadow = false;
   body.receiveShadow = true;
   root.add(body);
+  // the hollow glows: a warm, dim inner shell lit by the cracks
+  const innerMat = new THREE.MeshBasicMaterial({ color: 0x5a3414, side: THREE.BackSide, fog: true, vertexColors: true });
+  const innerGeo = bellGeo(h * 0.97, 32).scale(0.965, 1, 0.965);
+  {
+    // lit from the cracks near the lip, dark up in the crown
+    const pos = innerGeo.attributes.position, cols = new Float32Array(pos.count * 3);
+    for (let i = 0; i < pos.count; i++) {
+      const v = clamp01(-pos.getY(i) / (h * 0.97));
+      const k = 0.18 + 0.95 * v * v * v;
+      cols[i * 3] = k * 1.1; cols[i * 3 + 1] = k; cols[i * 3 + 2] = k * 0.85;
+    }
+    innerGeo.setAttribute('color', new THREE.BufferAttribute(cols, 3));
+  }
+  const innerShell = new THREE.Mesh(innerGeo, innerMat);
+  innerShell.position.y = -h * 0.02;
+  root.add(innerShell);
   // lip ring, waist bands and a relief band (the army's castle-and-sword, abstracted as crenels)
   const r = h * 0.62;
   const bandMat = getMaterial('bronze');
@@ -475,15 +511,30 @@ export function greatBell(ctx: AreaCtx, x: number, top: number, z: number, h: nu
   const inner = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.72, r * 0.9, h * 0.06, 32, 1, true), glowMat);
   inner.position.y = -h * 0.88;
   root.add(inner);
+  // far halo: the golden beacon that reads from the Siege Road; fades out as the camera nears
+  const haloMat = new THREE.SpriteMaterial({ map: haloTexture(), color: 0xffc27a, transparent: true, opacity: 0.5, depthWrite: false, blending: THREE.AdditiveBlending, fog: false });
+  const halo = new THREE.Sprite(haloMat);
+  halo.scale.setScalar(h * 2.6);
+  halo.position.y = -h * 0.55;
+  halo.renderOrder = 2;
+  let haloBase = 0.5;
+  halo.onBeforeRender = (_r, _s, cam) => {
+    const d = cam.position.distanceTo(root.getWorldPosition(_tmpV));
+    haloMat.opacity = haloBase * clamp01((d - 60) / 110);
+  };
+  root.add(halo);
   const piece: Piece = {
     object: root,
     set(t: number) {
       const e = clamp01(t);
+      haloBase = 0.5 * (1 - e);
+      halo.visible = e < 0.999;
       crackMat.emissiveIntensity = baseEm * (1 - e * 0.97);
       crackMat.color.setRGB(1 - e * 0.7, 1 - e * 0.75, 1 - e * 0.8);
       light.intensity = 90 * (1 - e);
       light.visible = e < 0.999;
       glowMat.opacity = 0.35 * (1 - e);
+      innerMat.color.setRGB(0.62 * (1 - e) + 0.07, 0.36 * (1 - e) + 0.06, 0.14 * (1 - e) + 0.05);
       inner.visible = e < 0.999;
       shackles.children.forEach((c, i) => {
         const u = clamp01((e - 0.1 * i) / 0.5);

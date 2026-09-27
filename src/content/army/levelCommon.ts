@@ -32,8 +32,16 @@ export interface AreaCtx {
   terrain: GeoBatch;
 }
 
+/**
+ * Static geometry is merged per material into a few large kits ("tiers") rather than one kit per
+ * area: fewer, larger meshes keep the draw calls of the long northward views within budget.
+ */
+const TIER: Record<string, string> = { road: 'south', bailey: 'south', barbican: 'mid', passage: 'mid', ward: 'mid', keep: 'north', backdrop: 'backdrop', farCamp: 'backdrop' };
 export function newKit(ctx: AreaCtx, name: string, seed: number): Kit {
-  const k = new Kit(name, ctx.shared, seed);
+  const tier = TIER[name] ?? name;
+  const have = ctx.kits.find((k) => k.name === tier);
+  if (have) return have;
+  const k = new Kit(tier, ctx.shared, seed);
   ctx.kits.push(k);
   return k;
 }
@@ -186,7 +194,7 @@ function smoothNoise(x: number, y: number, period: number, seed: number) {
 let SNOW_MAT: THREE.MeshStandardMaterial | null = null;
 export function snowMaterial(): THREE.MeshStandardMaterial {
   if (!SNOW_MAT) {
-    SNOW_MAT = new THREE.MeshStandardMaterial({ color: 0xdfe5ec, map: snowTexture(), roughness: 0.82, metalness: 0, envMapIntensity: 0.6 });
+    SNOW_MAT = new THREE.MeshStandardMaterial({ color: 0xd4dbe4, map: snowTexture(), roughness: 0.82, metalness: 0, envMapIntensity: 0.6 });
     SNOW_MAT.name = 'army:snow';
   }
   return SNOW_MAT;
@@ -305,7 +313,7 @@ export function driftLine(ctx: AreaCtx, x0: number, z0: number, x1: number, z1: 
 
 // ------------------------------------------------------------------------------------ terrain
 
-const SNOW_C = new THREE.Color('#dfe5ec'), ROCK_C = new THREE.Color('#3b3a3a'), MUD_C = new THREE.Color('#4a4038');
+const SNOW_C = new THREE.Color('#d0d7e0'), ROCK_C = new THREE.Color('#34332f'), MUD_C = new THREE.Color('#4a4038');
 
 /**
  * Displaced terrain patch over [x0,x1]×[z0,z1] with cell size `cell`; `hf(x,z)` gives the height.
@@ -324,9 +332,17 @@ export function terrainPatch(ctx: AreaCtx, x0: number, z0: number, x1: number, z
   const c = new THREE.Color();
   for (let i = 0; i < p.count; i++) {
     const x = p.getX(i), z = p.getZ(i);
-    const steep = THREE.MathUtils.smoothstep(n.getY(i), 0.62, 0.8);
+    const steep = THREE.MathUtils.smoothstep(n.getY(i), 0.7, 0.9);
     const noise = hash2(Math.floor(x * 1.3), Math.floor(z * 1.3), 3) * 0.12;
     c.copy(ROCK_C).lerp(SNOW_C, Math.min(1, steep + noise * (steep > 0.3 ? 1 : 0)));
+    if (steep < 0.95) {
+      // cliff faces: strata bands and snow caught in gullies and ledges, so slopes never read flat
+      const y = p.getY(i), rockK = 1 - steep;
+      const band = 0.8 + 0.34 * (0.5 + 0.5 * Math.sin(y * 0.62 + fbm2(x * 0.045, z * 0.045, 7) * 7));
+      const streak = THREE.MathUtils.smoothstep(fbm2(x * 0.11 + y * 0.05, z * 0.11 - y * 0.07, 11), 0.5, 0.66);
+      c.multiplyScalar(1 + (band - 1) * rockK);
+      c.lerp(SNOW_C, streak * 0.75 * rockK);
+    }
     const m = mud ? Math.max(0, Math.min(1, mud(x, z))) : 0;
     if (m > 0) c.lerp(MUD_C, m * 0.85);
     c.multiplyScalar(0.94 + noise * 0.5);

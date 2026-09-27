@@ -94,7 +94,9 @@ async function boot() {
   Object.defineProperty(window, '__region', { get: () => session.region, configurable: true });
   ui.loading(null);
   game.start();
-  if (q.has('skipintro') || q.has('newgame')) {
+  if (q.get('region')) {
+    session.newGameAt((q.get('origin') as OriginId) ?? 'householdKnight', q.get('region')!);
+  } else if (q.has('skipintro') || q.has('newgame')) {
     session.skipIntro = q.has('skipintro');
     session.newGame((q.get('origin') as OriginId) ?? 'householdKnight');
   } else {

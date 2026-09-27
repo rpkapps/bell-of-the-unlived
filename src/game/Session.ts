@@ -83,6 +83,21 @@ export class Session implements UIHost {
     this.ws = newWorldState();
     this.startPlay(null, true);
   }
+  /** Development: start a fresh character directly at a region's entry Stillbell (earlier bosses marked defeated). */
+  newGameAt(origin: OriginId, regionId: string) {
+    this.pd = newPlayerData(origin);
+    this.ws = newWorldState();
+    const order = ['ashbridge', 'army', 'academy', 'cathedral', 'treasury', 'household', 'belfry'];
+    const keepers: Record<string, string> = { army: 'varr', academy: 'orrow', cathedral: 'vessaline', treasury: 'aurelmask', household: 'celwyn' };
+    this.ws.flags['boss.corvane'] = true;
+    // Unlock by marking the keepers of regions listed before this one as defeated.
+    for (const r of order.slice(1, order.indexOf(regionId))) if (keepers[r]) this.ws.flags['boss.' + keepers[r]] = true;
+    const info = REGIONS.find((r) => r.id === regionId);
+    if (info) { this.ws.region = regionId; this.ws.lastStillbell = info.bells[0].id; }
+    this.pd.hours = 20000;
+    this.skipIntro = true;
+    this.startPlay(null, false);
+  }
   continueGame() {
     const s = this.saves.load();
     if (!s) { this.ui.toast('No save found.', 'warning'); return; }

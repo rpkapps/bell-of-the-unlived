@@ -167,7 +167,13 @@ export interface DialogueChoice { text: string; id: string }
 // ------------------------------------------------------------------ HUD (written every frame by the game)
 
 export interface HudSlot { name: string; icon: IconId; count?: number; upgrade?: number; cost?: number; empty?: boolean }
-export interface HudEnemyBar { id: number; x: number; y: number; hp01: number; posture01: number; damage?: number; visible: boolean }
+export interface HudEnemyBar {
+  id: number; x: number; y: number; hp01: number; posture01: number; damage?: number; visible: boolean;
+  /** Readable tell for the current attack: jagged ring = unparryable, open hand = grab (shape + motion, not colour). */
+  tell?: 'unparryable' | 'grab' | null;
+  /** Show only the tell (bosses use the boss bar instead). */
+  hideBar?: boolean;
+}
 
 export interface HudState {
   hp: number; hpMax: number;

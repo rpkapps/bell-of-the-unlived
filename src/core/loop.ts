@@ -22,6 +22,9 @@ export class FixedLoop {
   running = false;
   /** Global time scale for sim (hit-stop uses per-actor scales instead). */
   timeScale = 1;
+  /** Optional frame cap (fps); 0 = uncapped (display refresh). */
+  frameCap = 0;
+  private pending = 0;
   constructor(private hooks: LoopHooks) {}
 
   start() {
@@ -54,6 +57,15 @@ export class FixedLoop {
   private frame(now: number) {
     const dt = (now - this.last) / 1000;
     this.last = now;
+    if (this.frameCap > 0) {
+      // Skip display refreshes until a full capped frame has elapsed (small tolerance for jitter).
+      this.pending += dt;
+      if (this.pending < 1 / this.frameCap - 0.002) return;
+      const d = this.pending;
+      this.pending = 0;
+      this.advance(d);
+      return;
+    }
     this.advance(dt);
   }
 }

@@ -310,7 +310,9 @@ export class Hud {
       let v = this.enemies.get(b.id);
       if (!v) {
         const hp = new BarView('hp'), post = new BarView('post', true), dmg = h('span.dmg');
-        const el = h('div.ebar', null, hp.el, post.el, dmg);
+        const tell = h('span.tell');
+        tell.innerHTML = TELL_SVG;
+        const el = h('div.ebar', null, hp.el, post.el, dmg, tell);
         this.enemyLayer.appendChild(el);
         v = { el, hp, post, dmg, x: NaN, y: NaN, vis: true, dmgV: -1, used: true };
         this.enemies.set(b.id, v);
@@ -319,6 +321,9 @@ export class Hud {
       if (b.visible !== v.vis) { v.vis = b.visible; v.el.classList.toggle('hidden', !b.visible); }
       if (!b.visible) continue;
       if (b.x !== v.x || b.y !== v.y) { v.x = b.x; v.y = b.y; v.el.style.transform = `translate3d(${b.x.toFixed(1)}px,${b.y.toFixed(1)}px,0)`; }
+      v.el.classList.toggle('bar-hidden', !!b.hideBar);
+      const tk = b.tell ?? '';
+      if (v.el.dataset.tell !== tk) v.el.dataset.tell = tk;
       v.hp.set(b.hp01);
       v.post.set(b.posture01);
       const d = b.damage ?? 0;
@@ -327,7 +332,7 @@ export class Hud {
     for (const [id, v] of this.enemies) if (!v.used) { v.el.remove(); this.enemies.delete(id); }
   }
 
-  /** Time-based animation. */
+  /** Time-based animation. */ // (tell markers animate in CSS)
   tick(dt: number): void {
     this.hp.tick(dt); this.fp.tick(dt); this.st.tick(dt); this.bossHp.tick(dt);
     for (const v of this.enemies.values()) v.hp.tick(dt);
@@ -379,3 +384,8 @@ export class Hud {
     if (this.tollBright) setOp(this.tollBright, 'bright', t.bright);
   }
 }
+
+/** Tell glyphs: a jagged ring (unparryable) and an open hand (grab). Shape-coded; CSS picks which shows. */
+const TELL_SVG = `<svg class="t-unparry" viewBox="-20 -20 40 40" aria-label="Unparryable"><path d="${(() => {
+  let d = ''; for (let i = 0; i < 16; i++) { const a = (i / 16) * Math.PI * 2, r = i % 2 ? 11 : 17; d += (i ? 'L' : 'M') + (Math.cos(a) * r).toFixed(1) + ' ' + (Math.sin(a) * r).toFixed(1); } return d + 'Z';
+})()}" fill="none" stroke="currentColor" stroke-width="2.4"/><circle r="4" fill="currentColor"/></svg><svg class="t-grab" viewBox="-20 -20 40 40" aria-label="Grab"><path d="M-9 12 L-9 -2 M-4 12 L-4 -10 M1 12 L1 -12 M6 12 L6 -9 M-9 12 Q-2 18 8 10 L13 1" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>`;

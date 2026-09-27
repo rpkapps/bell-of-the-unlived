@@ -63,6 +63,7 @@ export class Game implements Services {
   region: { step(dt: number): void; frame(dt: number): void; hud?(h: HudState): void } | null = null;
   readonly levelRoot = new THREE.Group();
   private fpsAcc = 0; private fpsFrames = 0;
+  private heartbeatT = 0;
 
   constructor(readonly deps: GameDeps) {
     this.cam = new CameraRig(deps.renderer.camera, this.world);
@@ -282,8 +283,15 @@ export class Game implements Services {
       const sw = this.input.targetSwitch();
       if (sw && this.cam.lock) this.cam.switchTarget(sw, this.player, this.enemies);
       const blocked = this.mode !== 'play' || !!this.deps.ui?.blocking;
+      this.loop.frameCap = this.settings.graphics.frameCap;
+      const pl = this.player;
+      pl.model?.setStatusGlow(pl.invulnerable && this.settings.gameplay.showIFrames ? 'iframes' : pl.buffs.has('ward') ? 'ward' : pl.buffs.has('ember') ? 'buff' : pl.buffs.has('burn') ? 'burn' : 'none', 1);
+      if (!pl.dead && pl.hp / pl.hpMax < 0.25 && this.mode === 'play') {
+        this.heartbeatT -= realDt;
+        if (this.heartbeatT <= 0) { this.heartbeatT = 0.9; this.sfx('low_health'); }
+      } else this.heartbeatT = 0;
       this.player.renderPose(alpha, SIM_DT, realDt);
-      for (const e of this.enemies) if (e.object.visible) e.renderPose(alpha, SIM_DT, realDt);
+      for (const e of this.enemies) if (e.object.visible) { e.model?.setStatusGlow(e.buffs.has('burn') ? 'burn' : 'none', 1); e.renderPose(alpha, SIM_DT, realDt); }
       for (const x of this.extras) x.renderPose(alpha, SIM_DT, realDt);
       this.cam.shakeScale = this.settings.graphics.cameraShake;
       this.cam.autoRecenter = this.settings.gameplay.cameraAutoRecenter;
@@ -438,11 +446,13 @@ export class Game implements Services {
     const sp = activeSpell(d);
     const bars = [];
     for (const e of this.enemies) {
-      if (e.dead || e.isBoss || !e.aware || (e.hp >= e.hpMax && e.posture <= 0 && this.cam.lock !== e)) continue;
+      const tell = e.telegraph !== 'none' ? e.telegraph : null;
+      if (e.dead || !e.aware || e.def.passive && e.hp >= e.hpMax) continue;
+      if (!tell && (e.isBoss || (e.hp >= e.hpMax && e.posture <= 0 && this.cam.lock !== e))) continue;
       if (e.distTo(p) > 18) continue;
       const head = e.chest.clone(); head.y += e.height * 0.42;
       const s = this.toScreen(head);
-      bars.push({ id: e.id, x: s.x, y: s.y, hp01: e.hp / e.hpMax, posture01: clamp(e.posture / e.postureMax, 0, 1), damage: e.recentDamage || undefined, visible: s.visible });
+      bars.push({ id: e.id, x: s.x, y: s.y, hp01: e.hp / e.hpMax, posture01: clamp(e.posture / e.postureMax, 0, 1), damage: e.recentDamage || undefined, visible: s.visible, tell, hideBar: e.isBoss });
     }
     const lock = this.cam.lock ? this.toScreen(this.cam.lock.chest) : { x: 0, y: 0, visible: false };
     const crit = p.crit ? this.toScreen(p.crit.target.chest) : null;

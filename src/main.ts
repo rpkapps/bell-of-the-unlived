@@ -63,7 +63,21 @@ async function boot() {
     const n = parseInt(q.get('enemies') ?? '3');
     const kinds = (q.get('kinds') ?? 'infantry,shieldBearer,archer,infantry,sentry').split(',');
     for (let i = 0; i < n; i++) game.spawnEnemy(kinds[i % kinds.length], new THREE.Vector3(-4 + i * 4, 0, -6 - (i % 2) * 3), 0);
-    game.region = { step: (dt) => session.tick(dt), frame: () => {}, hud: () => {} };
+    let hudBoss: any = null;
+    if (q.has('boss')) {
+      const { Boss, CORVANE } = await import('./content/bosses');
+      const b = new Boss(CORVANE, game, 5);
+      b.model = models.buildEnemy(b.rig, 'commander', 1);
+      const w = models.buildWeapon('corvane_sword');
+      b.weaponR = { id: 'corvane_sword', model: w }; b.rig.sockets.weaponR.add(w.object);
+      b.object.traverse((c: any) => { if (c.isMesh) c.castShadow = true; });
+      game.scene.add(b.object); b.resetAt(new THREE.Vector3(0, 0, -4), 0); b.home.set(0, 0, -4);
+      game.enemies.push(b);
+      b.engaged = !q.has('passive'); if (b.engaged) b.becomeAware(game.player);
+      hudBoss = b;
+      (window as any).__boss = b;
+    }
+    game.region = { step: (dt) => session.tick(dt), frame: () => {}, hud: (h) => { if (hudBoss && !hudBoss.dead) h.boss = { name: 'Ser Corvane Aldmoor', title: 'Bell-Appointed Commander of Ashbridge', hp01: hudBoss.hp / hudBoss.hpMax, posture01: Math.min(1, hudBoss.posture / hudBoss.postureMax), phase: hudBoss.phase }; } };
     game.mode = 'play';
     ui.loading(null);
     ui.setHudVisible(true);

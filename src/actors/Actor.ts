@@ -32,6 +32,8 @@ export interface MoveInstance {
 
 let NEXT_ID = 1;
 
+const _hurtScale = new THREE.Vector3();
+
 export abstract class Actor {
   readonly id = NEXT_ID++;
   abstract readonly team: Team;
@@ -286,7 +288,8 @@ export abstract class Actor {
 
   private updateHurt() {
     const b = this.rig.bones;
-    const s = this.rig.proportions.height, k = this.rig.proportions.bulk;
+    // radii follow the rig's world scale (scaled bosses such as the Ancient King)
+    const s = this.rig.proportions.height * this.rig.root.getWorldScale(_hurtScale).x, k = this.rig.proportions.bulk;
     let i = 0;
     const cap = (a: THREE.Object3D, bb: THREE.Object3D | null, r: number, part: HurtVolume['part'], off = 0) => {
       const h = this.hurt[i++];

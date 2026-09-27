@@ -86,3 +86,17 @@ never have to.
   `npx vite --port <port> --strictPort`.
 * To enter your region in the running game: `http://127.0.0.1:<port>/?skipintro&region=<r>`
   starts a new game directly at your entry Stillbell (all earlier unlock flags set).
+
+## Gotchas learned building the campaign
+* `RegionBase`'s constructor calls `setup()` **before** subclass field initialisers run. Use `declare`
+  fields or lazy getters for anything `setup()` touches.
+* `setup()` can run before a save is loaded (booting from the title). Put everything that reads
+  world state in `applyRegionState()`.
+* Journal entry ids and move ids are global. Prefix them with the region (`tr_`, `bf_`, …).
+  A lead registered by several regions (`revelation`) must be merged into, never replaced.
+* Objects a controller adds to the scene after `build()` are removed on unload automatically.
+* The no-watch test server (`tools/restart-test-server.sh`, port 5191) caches modules: restart it
+  after edits. `?region=<r>` builds only that region.
+* `HitSpec.parryable` makes a sphere hit (bite, fist) parryable; sphere hits are unparryable by
+  default. `DialogueChoice.disabled` shows a choice dimmed with its reason.
+* Items registered with `registerItems` get their `ARMOR_LOOKS` entry and a default icon id.

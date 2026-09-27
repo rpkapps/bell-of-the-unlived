@@ -729,6 +729,10 @@ export const KIT_COUNTS: Record<string, number> = { throwing_knife: 8, bone_arro
 
 /** Regions add items/techniques here. */
 export function registerItems(items: ItemDef[], techniques: Record<string, TechniqueDef> = {}) {
-  for (const i of items) (ITEMS as Record<string, ItemDef>)[i.id] = i;
+  for (const i of items) {
+    (ITEMS as Record<string, ItemDef>)[i.id] = { ...i, icon: i.icon ?? i.id } as ItemDef;
+    // keep the model builder's armour table in step (regions may still set ARMOR_LOOKS directly)
+    if (i.kind === 'armor' && !(i.id in ARMOR_LOOKS)) ARMOR_LOOKS[i.id] = (i.armorSet ?? 'none') as ArmorLook;
+  }
   Object.assign(TECHNIQUES, techniques);
 }

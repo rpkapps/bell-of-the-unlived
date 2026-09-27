@@ -162,7 +162,11 @@ export interface JournalLead {
 // ------------------------------------------------------------------ dialogue
 
 export interface DialogueLine { speaker: string; text: string; /** seconds, for auto-advancing barks */ duration?: number }
-export interface DialogueChoice { text: string; id: string }
+export interface DialogueChoice {
+  text: string; id: string;
+  /** Shown dimmed with this reason (still selectable, so the host can explain it). */
+  disabled?: string;
+}
 
 // ------------------------------------------------------------------ HUD (written every frame by the game)
 

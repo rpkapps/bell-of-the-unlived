@@ -473,9 +473,11 @@ export class Game implements Services {
       const g = new THREE.CylinderGeometry(0.012, 0.012, p.kind === 'knife' ? 0.25 : 0.8, 5).rotateX(Math.PI / 2);
       return new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: 0x5a4a3a, roughness: 0.6, metalness: 0.3 }));
     }
+    // No per-projectile PointLight: changing the scene's light count forces shader recompiles (hitches).
+    // An additive halo reads as glow instead.
     const m = new THREE.Mesh(new THREE.IcosahedronGeometry(p.radius, 1), new THREE.MeshBasicMaterial({ color: col }));
-    const light = new THREE.PointLight(col, 3, 6, 2);
-    m.add(light);
+    const halo = new THREE.Mesh(new THREE.IcosahedronGeometry(p.radius * 2.6, 1), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending, depthWrite: false }));
+    m.add(halo);
     return m;
   }
   private projectileImpact(p: Projectile, pt: THREE.Vector3) {

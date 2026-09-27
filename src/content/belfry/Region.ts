@@ -469,7 +469,7 @@ export class BelfryRegion extends RegionBase {
     if (!this.heard('belfry_offer')) await this.talk('belfry_offer');
     for (;;) {
       const opts = endingOptions(this.ws);
-      const choices: DialogueChoice[] = opts.map((o) => ({ id: o.available ? o.id : 'locked:' + o.id, text: o.available ? o.label : `${o.label} (unavailable: ${o.reason})` }));
+      const choices: DialogueChoice[] = opts.map((o) => ({ id: o.available ? o.id : 'locked:' + o.id, text: o.label, disabled: o.available ? undefined : o.reason }));
       choices.push({ id: 'wait', text: 'Let go of the rope, for now' });
       const r = await this.choose([{ speaker: 'The Bell of Return', text: 'The rope is in your hands. The Covenant waits for whoever holds it.' }], choices);
       if (!r || r === 'wait') { this.session.audio?.setMusic('belfry', 3); this.endDecision(); return; }

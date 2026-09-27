@@ -219,7 +219,7 @@ export class DialogueView {
     this.nav = new Nav(() => box);
     this.nav.bindPointer(box);
     this.choices.forEach((c, k) => {
-      const row = navItem(h('div.row', { 'data-key': c.id }, h('span.dmd'), h('span.row-main', null, c.text)));
+      const row = navItem(h('div.row', c.disabled ? { 'data-key': c.id, class: 'dis' } : { 'data-key': c.id }, h('span.dmd'), h('span.row-main', null, c.text), c.disabled ? h('span.row-sub', null, c.disabled) : null));
       row.addEventListener('click', () => { this.ctx.sound('ui_confirm'); this.finish(c.id); });
       if (k === 0) row.setAttribute('data-nav-default', '');
       box.appendChild(row);

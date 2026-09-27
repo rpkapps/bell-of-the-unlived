@@ -15,7 +15,12 @@ export type ArmorLook =
   | 'funeral'       // Funeral Priest: pale funeral vestments over dark mail, veil/helm
   | 'huntsman'      // Royal Huntsman: wide hat, leather jerkin, cape
   | 'condemned'     // Condemned Retainer: rags and chains
-  | 'commander';    // Corvane's armour (reward set)
+  | 'commander'     // Corvane's armour (reward set)
+  | 'greyford'      // Unlived Greyford soldier set: obsolete brigandine, old-pattern sallet, faded blue-grey surcoat
+  | 'warden'        // Mint Warden: light guard set — padded coat, bronze-studded leather, open bascinet, key ring
+  | 'hospice'       // Hospice healer's robes: layered linen and wool, hood, apron, satchel straps (light)
+  | 'bellkeeper'    // Condemned bellkeeper vestments: soot-black cassock, bronze bell-chains, iron collar
+  | 'gatewarden';   // Gatewarden heavy plate: tall shoulders, visored bascinet, tabard with the army castle-and-sword
 
 export interface CharacterLook {
   head: ArmorLook; body: ArmorLook; arms: ArmorLook; legs: ArmorLook;
@@ -57,6 +62,8 @@ export interface WeaponModel {
   castPoint?: THREE.Vector3;
   /** Weapon trail anchor points along +Y (base, tip). */
   trail?: { from: number; to: number };
+  /** Two-handed/long weapons: where the LEFT hand grips along +Y (metres from the main grip). */
+  offhandGrip?: number;
 }
 
 export interface ModelFactory {

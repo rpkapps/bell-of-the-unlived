@@ -46,9 +46,11 @@ export interface PlayerSheet {
 
 export type ItemKind =
   | 'weapon' | 'shield' | 'catalyst' | 'bow' | 'armor' | 'talisman'
-  | 'consumable' | 'material' | 'key' | 'spellbook' | 'memory' | 'ammo';
+  | 'consumable' | 'material' | 'key' | 'spellbook' | 'imprint' | 'memory' | 'ammo';
 
-export type WeaponClass = 'straightSword' | 'dagger' | 'estoc' | 'mace' | 'flail' | 'staff' | 'bell' | 'bow' | 'fist';
+export type WeaponClass =
+  | 'straightSword' | 'curvedSword' | 'greatsword' | 'dagger' | 'estoc' | 'axe' | 'mace' | 'hammer' | 'flail'
+  | 'spear' | 'halberd' | 'staff' | 'bell' | 'censer' | 'bow' | 'crossbow' | 'fist';
 export type ArmorSlot = 'head' | 'body' | 'arms' | 'legs';
 export type Grade = 'S' | 'A' | 'B' | 'C' | 'D' | 'E' | '-';
 
@@ -75,6 +77,8 @@ export interface ItemDef {
     technique?: string; // TechniqueDef id
     /** Catalysts: which spell school they cast. */
     casts?: 'sorcery' | 'rite';
+    /** Bows/crossbows: ammunition item id. */
+    ammo?: string;
     maxUpgrade: number;
   };
   shield?: { physicalGuard: number; magicGuard: number; stability: number; technique?: string };
@@ -82,6 +86,10 @@ export interface ItemDef {
   talisman?: { effect: string };
   consumable?: { effect: string; value?: number };
   spellbook?: { spell: string };
+  /** Imprint scroll: unlocks a technique that can be imprinted onto compatible weapons at a Stillbell. */
+  imprint?: { technique: string };
+  /** Armour set id for visuals (maps to ArmorLook). */
+  armorSet?: string;
   memory?: { boss: string };
   /** Selling/buying price in Hours (smith shop). */
   price?: number;
@@ -90,9 +98,20 @@ export interface ItemDef {
 export interface SpellDef {
   id: string; name: string; icon: IconId; school: 'sorcery' | 'rite';
   focus: number; stamina: number; description: string;
+  /** Slots used when attuned (1 or 2). */
+  slots?: number;
+  /** Behaviour archetype the game implements. */
+  kind: 'projectile' | 'volley' | 'lance' | 'burst' | 'heal' | 'ward' | 'weaponBuff' | 'regen' | 'delayedStrike';
+  source?: string;
   requirements: Partial<Record<'intellect' | 'devotion', number>>;
 }
-export interface TechniqueDef { id: string; name: string; icon: IconId; focus: number; stamina: number; description: string }
+export interface TechniqueDef {
+  id: string; name: string; icon: IconId; focus: number; stamina: number; description: string;
+  /** Weapon/shield classes this technique can be imprinted onto ('shield' for shields). */
+  compatible: (WeaponClass | 'shield')[];
+  /** Where it is obtained (for the UI/journal). */
+  source?: string;
+}
 
 export interface InventoryEntry { id: string; count: number; upgrade: number; def: ItemDef }
 

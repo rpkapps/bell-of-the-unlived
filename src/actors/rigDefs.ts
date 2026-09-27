@@ -74,7 +74,7 @@ export interface RigProportions {
  *  - `weaponR`  child of handR. Weapon local frame: grip centre at origin, blade/shaft along +Y,
  *               edge facing +Z. Rig orients the socket so +Y points forward out of the fist.
  *  - `weaponL`  child of handL, same convention (catalysts, dirks, bows).
- *  - `shieldL`  child of forearmL. Shield local frame: centre of the face at origin, face normal +Z
+ *  - `shieldL`  child of handL. Shield local frame: centre of the face at origin, face normal +Z
  *               (outward, away from the arm), top of the shield +Y.
  *  - `cloak`    child of chest at the back of the shoulders; cloth hangs toward -Z/-Y.
  *  - `back`     child of chest, for sheathed/stowed items.

@@ -47,11 +47,11 @@ export class Rig {
     const wl = mk('weaponL', this.bones.handL);
     wl.position.set(0, -0.07 * s, 0.01);
     wl.rotation.set(Math.PI / 2, 0, 0);
-    // Shield gripped by a centre handle in the left fist, on the outside of the forearm.
+    // Shield (child of handL): gripped by a vertical handle in the left fist, strapped across the forearm.
     // With the arm hanging: shield top (+Y) points forward (+Z), face (+Z) points outward (+X).
     // Raising the forearm forward and twisting it -90° about its long axis brings the face forward.
-    const sl = mk('shieldL', this.bones.forearmL);
-    sl.position.set(0.09 * s, -0.22 * s, 0);
+    const sl = mk('shieldL', this.bones.handL);
+    sl.position.set(0.08 * s, 0.06 * s, 0);
     sl.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(
       new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1), new THREE.Vector3(1, 0, 0)));
     const cl = mk('cloak', this.bones.chest);

@@ -63,7 +63,13 @@ export interface UIHost {
   destinations(): TravelDestination[];
   travel(id: string): void;
   knownSpells(): SpellDef[];
+  /** Attune a known spell into a spell slot (Stillbell only). */
+  attuneSpell(slot: number, spellId: string | null): void;
+  attunedSpells(): (string | null)[];
   techniques(): TechniqueDef[];
+  /** Imprint Techniques: which unlocked techniques can go on this weapon/shield, and apply one (Stillbell only). */
+  imprintOptions(itemId: string): { current: string | null; options: TechniqueDef[] };
+  imprint(itemId: string, techniqueId: string): boolean;
   pendingMemories(): { id: string; bossName: string; rewards: MemoryReward[] }[];
   exchangeMemory(memoryId: string, rewardId: string): boolean;
   /** Leave the Stillbell menu (resume play). */

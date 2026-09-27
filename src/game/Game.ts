@@ -255,6 +255,7 @@ export class Game implements Services {
           e.target = tgt;
         }
         e.think(dt, tgt);
+        if (e.buffs.has('rooted') && !e.isBoss) e.wish.set(0, 0, 0);
       }
     }
     // physics + animation
@@ -451,8 +452,23 @@ export class Game implements Services {
 
   // ------------------------------------------------------------------ projectiles
 
+  private missileProtos = new Map<string, THREE.Object3D>();
   private projectileMesh(p: Projectile): THREE.Object3D | null {
     const col = p.kind === 'cinder' || p.kind === 'fireball' ? 0xff7a30 : p.kind === 'shard' ? 0xffe2a0 : p.kind === 'knell' ? 0xe8e0c8 : 0x999999;
+    const modelId = p.kind === 'arrow' ? 'bone_arrow' : p.kind === 'bolt' ? 'iron_bolt' : p.kind === 'knife' ? 'throwing_knife' : null;
+    const models = this.deps.models;
+    if (modelId && models) {
+      // Weapon models point along +Y from the nock; projectiles fly along +Z. Geometry is shared.
+      let proto = this.missileProtos.get(modelId);
+      if (!proto) {
+        const w = models.buildWeapon(modelId).object;
+        const len = new THREE.Box3().setFromObject(w).max.y;
+        w.rotation.x = Math.PI / 2; w.position.z = -len * 0.5;
+        proto = new THREE.Group().add(w);
+        this.missileProtos.set(modelId, proto);
+      }
+      return proto.clone();
+    }
     if (p.kind === 'knife' || p.kind === 'arrow' || p.kind === 'bolt') {
       const g = new THREE.CylinderGeometry(0.012, 0.012, p.kind === 'knife' ? 0.25 : 0.8, 5).rotateX(Math.PI / 2);
       return new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: 0x5a4a3a, roughness: 0.6, metalness: 0.3 }));
@@ -500,11 +516,11 @@ export class Game implements Services {
     }
     const lock = this.cam.lock ? this.toScreen(this.cam.lock.chest) : { x: 0, y: 0, visible: false };
     const crit = p.crit ? this.toScreen(p.crit.target.chest) : null;
-    const hasRanged = !!p.catalyst || d.equipment.quick2 === 'throwing_knife' && activeQuick(d) === 'throwing_knife';
+    const hasRanged = !!p.catalyst || p.aiming || !!p.moveset.ranged || d.equipment.quick2 === 'throwing_knife' && activeQuick(d) === 'throwing_knife';
     const hud: HudState = {
       hp: p.hp, hpMax: p.hpMax, stamina: Math.max(0, p.stamina), staminaMax: p.staminaMax, focus: p.focus, focusMax: p.focusMax,
       hours: d.hours,
-      right: slot(rightId(d)), left: slot(leftId(d)),
+      right: p.moveset.ranged ? { ...slot(rightId(d)), count: p.ammoLeft() } : slot(rightId(d)), left: slot(leftId(d)),
       quick: q ? { ...slot(q), count: qCount } : slot(null),
       spell: sp ? { name: sp.name, icon: sp.id, cost: sp.focus } : { name: '', icon: '', empty: true },
       flask: { health: d.flask.leftHealth, focus: d.flask.leftFocus },
@@ -515,7 +531,11 @@ export class Game implements Services {
       critical: crit ? { visible: crit.visible, x: crit.x, y: crit.y, kind: p.crit!.kind } : { visible: false, x: 0, y: 0, kind: null },
       reticle: hasRanged && !this.cam.lock,
       prompt: null,
-      statuses: [...p.buffs.entries()].map(([id, t]) => ({ id, icon: id, label: id, remaining01: Math.min(1, t / 30) })),
+      statuses: [
+        ...[...p.buffs.entries()].map(([id, t]) => ({ id, icon: id, label: id, remaining01: Math.min(1, t / 30) })),
+        ...(p.moveset.ranged === 'crossbow' && !p.xbowLoaded ? [{ id: 'unloaded', icon: 'iron_bolt', label: 'Crossbow unloaded', remaining01: 0 }] : []),
+        ...(p.stilledShots > 0 ? [{ id: 'stilledShots', icon: 'stilledBreath', label: `Stilled Breath ×${p.stilledShots}`, remaining01: p.stilledShots / 3 }] : []),
+      ],
       iframes: this.settings.gameplay.showIFrames && p.invulnerable,
       lowHealth: p.hp / p.hpMax < 0.25 && !p.dead,
     };

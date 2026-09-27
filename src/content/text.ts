@@ -121,6 +121,7 @@ export const HINTS: Record<string, string> = {
   drawbridge: '{interact} to pull the lever and lower the drawbridge. It will stay down.',
   cast: 'With a catalyst in hand, {light} casts the attuned spell. {cycleSpell} changes spells. Spells cost focus.',
   technique: '{technique} performs the Imprint Technique of the weapon in hand. Techniques cost focus.',
+  ammo: 'Out of ammunition. Arrows and bolts are sold by merchants and found on the fallen. Hold {guard} with a bow to aim.',
   criticalMarker: 'The bronze diamond marks an opening. {light} to claim it, with or without lock-on.',
 };
 

@@ -110,7 +110,7 @@ export class CameraRig {
     // camera position
     const cp = Math.cos(this.pitch), sp = Math.sin(this.pitch);
     const back = new THREE.Vector3(-Math.sin(this.yaw) * cp, sp, -Math.cos(this.yaw) * cp);
-    const want = (this.lock ? this.dist + 0.3 : this.dist) * (1 - 0.55 * this.aimW);
+    const want = (this.lock ? this.dist + 0.3 : this.dist) * (1 - 0.4 * this.aimW);
     const hit = this.world.raycast(this.pivot, back, want + 0.3);
     const allowed = hit ? Math.max(0.6, hit.distance - 0.3) : want;
     this.curDist = allowed < this.curDist ? allowed : damp(this.curDist, allowed, 3, dt);
@@ -118,7 +118,7 @@ export class CameraRig {
     // shoulder offset while aiming (to the character's right = camera right)
     if (this.aimW > 0.001) {
       const right = new THREE.Vector3(Math.cos(this.yaw) * -1, 0, Math.sin(this.yaw));
-      pos.addScaledVector(right, 0.55 * this.aimW);
+      pos.addScaledVector(right, 0.85 * this.aimW);
       pos.y += 0.1 * this.aimW;
     }
     const fov = this.baseFov * (1 - 0.28 * this.aimW);

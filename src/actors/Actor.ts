@@ -216,7 +216,8 @@ export abstract class Actor {
         hv.set((s * df - c * ds) / dt, 0, (c * df + s * ds) / dt);
       }
       if (d.walk !== undefined && d.walk > 0) hv.addScaledVector(this.wish, d.walk);
-      if (m.t >= d.dur) { this.move = null; this.onMoveEnd(m); if (!this.move) this.anim.stop(0.2); }
+      // The dead keep their final pose (death / critical-victim clips hold their last key).
+      if (m.t >= d.dur) { this.move = null; this.onMoveEnd(m); if (!this.move && !this.dead) this.anim.stop(0.2); }
     } else {
       hv.copy(this.wish);
     }

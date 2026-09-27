@@ -52,6 +52,8 @@ const _e = new THREE.Euler();
 const _p = new THREE.Vector3();
 const _s = new THREE.Vector3();
 const _m = new THREE.Matrix4();
+const _w = new THREE.Matrix4();
+const _l = new THREE.Matrix4();
 
 export function xformMatrix(t: Xform, out = new THREE.Matrix4()): THREE.Matrix4 {
   _e.set(t.rx ?? 0, t.ry ?? 0, t.rz ?? 0, 'YXZ');
@@ -114,7 +116,74 @@ export function createKitShared(quality: Quality, collision: CollisionWorld | nu
 
 // ------------------------------------------------------------------------------------ kit
 
-interface Bucket { mat: MaterialId; variant?: number; cast: boolean; receive: boolean; geoms: THREE.BufferGeometry[] }
+/** Unit box template (non-indexed position/normal/uv), shared by the fast box path. */
+let BOX_T: { pos: Float32Array; nor: Float32Array; uv: Float32Array } | null = null;
+function boxTemplate() {
+  if (!BOX_T) {
+    const g = new THREE.BoxGeometry(1, 1, 1).toNonIndexed();
+    BOX_T = { pos: g.attributes.position.array as Float32Array, nor: g.attributes.normal.array as Float32Array, uv: g.attributes.uv.array as Float32Array };
+  }
+  return BOX_T;
+}
+
+const _nm = new THREE.Matrix3();
+
+/** Growable vertex buffer for one (material, variant, shadow flags) bucket. */
+class Bucket {
+  pos = new Float32Array(3 * 4096);
+  nor = new Float32Array(3 * 4096);
+  uv = new Float32Array(2 * 4096);
+  n = 0;
+  constructor(public mat: MaterialId, public variant: number | undefined, public cast: boolean, public receive: boolean) {}
+  private reserve(k: number) {
+    const need = this.n + k;
+    if (need * 3 <= this.pos.length) return;
+    let cap = this.pos.length / 3;
+    while (cap < need) cap *= 2;
+    const grow = (a: Float32Array, c: number) => { const b = new Float32Array(cap * c); b.set(a.subarray(0, this.n * c)); return b; };
+    this.pos = grow(this.pos, 3); this.nor = grow(this.nor, 3); this.uv = grow(this.uv, 2);
+  }
+  /** Append vertices (non-indexed arrays) transformed by `m`. */
+  push(P: ArrayLike<number>, N: ArrayLike<number>, U: ArrayLike<number>, count: number, m: THREE.Matrix4, world: boolean) {
+    this.reserve(count);
+    _nm.getNormalMatrix(m);
+    const e = m.elements, q = _nm.elements;
+    const o = this.n, pos = this.pos, nor = this.nor, uv = this.uv;
+    for (let i = 0; i < count; i++) {
+      const x = P[i * 3], y = P[i * 3 + 1], z = P[i * 3 + 2];
+      const wx = e[0] * x + e[4] * y + e[8] * z + e[12];
+      const wy = e[1] * x + e[5] * y + e[9] * z + e[13];
+      const wz = e[2] * x + e[6] * y + e[10] * z + e[14];
+      const a = N[i * 3], b = N[i * 3 + 1], c = N[i * 3 + 2];
+      let nx = q[0] * a + q[3] * b + q[6] * c, ny = q[1] * a + q[4] * b + q[7] * c, nz = q[2] * a + q[5] * b + q[8] * c;
+      const l = Math.hypot(nx, ny, nz) || 1;
+      nx /= l; ny /= l; nz /= l;
+      const j = (o + i) * 3;
+      pos[j] = wx; pos[j + 1] = wy; pos[j + 2] = wz;
+      nor[j] = nx; nor[j + 1] = ny; nor[j + 2] = nz;
+      const k2 = (o + i) * 2;
+      if (world) {
+        const ax = Math.abs(nx), ay = Math.abs(ny), az = Math.abs(nz);
+        if (ay >= ax && ay >= az) { uv[k2] = wx * 0.5; uv[k2 + 1] = wz * 0.5; }
+        else if (ax >= az) { uv[k2] = wz * 0.5; uv[k2 + 1] = wy * 0.5; }
+        else { uv[k2] = wx * 0.5; uv[k2 + 1] = wy * 0.5; }
+      } else { uv[k2] = U[i * 2]; uv[k2 + 1] = U[i * 2 + 1]; }
+    }
+    this.n += count;
+  }
+  toGeometry(offsetY: number): THREE.BufferGeometry | null {
+    if (!this.n) return null;
+    const pos = this.pos.slice(0, this.n * 3);
+    if (offsetY) for (let i = 1; i < pos.length; i += 3) pos[i] -= offsetY;
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    g.setAttribute('normal', new THREE.BufferAttribute(this.nor.slice(0, this.n * 3), 3));
+    g.setAttribute('uv', new THREE.BufferAttribute(this.uv.slice(0, this.n * 2), 2));
+    g.computeBoundingSphere();
+    g.computeBoundingBox();
+    return g;
+  }
+}
 
 export class Kit {
   /** Holds the merged meshes and any extra objects (lights, dynamic pieces) the builder adds. */
@@ -164,21 +233,31 @@ export class Kit {
   /** Add a geometry (consumed) at an optional local transform. */
   add(mat: MaterialId, g: THREE.BufferGeometry, t?: Xform | THREE.Matrix4, o: DrawOpts = {}): this {
     const local = t ? (t instanceof THREE.Matrix4 ? t : xformMatrix(t)) : null;
-    const world = local ? this.m.clone().multiply(local) : this.m;
+    const world = local ? _w.multiplyMatrices(this.m, local) : this.m;
     const n = normalizeGeometry(g);
-    n.applyMatrix4(world);
-    if (o.uv === 'world') worldUV(n);
+    const P = n.attributes.position.array as Float32Array;
+    this.bucket(mat, o).push(P, n.attributes.normal.array as Float32Array, n.attributes.uv.array as Float32Array, P.length / 3, world, o.uv === 'world');
+    n.dispose();
+    return this;
+  }
+
+  private bucket(mat: MaterialId, o: DrawOpts): Bucket {
     const cast = o.cast ?? true, receive = o.receive ?? true;
     const key = `${mat}|${o.variant ?? ''}|${cast ? 1 : 0}${receive ? 1 : 0}`;
     let b = this.buckets.get(key);
-    if (!b) this.buckets.set(key, (b = { mat, variant: o.variant, cast, receive, geoms: [] }));
-    b.geoms.push(n);
-    return this;
+    if (!b) this.buckets.set(key, (b = new Bucket(mat, o.variant, cast, receive)));
+    return b;
   }
 
   /** Box centred at (cx,cy,cz) with size (sx,sy,sz), optional rotation and collider. */
   box(mat: MaterialId, cx: number, cy: number, cz: number, sx: number, sy: number, sz: number, o: BoxOpts = {}): this {
-    if (!o.noVis) this.add(mat, new THREE.BoxGeometry(sx, sy, sz), { x: cx, y: cy, z: cz, rx: o.rx, ry: o.ry, rz: o.rz }, o);
+    if (!o.noVis) {
+      _e.set(o.rx ?? 0, o.ry ?? 0, o.rz ?? 0, 'YXZ');
+      _q.setFromEuler(_e);
+      _l.compose(_p.set(cx, cy, cz), _q, _s.set(sx, sy, sz));
+      const T = boxTemplate();
+      this.bucket(mat, o).push(T.pos, T.nor, T.uv, 36, _w.multiplyMatrices(this.m, _l), o.uv === 'world');
+    }
     if (o.col) this.solidC(cx, cy, cz, sx, sy, sz, [o.rx ?? 0, o.ry ?? 0, o.rz ?? 0], o.col === true ? 'stone' : o.col);
     return this;
   }
@@ -249,15 +328,14 @@ export class Kit {
   /** Merge buckets into meshes, attach to `parent`, return the group. */
   finish(parent: THREE.Object3D): THREE.Group {
     for (const b of this.buckets.values()) {
-      const merged = concat(b.geoms);
+      const merged = b.toGeometry(this.originY);
       if (!merged) continue;
       const mat = b.variant !== undefined ? getMaterialVariant(b.mat, b.variant) : getMaterial(b.mat);
-      if (this.originY !== 0) { merged.translate(0, -this.originY, 0); merged.computeBoundingSphere(); merged.computeBoundingBox(); }
       const mesh = new THREE.Mesh(merged, mat);
-      mesh.position.y = this.originY;
       mesh.name = `${this.name}:${b.mat}${b.variant !== undefined ? '#' + b.variant : ''}`;
       mesh.castShadow = b.cast;
       mesh.receiveShadow = b.receive;
+      mesh.position.y = this.originY;
       mesh.updateMatrix();
       mesh.matrixAutoUpdate = false;
       this.triangles += merged.attributes.position.count / 3;
@@ -267,29 +345,6 @@ export class Kit {
     parent.add(this.group);
     return this.group;
   }
-}
-
-/** Concatenate normalised non-indexed geometries (position/normal/uv). */
-function concat(list: THREE.BufferGeometry[]): THREE.BufferGeometry | null {
-  if (!list.length) return null;
-  let count = 0;
-  for (const g of list) count += g.attributes.position.count;
-  const pos = new Float32Array(count * 3), nor = new Float32Array(count * 3), uv = new Float32Array(count * 2);
-  let o = 0;
-  for (const g of list) {
-    pos.set(g.attributes.position.array as Float32Array, o * 3);
-    nor.set(g.attributes.normal.array as Float32Array, o * 3);
-    uv.set(g.attributes.uv.array as Float32Array, o * 2);
-    o += g.attributes.position.count;
-    g.dispose();
-  }
-  const out = new THREE.BufferGeometry();
-  out.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  out.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
-  out.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
-  out.computeBoundingSphere();
-  out.computeBoundingBox();
-  return out;
 }
 
 /** Box-project UVs from world position by dominant normal axis (0.5 UV per metre). */

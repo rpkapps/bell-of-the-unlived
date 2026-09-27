@@ -34,7 +34,7 @@ export interface AshbridgeExtras {
   /** Secret/loot spots not covered by the contract (e.g. the dead-end yard nook). */
   lootNooks: Anchor[];
   /** Build statistics. */
-  stats: { triangles: number; meshes: number; instanced: number; lights: number; buildMs: number };
+  stats: { triangles: number; meshes: number; instanced: number; lights: number; buildMs: number; perKit: Record<string, number> };
 }
 
 export function buildAshbridge(ctx: LevelContext): AshbridgeLayout & AshbridgeExtras {
@@ -62,15 +62,20 @@ export function buildAshbridge(ctx: LevelContext): AshbridgeLayout & AshbridgeEx
   // merged meshes (grime origin per area floor level)
   const originY: Record<string, number> = { watchtower: 3, undercroft: -5, courtyard: 3, hospice: 3, approach: 3, arena: 8 };
   let triangles = 0, meshes = 0;
+  const perKit: Record<string, number> = {};
   for (const k of actx.kits) {
     k.originY = originY[k.name] ?? 0;
     k.finish(root);
     triangles += k.triangles;
+    perKit[k.name] = Math.round(k.triangles);
     meshes += k.group.children.filter((c) => (c as THREE.Mesh).isMesh).length;
   }
   const inst = shared.instances.build(root);
   let instanced = 0;
-  inst.forEach((im) => { instanced += im.count; triangles += (im.geometry.index ? im.geometry.index.count : im.geometry.attributes.position.count) / 3 * im.count; });
+  inst.forEach((im, key) => {
+    const t = ((im.geometry.index ? im.geometry.index.count : im.geometry.attributes.position.count) / 3) * im.count;
+    instanced += im.count; triangles += t; perKit['inst:' + key] = Math.round(t);
+  });
   const flames = inst.get(FLAME_KEY);
   const flicker = flames ? flickerFlames(flames) : null;
 
@@ -161,6 +166,6 @@ export function buildAshbridge(ctx: LevelContext): AshbridgeLayout & AshbridgeEx
 
     root,
     lootNooks: [street.lootNook],
-    stats: { triangles: Math.round(triangles), meshes, instanced, lights: shared.lights.length, buildMs },
+    stats: { triangles: Math.round(triangles), meshes, instanced, lights: shared.lights.length, buildMs, perKit },
   };
 }

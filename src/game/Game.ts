@@ -225,7 +225,7 @@ export class Game implements Services {
     const blocked = this.mode !== 'play' || !!ui?.blocking;
     // lock-on
     if (!blocked) {
-      if (inp.pressed('lockOn')) this.cam.toggleLock(this.player, this.enemies.filter((e) => !e.def.passive));
+      if (inp.pressed('lockOn')) this.cam.toggleLock(this.player, this.enemies);
       if (inp.pressed('pause')) this.openPause();
       else if (inp.pressed('journal') && ui) { this.mode = 'menu'; inp.releaseAll(); inp.setPointerLock(false); this.deps.audio?.setMenuMuffle(true); ui.showJournal(); }
     }

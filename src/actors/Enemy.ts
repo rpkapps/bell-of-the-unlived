@@ -124,6 +124,14 @@ export class Enemy extends Actor implements Combatant {
   think(dt: number, player: Actor) {
     this.guarding = false;
     if (this.dead) { this.wish.set(0, 0, 0); return; }
+    // Killed by a critical: stay down once the body hits the ground (no get-up).
+    const vm = this.move;
+    if (vm && vm.def.id.startsWith('victim_') && this.hp <= 0 && vm.t > 1.7) {
+      this.anim.clipSpeed = 0;
+      this.finishDeath(false);
+      this.wish.set(0, 0, 0);
+      return;
+    }
     if (this.def.passive) {
       this.wish.set(0, 0, 0);
       this.aware = false; this.target = null;
@@ -232,6 +240,7 @@ export class Enemy extends Actor implements Combatant {
   becomeAware(player: Actor) {
     if (this.aware) return;
     this.aware = true; this.target = player; this.ai = 'engage';
+    if (this.move?.def.id === 'sentry_idle_loop') this.endMove();
     this.attackCd = 0.4 + this.rng.next() * 0.5;
     this.svc.sfx('enemy_alert', { pos: this.pos });
   }

@@ -64,9 +64,9 @@ registerMoves({
 // ---------------------------------------------------------------- definitions
 
 export const EXPERIMENT9: EnemyDef = {
-  kind: 'experiment9', name: 'Aberrant Experiment No. 9', look: 'experiment9', props: { height: 1.55, bulk: 1.55, shoulder: 1.25 }, radius: 0.8, height: 2.8,
+  kind: 'experiment9', name: 'Aberrant Experiment No. 9', look: 'experiment9', props: { height: 1.55, bulk: 1.7, shoulder: 1.35 }, radius: 0.85, height: 2.8,
   hp: 2400, poise: 70, postureMax: 600, postureRegen: 36, defense: 70, absorb: { physical: 0.1, magic: 0.15, fire: -0.1 }, hours: 3600, walk: 1.4, run: 4.6, sight: 30,
-  stance: { handR: null, handL: null, chest: [26, 10, 6], spine: [10, 4, 0], head: [-20, -10, 10], hipsPos: [0, -0.12, 0] },
+  stance: { handR: null, handL: null, chest: [38, 12, 8], spine: [16, 4, 0], neck: [-18, 0, 0], head: [-26, -12, 12], hipsPos: [0, -0.2, 0] },
   attacks: [
     { move: 'x9_sweep', range: [0, 4.0], weight: 4 },
     { move: 'x9_leap', range: [4, 12], angle: 0.5, weight: 2.5, cooldown: 6 },

@@ -202,8 +202,12 @@ export class AcademyRegion extends RegionBase {
 
   override resetEnemies() {
     super.resetEnemies();
-    for (const { e } of this.enemyList) { e.def = ENEMY_DEFS[e.def.kind] ?? e.def; this.echoOf.delete(e); }
     this.choirs.clear();
+    for (const { e } of this.enemyList) {
+      e.def = ENEMY_DEFS[e.def.kind] ?? e.def;
+      this.echoOf.delete(e);
+      if (e.def.kind === 'choirLeader') this.choirs.set(e, { lastHp: e.hp, until: 0 });
+    }
     this.clearFx();
     this.resetFloor();
   }
@@ -363,7 +367,7 @@ export class AcademyRegion extends RegionBase {
       const hit = this.game.world.raycast(b.origin, b.dir, 30);
       b.len = hit ? hit.distance : 30;
       let w = 0.05, op = 0.5;
-      if (b.state === 'aim') { const k = Math.min(1, b.t / 1.27); w = 0.9 - 0.8 * k; op = 0.18 + 0.3 * k + 0.12 * Math.sin(b.t * (8 + k * 14)); }
+      if (b.state === 'aim') { const k = Math.min(1, b.t / 1.27); w = 0.6 - 0.52 * k; op = 0.14 + 0.34 * k + 0.12 * Math.sin(b.t * (8 + k * 14)); }
       else if (b.state === 'lock') { w = 0.07; op = 0.75 + 0.25 * Math.sin(b.t * 60); }
       else if (b.state === 'fire') { w = 0.55 - b.t * 0.6; op = 1; if (b.t > 0.2) { b.state = 'fade'; b.t = 0; } }
       else { w = Math.max(0.02, 0.3 - b.t); op = Math.max(0, 0.6 - b.t * 2); }
@@ -775,7 +779,7 @@ export class AcademyRegion extends RegionBase {
     for (const { e } of this.enemyList) {
       if (e.dead) continue;
       const d = Math.hypot(e.pos.x - p.x, e.pos.z - p.z), dy = Math.abs(e.pos.y - p.y);
-      e.object.visible = e.aware || (d < 42 && dy < 14) || d < 16;
+      e.object.visible = e.aware || (d < 34 && dy < 12) || d < 14;
     }
   }
 

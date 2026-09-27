@@ -20,9 +20,23 @@ export interface AreaCtx {
   kits: Kit[];
 }
 
+/**
+ * Area builders ask for a kit by area name; areas on the same storey share one kit so the whole
+ * campus merges into a handful of meshes per material (draw calls), while each storey keeps its
+ * own grime origin.
+ */
+const KIT_GROUP: Record<string, [string, number]> = {
+  causeway: ['low', 2], landing: ['low', 2], tidal: ['low', 2], tunnel: ['low', 2], liftwell: ['low', 2], theatre: ['low', 2],
+  terrace: ['mid', 18], hall: ['mid', 18], labs: ['mid', 18],
+  yard: ['high', 24], spire: ['high', 24],
+  observatory: ['summit', 44], tower: ['summit', 44],
+};
 export function newKit(ctx: AreaCtx, name: string, seed: number, originY = 0): Kit {
-  const k = new Kit(name, ctx.shared, seed);
-  k.originY = originY;
+  const [group, oy] = KIT_GROUP[name] ?? [name, originY];
+  const existing = ctx.kits.find((k) => k.name === group);
+  if (existing) return existing;
+  const k = new Kit(group, ctx.shared, seed);
+  k.originY = oy;
   ctx.kits.push(k);
   return k;
 }

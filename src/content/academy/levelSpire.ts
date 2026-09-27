@@ -236,7 +236,7 @@ export function buildSpire(ctx: AreaCtx): SpireBuild {
   const fg = fogGate(ctx, 'orrow', AC.x, OY, AC.z + R + 0.4, YAW_N, 3.4, 5.2);
   anchors.orrowEntry = anchor(AC.x, OY, AC.z + R + 3.2, YAW_N);
   anchors.orrowSpawn = anchor(AC.x, OY, AC.z - 5, YAW_S);
-  o.light(0xffe0b0, 8, 26, AC.x, OY + 6, AC.z, 0);
+  o.light(0xffe0b0, 4.5, 24, AC.x, OY + 7, AC.z, 0);
 
   // ---------------------------------------------------------------- the lens floor
   const floorObj = buildLensFloor(ctx, AC, R);
@@ -252,7 +252,7 @@ export function buildSpire(ctx: AreaCtx): SpireBuild {
   tw.bmm('stone_wall', T.x0 - 0.3, T.top - 4, T.z0 - 0.3, T.x1 + 0.3, T.top - 2.6, T.z1 + 0.3);
   tw.add('roof_slate', cone(tW * 0.78, 16, 4), { x: tx, y: T.top - 2.6, z: tz, ry: Math.PI / 4 });
   for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]] as const) towerRound(tw, 'stone_wall', tx + sx * (tW / 2), T.top - 12, tz + sz * (tW / 2), 1.1, 10, 4.5, false, false);
-  tw.bmm('timber_dark', T.x0 + 0.5, T.bellY + 0.8, tz - 0.5, T.x1 - 0.5, T.bellY + 1.6, tz + 0.5);
+  tw.bmm('timber_dark', T.x0 + 0.5, T.bellY + 4.6, tz - 0.5, T.x1 - 0.5, T.bellY + 5.4, tz + 0.5);
   academyMark(tw, tx, T.bellY - 14, T.z1 + 0.1, YAW_S, 2.2);
   for (let y = 50; y < T.bellY - 12; y += 12) tw.box('window_warm', tx, y, T.z1 + 0.02, 1.2, 3, 0.05, { cast: false });
   const bell = new THREE.Group();
@@ -275,12 +275,12 @@ export function buildSpire(ctx: AreaCtx): SpireBuild {
   }
   const cracks = new THREE.Mesh(mergeSimple(crackParts), getMaterial('unlived_crack'));
   bell.add(cracks);
-  bell.position.set(tx, T.bellY + 0.8, tz);
+  bell.position.set(tx, T.bellY + 4.6, tz);
   ctx.dynamicRoot.add(bell);
   const bellLight = tw.light(0xffc070, 16, 40, tx, T.bellY - 5, tz, 0);
 
   // the anchor: a great lens-crystal in a bronze cradle, chained up to the bell
-  const anchorLens = anchorPiece(ctx, o, new THREE.Vector3(AC.x, OY, AC.z - R + 1.4), new THREE.Vector3(tx, T.bellY - 7.2, tz), cracks, bellLight);
+  const anchorLens = anchorPiece(ctx, o, new THREE.Vector3(AC.x, OY, AC.z - R + 1.4), new THREE.Vector3(tx, T.bellY - 3.4, tz), cracks, bellLight);
 
   triggers.observatory = box3(AC.x - R, OY - 1, AC.z - R, AC.x + R, OY + 8, AC.z + R);
   const tollPosts = [{
@@ -308,7 +308,7 @@ function buildLensFloor(ctx: AreaCtx, C: THREE.Vector3, R: number): ObservatoryF
       const span = (Math.PI * 2) / rg.n;
       const a0 = j * span + (ri === 2 ? span / 2 : 0), a1 = a0 + span;
       const geo = rg.r0 < 0.01 ? new THREE.CircleGeometry(rg.r1 - 0.06, 24).rotateX(-Math.PI / 2) : ringSector(rg.r0 + 0.05, rg.r1 - 0.05, a0 + 0.012, a1 - 0.012, 0.06, 8).translate(0, 0.03, 0);
-      const mat = new THREE.MeshStandardMaterial({ color: 0x8c948f, metalness: 0.35, roughness: 0.18, emissive: new THREE.Color(0xffd79a), emissiveIntensity: 0.05, transparent: false });
+      const mat = new THREE.MeshStandardMaterial({ color: 0x4e5654, metalness: 0.2, roughness: 0.32, emissive: new THREE.Color(0xffd79a), emissiveIntensity: 0.05, envMapIntensity: 0.45, transparent: false });
       mat.name = 'academy:lensPlate';
       const mesh = new THREE.Mesh(geo, mat);
       mesh.position.y = 0.012;

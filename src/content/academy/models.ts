@@ -209,8 +209,8 @@ function suspendedGolem(b: CharBuilder, seed: number) {
 function experiment9(b: CharBuilder, seed: number) {
   const sex = 'm';
   void seed;
-  const WAX = 'wax|t=c8b4a0';
-  b.cracks = 1.3;
+  const WAX = 'wax|t=a8b098';
+  b.cracks = 1.6;
   addNeck(b, sex, WAX, 0.02);
   addTrunk(b, sex, WAX, { y0: -0.16, y1: 0.56, inflate: 0.035, radial: (th, t) => 1 + 0.08 * Math.sin(th * 3 + t * 6) + 0.05 * Math.sin(th * 7), crack: 1.2 });
   addShoulders(b, sex, WAX, 0.04);
@@ -231,6 +231,11 @@ function experiment9(b: CharBuilder, seed: number) {
     b.add('chest', xf(torus(r, 0.012, 4, 12), { p: [x, y + h / 2, z], r: [Math.PI / 2 + 0.4, 0, 0.2] }), BRONZE);
   }
   drapeChain(b, 'chest', [[-0.16, 0.3, -0.1], [-0.25, 0.0, -0.1], [-0.2, -0.35, -0.12]], M.iron, 0.05);
+  // glass growths breaking through the shoulders and forearm, and an iron frame bolted to the ribs
+  for (const [bone, p, r, s] of [['shoulderR', [-0.06, 0.02, 0.02], 0.5, 1], ['shoulderR', [-0.02, 0.06, -0.04], -0.3, 0.8], ['shoulderL', [0.06, 0.04, 0.0], -0.5, 0.9], ['forearmR', [0.0, -0.12, 0.04], 0.2, 0.8], ['chest', [0.1, 0.2, 0.12], 0.4, 0.7]] as const) {
+    b.add(bone, xf(loft([{ y: 0.14 * s, rx: 0.004 }, { y: 0.05 * s, rx: 0.03 * s }, { y: 0, rx: 0.035 * s }], { segs: 6, capBottom: true }), { p: [p[0], p[1], p[2]], r: [r, 0.3, r * 0.6] }), 'glass|e=b8f0c8|ei=1.3');
+  }
+  for (const y of [0.2, 0.32, 0.44]) b.add('hips', xf(torus(0.2, 0.012, 4, 20, Math.PI * 1.2), { p: [0, y, 0.02], r: [Math.PI / 2, 0, -0.3] }), 'iron_rusted', { skin: trunkSkin });
 }
 
 /** Keeper Ilsabet Orrow. phase 1: robed keeper with staff; 2: robe torn, glass blade; 3: preserved (cracks, lens eye burning). */

@@ -9,7 +9,7 @@ import type { Synth } from './types';
  * Stick-slip creak (hinges, boards): a pulse train whose rate jitters, through resonances.
  * `res` are resonant body frequencies; heavier/iron = higher, sharper resonances.
  */
-export function creak(v: Voice, o: { dur: number; rate0: number; rate1: number; res: readonly number[]; peak: number; at?: number; q?: number }): void {
+export function creak(v: Voice, o: { dur: number; rate0: number; rate1: number; res: readonly number[]; peak: number; at?: number; q?: number; dest?: AudioNode }): void {
   const at = o.at ?? v.t;
   const src = v.osc('sawtooth', o.rate0, at, at + o.dur + 0.05);
   // Jitter the slip rate in small random steps.
@@ -29,7 +29,7 @@ export function creak(v: Voice, o: { dur: number; rate0: number; rate1: number; 
     const bp = v.filter('bandpass', r * vary(1, 0.05), o.q ?? 10);
     src.connect(bp).connect(sum);
   }
-  sum.connect(g).connect(v.out);
+  sum.connect(g).connect(o.dest ?? v.out);
   v.hold(at + o.dur + 0.05);
 }
 

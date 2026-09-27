@@ -9,6 +9,8 @@
  *   footsteps, armour, cloth                                             ≈ -30…-37 dB
  *   UI                                                                   ≈ -30…-36 dB (levelup -22)
  * Music states sit at ≈ -24…-26 dB integrated RMS (boss peaks ≈ -5), ambience beds ≈ -29…-35 dB.
+ * Phase 2: region themes ≈ -27…-28.5 dB (sparse), procedural bosses -24.5 / -24 / -23.5 by phase,
+ * region beds ≈ -29.5…-33 dB (see MusicPlayer.ts / ambience.ts LOOP_DEFS).
  */
 import type { CueId } from './contract';
 import type { BusId } from './engine/Mixer';
@@ -18,6 +20,7 @@ import * as M from './synth/magic';
 import * as U from './synth/ui';
 import * as V from './synth/voices';
 import * as W from './synth/world';
+import * as X from './synth/extra';
 import type { Synth } from './synth/types';
 
 export interface CueDef {
@@ -133,4 +136,28 @@ export const CUE_DEFS: Record<CueId, CueDef> = {
   journal_update: c(W.journalUpdate, 'ui', 0.764, 0.2, 1),
   masonry_touch: c(W.masonryTouch, 'sfx', 0.681, 0.2, 1),
   forge_hammer: c(W.forgeHammer, 'sfx', 0.42, 0.3, 1, { ref: 3 }),
+};
+
+// ---- Phase 2 extra cues (not in the contract's CueId list: played via Audio.playExtra) ----
+// Levels (stRms / peak): cannon -11.5 / -3.3, glass shatter -18 / -4, choir swell -17 / -7,
+// clockwork -20 / -9.5, hound bark -18 / -10.
+
+export const EXTRA_CUES = ['cannon_fire', 'glass_shatter', 'choir_swell', 'clockwork', 'hound_bark'] as const;
+export type ExtraCueId = (typeof EXTRA_CUES)[number];
+
+export const EXTRA_CUE_DEFS: Record<ExtraCueId, CueDef> = {
+  cannon_fire: c(X.cannonFire, 'combat', 0.42, 0.5, 3, { ref: 30, rolloff: 0.7, duck: DUCK_BIG }),
+  glass_shatter: c(X.glassShatter, 'sfx', 1.0, 0.3, 2, { ref: 4 }),
+  choir_swell: c(X.choirSwell, 'voice', 1.44, 0.5, 3, { ref: 8, rolloff: 0.9 }),
+  clockwork: c(X.clockwork, 'sfx', 0.56, 0.2, 2, { ref: 4 }),
+  hound_bark: c(X.houndBark, 'voice', 0.48, 0.2, 3, { ref: 5 }),
+};
+
+/** Captions for the extra cues that carry gameplay meaning (direction appended as usual). */
+export const EXTRA_CAPTIONS: Partial<Record<ExtraCueId, string>> = {
+  cannon_fire: 'Cannon fires',
+  glass_shatter: 'Glass shatters',
+  choir_swell: 'Choir swells',
+  clockwork: 'Clockwork whirs',
+  hound_bark: 'Hound barks',
 };

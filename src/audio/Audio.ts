@@ -17,7 +17,7 @@ import type * as THREE from 'three';
 import {
   CUE_CAPTIONS, type AmbienceId, type CueId, type IAudio, type LoopCueId, type LoopHandle, type MusicState, type PlayOpts,
 } from './contract';
-import { CUE_DEFS } from './cues';
+import { CUE_DEFS, EXTRA_CAPTIONS, EXTRA_CUE_DEFS, type CueDef, type ExtraCueId } from './cues';
 import { Mixer } from './engine/Mixer';
 import { NoiseBank } from './engine/noise';
 import { inverseGain, ListenerState, type CaptionDir, type Vec3 } from './engine/spatial';
@@ -25,6 +25,9 @@ import { rand, Voice } from './engine/Voice';
 import { MusicPlayer } from './music/MusicPlayer';
 import { createLoop, LOOP_DEFS, type AnyLoopId, type LoopSynth } from './synth/ambience';
 import type { SynthParams } from './synth/types';
+
+/** Extra (non-contract) one-shot cues: `audio.playExtra('cannon_fire', { pos })`. */
+export { EXTRA_CUES, type ExtraCueId } from './cues';
 
 export interface AudioOptions {
   /** Use this context instead of creating an AudioContext (e.g. OfflineAudioContext for tests). */
@@ -43,13 +46,26 @@ type Volumes = Parameters<IAudio['setVolumes']>[0];
 type CaptionFn = (text: string, dir: CaptionDir | null) => void;
 
 /** Ambience beds: which loops (and at what level) make up each zone. */
-const BEDS: Partial<Record<AmbienceId, ReadonlyArray<readonly [AnyLoopId, number]>>> = {
+const BEDS: Record<AmbienceId, ReadonlyArray<readonly [AnyLoopId, number]>> = {
   outdoor: [['amb_wind', 0.8], ['embers_far', 0.5], ['far_tolls', 1]],
   interior: [['amb_interior', 1]],
   undercroft: [['amb_undercroft', 1], ['amb_wind', 0.12]],
   hospice: [['amb_hospice', 1]],
   arena: [['amb_wind', 1], ['fog_hum', 0.25], ['far_tolls', 0.6]],
   battlefield: [['amb_battlefield', 1], ['amb_wind', 0.6]],
+  // Phase 2 regions
+  /** Siegeholm: snow wind with ice hiss, creaking siege timber, far impacts, the odd far toll. */
+  snow: [['snow_wind', 1], ['siege_timber', 1], ['far_tolls', 0.5]],
+  /** Academy sea cliffs: surf, gull-like cries, wind. */
+  sea: [['surf', 1], ['gulls', 1], ['amb_wind', 0.45]],
+  /** Cathedral: vast stone room tone, distant chant. */
+  nave: [['nave_tone', 1], ['chant_far', 1]],
+  /** Treasury undervaults: drips on metal, singing steel, distant machinery. */
+  vault: [['vault_tone', 1], ['machinery', 1]],
+  /** Garden Court: autumn leaves, fountain, sparse birds, far court music, a breath of wind. */
+  garden: [['leaves', 1], ['fountain', 1], ['birds', 1], ['court_far', 1], ['amb_wind', 0.4]],
+  /** Belfry: the Great Bell's residual hum, the yoke creaking, wind at height. */
+  belfry: [['bell_hum', 1], ['high_wind', 1]],
   none: [],
 };
 
@@ -206,7 +222,7 @@ export class Audio implements IAudio, LoopHost {
   private readonly listener = new ListenerState();
   private readonly voices: Voice[] = [];
   private readonly maxVoices: number;
-  private readonly lastPlay = new Map<CueId, number>();
+  private readonly lastPlay = new Map<string, number>();
   private readonly captionFns: CaptionFn[] = [];
   private readonly lastCaption = new Map<string, number>();
   private readonly loops = new Set<LoopHandleImpl>();
@@ -368,7 +384,19 @@ export class Audio implements IAudio, LoopHost {
 
   play(cue: CueId, opts: PlayOpts = {}): void {
     const def = CUE_DEFS[cue];
-    if (!def) return;
+    if (def) this.playDef(cue, def, CUE_CAPTIONS[cue], opts);
+  }
+
+  /**
+   * Phase 2 cues outside the contract's CueId list ('cannon_fire', 'glass_shatter', 'choir_swell',
+   * 'clockwork', 'hound_bark'): same routing, 3D, captions and voice stealing as `play()`.
+   */
+  playExtra(cue: ExtraCueId, opts: PlayOpts = {}): void {
+    const def = EXTRA_CUE_DEFS[cue];
+    if (def) this.playDef(cue, def, EXTRA_CAPTIONS[cue], opts);
+  }
+
+  private playDef(cue: string, def: CueDef, captionText: string | undefined, opts: PlayOpts): void {
     const pos = opts.pos ?? null;
     const params: SynthParams = {
       rate: Math.max(0.25, Math.min(4, opts.rate ?? 1)),
@@ -391,7 +419,7 @@ export class Audio implements IAudio, LoopHost {
 
     const live = this.live;
     if (!live || !this.ready) {
-      this.caption(cue, opts, dir);
+      this.caption(cue, captionText, opts, dir);
       return;
     }
     const { ctx, bank, mixer } = live;
@@ -401,7 +429,7 @@ export class Audio implements IAudio, LoopHost {
     this.lastPlay.set(cue, now);
 
     if (!this.makeRoom(def.priority)) return;
-    this.caption(cue, opts, dir);
+    this.caption(cue, captionText, opts, dir);
 
     const v = new Voice(ctx, bank, now + 0.004);
     v.priority = def.priority;
@@ -519,8 +547,7 @@ export class Audio implements IAudio, LoopHost {
    * Emit a caption for captioned cues. `text` is the plain caption ("Enemy alerted"); the
    * direction is passed separately (the UI formats it, e.g. "[Enemy alerted — left]").
    */
-  private caption(cue: CueId, opts: PlayOpts, dir: CaptionDir | null): void {
-    const text = CUE_CAPTIONS[cue];
+  private caption(cue: string, text: string | undefined, opts: PlayOpts, dir: CaptionDir | null): void {
     if (!text || opts.silentCaption || this.captionFns.length === 0) return;
     const key = `${cue}|${dir ?? ''}`;
     const nowMs = performance.now();

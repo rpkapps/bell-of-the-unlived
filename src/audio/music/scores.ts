@@ -7,6 +7,9 @@
  *   D  A  Bb A  G | F  E  D
  * At the phase change it is answered by a COMPETING version a major third up in F# Phrygian
  * (F# C# D C# B | A G F#), layered against the original: two claims on the same melody.
+ *
+ * Region exploration themes live in regions.ts; procedural boss themes (`boss:<id>:<phase>`) in
+ * bosses.ts. Corvane keeps the hand-written boss1/boss2 below.
  */
 import type { MusicState } from '../contract';
 import { pick, rand } from '../engine/Voice';
@@ -15,9 +18,9 @@ import {
   type MusicOut,
 } from './instruments';
 import { mtof, nn, type Score } from './sequencer';
-
-/** [start beat within phrase, semitone offset from phrase root, length in beats]. */
-type Line = ReadonlyArray<readonly [number, number, number]>;
+import { BaseScore, notesAt, triad, type Line } from './score-base';
+import { bossScore, parseBossState } from './bosses';
+import { regionScore } from './regions';
 
 /** The Commander's leitmotif (2 bars of 4/4), relative to D. */
 const LEITMOTIF: Line = [[0, 0, 1], [1, 7, 1], [2, 8, 0.5], [2.5, 7, 0.5], [3, 5, 1], [4, 3, 1], [5, 2, 1], [6, 0, 2]];
@@ -27,37 +30,6 @@ const LEITMOTIF_ANSWER: Line = [[0, 0, 1], [1, 7, 1], [2, 8, 0.5], [2.5, 7, 0.5]
 const COMPETING: Line = [[0, 0, 1], [1, 7, 1], [2, 8, 0.5], [2.5, 7, 0.5], [3, 5, 1], [4, 3, 1], [5, 1, 1], [6, 0, 2]];
 /** Major transfiguration for the victory. */
 const LEITMOTIF_MAJOR: Line = [[0, 0, 2], [2, 7, 2], [4, 9, 1], [5, 7, 1], [6, 5, 2], [8, 4, 2], [10, 2, 2], [12, 0, 4]];
-
-/** Notes of `line` that start exactly on phrase step `s` (grid = stepsPerBeat). */
-function notesAt(line: Line, s: number, spb: number): Array<readonly [number, number]> {
-  const res: Array<readonly [number, number]> = [];
-  for (const [b, n, len] of line) if (Math.round(b * spb) === s) res.push([n, len]);
-  return res;
-}
-
-/** Triad (root, third, fifth) in MIDI from a root and quality. */
-function triad(root: number, minor: boolean): number[] {
-  return [root, root + (minor ? 3 : 4), root + 7];
-}
-
-abstract class BaseScore implements Score {
-  abstract readonly bpm: number;
-  abstract readonly stepsPerBeat: number;
-  readonly beatsPerBar: number = 4;
-  constructor(protected readonly out: MusicOut) {}
-
-  /** Seconds per beat. */
-  protected get spb(): number { return 60 / this.bpm; }
-  protected get stepsPerBar(): number { return this.stepsPerBeat * this.beatsPerBar; }
-  /** Seconds for n beats. */
-  protected b(n: number): number { return n * this.spb; }
-
-  step(i: number, t: number): void {
-    const bar = Math.floor(i / this.stepsPerBar);
-    this.onStep(bar, i % this.stepsPerBar, t);
-  }
-  protected abstract onStep(bar: number, s: number, t: number): void;
-}
 
 // =============================================================================================
 // TITLE — slow, sparse, dignified and sorrowful: low strings, pad, choir, a bell motif.
@@ -484,11 +456,21 @@ export function createScore(state: Exclude<MusicState, 'none'>, out: MusicOut, f
     case 'intro': return new IntroScore(out);
     case 'ashbridge': return new AshbridgeScore(out);
     case 'hospice': return new HospiceScore(out);
-    case 'boss1': return new Boss1Score(out);
-    case 'boss2': return new Boss2Score(out, from === 'boss1');
     case 'victory': return new VictoryScore(out);
     case 'battlefield': return new BattlefieldScore(out);
-    // Phase 2 states fall back to existing scores until their own are written.
-    default: return state.startsWith('boss:') ? (state.endsWith(':1') ? new Boss1Score(out) : new Boss2Score(out, true)) : new AshbridgeScore(out);
+    case 'army': case 'academy': case 'cathedral': case 'treasury': case 'household': case 'belfry': case 'ending':
+      return regionScore(state, out);
+    default: {
+      const boss = parseBossState(state);
+      if (!boss) return new AshbridgeScore(out);
+      // Corvane keeps his hand-written score (boss1/boss2 = boss:corvane:1/2).
+      if (boss.id === 'corvane') {
+        if (boss.phase <= 1) return new Boss1Score(out);
+        const prev = parseBossState(from);
+        return new Boss2Score(out, prev?.id === 'corvane' && prev.phase < boss.phase);
+      }
+      return bossScore(boss.id, boss.phase, out, from);
+    }
   }
 }
+

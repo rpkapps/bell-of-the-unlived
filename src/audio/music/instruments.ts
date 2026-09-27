@@ -2,17 +2,20 @@
  * Music instruments. Each call schedules ONE note/chord at an absolute AudioContext time as its
  * own self-cleaning Voice, routed to a score's dry and wet (music reverb) inputs.
  *
- * Core palette (used now): pad, choir, strings, brass, timpani, taiko, snare, bell, drone, swell.
- * Institution palette (for later regions — ready to use):
- *   Army      → taiko / snare / brass (martial percussion)
- *   Academy   → glass() (bowed glass, unresolved tones)
- *   Cathedral → choir() with several vowel layers
- *   Treasury  → mechanism() (clockwork ticks, ratchets in rhythm)
- *   Household → pluck() (distant court lute/harp) through a far lowpass
+ * Core palette: pad, choir, strings, brass, timpani, taiko, snare, bell, drone, swell.
+ * Institution palette:
+ *   Army      → taiko / snare / brass through distant() (war drums and horns across a valley)
+ *   Academy   → glass() (bowed glass), harmonica() (glass harmonica), glassPluck(), wash() (sea)
+ *   Cathedral → choir() canons, organ(), processional taiko
+ *   Treasury  → mechanism() (clockwork), dulcimer() (hammered metal strings), low brass
+ *   Household → harpsichord() / pluck() through a far lowpass (distant court music), strings
+ *   Belfry    → greatBell(), subDrone(), low choir
+ *   Ending    → pianoBell() (piano-like bell tones), strings
  */
 import type { NoiseBank } from '../engine/noise';
-import { perc, rand, sweep, Voice } from '../engine/Voice';
+import { perc, rand, sweep, swell, Voice } from '../engine/Voice';
 import { bell, SMALL_PARTIALS, CHURCH_PARTIALS } from '../synth/bells';
+import { metal } from '../synth/impacts';
 import { VOWELS, type Vowel } from '../synth/voices';
 import { GLASS } from '../synth/magic';
 
@@ -297,9 +300,9 @@ export function glass(out: MusicOut, t: number, f: number, dur: number, vel: num
 /** Treasury: clockwork — a tick with a tiny metallic ring (sequence it in strict rhythm). */
 export function mechanism(out: MusicOut, t: number, vel: number, pitch = 1): void {
   note(out, t, 0.2, (v) => {
-    v.burst({ type: 'bandpass', freq: 3500 * pitch, q: 5, peak: vel * 0.3, d: 0.02 });
-    v.tone({ freq: 1900 * pitch, peak: vel * 0.05, d: 0.06 });
-    v.tone({ freq: 2870 * pitch, peak: vel * 0.03, d: 0.04 });
+    v.burst({ type: 'bandpass', freq: 3500 * pitch, q: 5, peak: vel * 0.9, d: 0.02 });
+    v.tone({ freq: 1900 * pitch, peak: vel * 0.15, d: 0.06 });
+    v.tone({ freq: 2870 * pitch, peak: vel * 0.09, d: 0.04 });
   });
 }
 
@@ -323,4 +326,280 @@ export function pluck(out: MusicOut, t: number, f: number, vel: number, o: { far
     }
     tail.connect(v.out);
   });
+}
+
+// ---- Phase 2 instruments ---------------------------------------------------------------------
+
+/** A far-away MusicOut: `lp` is its (automatable) air-absorption filter; `fade()` scales it. */
+export interface FarOut extends MusicOut {
+  readonly lp: BiquadFilterNode;
+  fade(level: number, t: number, tc: number): void;
+}
+
+/**
+ * A far-away sub-output: one shared lowpass (air absorption) on the dry path and a boosted,
+ * slightly darker reverb send — everything played through it sounds across a valley.
+ * The nodes are persistent for the score's life (a handful per score, not per note).
+ */
+export function distant(out: MusicOut, cutoff: number, wetMul = 1.6, dryMul = 1): FarOut {
+  const ctx = out.ctx;
+  const g = (v: number) => { const n = ctx.createGain(); n.gain.value = v; return n; };
+  const lp = ctx.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.value = cutoff;
+  lp.Q.value = 0.5;
+  const dry = g(dryMul);
+  // Far sounds reach the reverb through their dry path too (they have little direct sound).
+  const bleed = g(wetMul * 0.5);
+  lp.connect(dry).connect(out.dry);
+  lp.connect(bleed).connect(out.wet);
+  const wlp = ctx.createBiquadFilter();
+  wlp.type = 'lowpass';
+  wlp.frequency.value = cutoff * 1.4;
+  wlp.Q.value = 0.5;
+  const wet = g(wetMul);
+  wlp.connect(wet).connect(out.wet);
+  return {
+    ctx, bank: out.bank, dry: lp, wet: wlp, lp,
+    fade(level: number, t: number, tc: number) {
+      dry.gain.setTargetAtTime(dryMul * level, t, tc);
+      bleed.gain.setTargetAtTime(wetMul * 0.5 * level, t, tc);
+      wet.gain.setTargetAtTime(wetMul * level, t, tc);
+    },
+  };
+}
+
+/**
+ * Glass harmonica: near-pure sine with faint 2nd/3rd partials, a rubbed-rim tremolo and a soft
+ * attack. `bend` (cents) lets the tone sag at its release — an unresolved, suspended sound.
+ */
+export function harmonica(out: MusicOut, t: number, f: number, dur: number, vel: number,
+  o: { wet?: number; pan?: number; bend?: number; attack?: number; release?: number } = {}): void {
+  note(out, t, o.wet ?? 1, (v) => {
+    const g = v.gain(0);
+    const end = ar(g.gain, t, o.attack ?? 0.14, vel * 0.15, dur, o.release ?? 2.2);
+    v.hold(end);
+    const trem = v.gain(1);
+    v.lfo(rand(4.2, 5.6), 0.13, trem.gain, 'sine', t);
+    for (const [r, a] of [[1, 1], [2.003, 0.1], [3.01, 0.035]] as const) {
+      const osc = v.osc('sine', f * r, t);
+      const pg = v.gain(a);
+      if (o.bend) {
+        osc.detune.setValueAtTime(0, t + dur);
+        osc.detune.linearRampToValueAtTime(-o.bend, t + dur + (o.release ?? 2.2));
+      }
+      osc.connect(pg).connect(trem);
+    }
+    trem.connect(g).connect(v.out);
+  }, o.pan ?? 0);
+}
+
+/** Short struck glass (glass marimba / celesta-like): GLASS modes, quick decay. */
+export function glassPluck(out: MusicOut, t: number, f: number, vel: number,
+  o: { wet?: number; pan?: number; decay?: number; lite?: boolean } = {}): void {
+  note(out, t, o.wet ?? 0.8, (v) => {
+    // `lite` (fast ostinati): three modes, no beating twins — less than half the oscillators.
+    metal(v, { f, peak: vel * 0.09, decay: o.decay ?? 1.1, at: t, ratios: o.lite ? GLASS.slice(0, 3) : GLASS, bright: 0.35, beat: o.lite ? 0 : 1.8 });
+  }, o.pan ?? 0);
+}
+
+/**
+ * Organ-like pad: additive "stops" (8', 4', 2 2/3', 2') shared across the chord, split L/R with a
+ * slight chorus, slow swell-box attack. `pedal` adds a 16' an octave below the lowest note.
+ */
+export function organ(out: MusicOut, t: number, freqs: readonly number[], dur: number, vel: number,
+  o: { attack?: number; release?: number; wet?: number; bright?: number; pedal?: boolean } = {}): void {
+  note(out, t, o.wet ?? 0.9, (v) => {
+    const g = v.gain(0);
+    v.hold(ar(g.gain, t, o.attack ?? 0.8, vel * 0.075 / Math.sqrt(freqs.length), dur, o.release ?? 1.6));
+    const lp = v.filter('lowpass', 2600 * (o.bright ?? 1), 0.5);
+    const L = v.pan(-0.35);
+    const R = v.pan(0.35);
+    const stops: Array<[number, number, OscillatorType, StereoPannerNode]> = [
+      [1, 1, 'sine', L], [2, 0.5, 'sine', R], [3, 0.16, 'triangle', L], [4, 0.14, 'sine', R],
+    ];
+    const bus = stops.map(([, a, , p]) => { const sg = v.gain(a); sg.connect(p); return sg; });
+    for (const f of freqs) {
+      stops.forEach(([r, , type], i) => {
+        const osc = v.osc(type, f * r, t);
+        osc.detune.value = rand(-3, 3);
+        osc.connect(bus[i]!);
+      });
+    }
+    if (o.pedal && freqs.length) {
+      const pg = v.gain(0.7);
+      v.osc('sine', Math.min(...freqs) / 2, t).connect(pg).connect(L);
+      pg.connect(R);
+    }
+    L.connect(lp);
+    R.connect(lp);
+    lp.connect(g).connect(v.out);
+  });
+}
+
+/**
+ * Harpsichord: bright plucked saw (8') + an octave square (4'), a closing filter, a jack click.
+ * `detune` (cents) ages the instrument (the court music decays).
+ */
+export function harpsichord(out: MusicOut, t: number, f: number, vel: number,
+  o: { wet?: number; pan?: number; detune?: number; decay?: number; four?: boolean } = {}): void {
+  note(out, t, o.wet ?? 0.5, (v) => {
+    const d = o.decay ?? Math.max(0.9, Math.min(3, 2.6 - Math.log2(f / 110) * 0.45));
+    const lp = v.filter('lowpass', Math.min(9000, f * 12), 0.6);
+    sweep(lp.frequency, t, Math.min(12000, f * 18), Math.max(400, f * 2.5), d * 0.7);
+    const hp = v.filter('highpass', f * 0.7, 0.5);
+    const g = v.gain(0);
+    v.hold(perc(g.gain, t, 0.002, vel * 0.11, d));
+    const a = v.osc('sawtooth', f, t);
+    a.detune.value = o.detune ?? 0;
+    a.connect(lp);
+    if (o.four ?? true) {
+      const b = v.osc('square', f * 2, t);
+      b.detune.value = (o.detune ?? 0) + rand(2, 6);
+      const bg = v.gain(0.22);
+      b.connect(bg).connect(lp);
+    }
+    lp.connect(hp).connect(g).connect(v.out);
+    v.burst({ type: 'highpass', freq: 3200, peak: vel * 0.02, d: 0.012, at: t });
+  }, o.pan ?? 0);
+}
+
+/** Hammered dulcimer / metal pluck: a detuned course of strings, a metallic overtone, a hammer tick. */
+export function dulcimer(out: MusicOut, t: number, f: number, vel: number,
+  o: { wet?: number; pan?: number; decay?: number; lite?: boolean } = {}): void {
+  note(out, t, o.wet ?? 0.5, (v) => {
+    if (o.lite) {
+      // Fast ostinati: the string course and hammer only (3 sources instead of 6).
+      const d = o.decay ?? 0.6;
+      const g = v.gain(0);
+      v.hold(perc(g.gain, t, 0.002, vel * 0.09, d));
+      for (const det of [-5, 4]) {
+        const s1 = v.osc('triangle', f, t);
+        s1.detune.value = det;
+        s1.connect(g);
+      }
+      g.connect(v.out);
+      v.burst({ type: 'bandpass', freq: Math.min(9000, f * 6), q: 2, peak: vel * 0.05, d: 0.02, at: t });
+      return;
+    }
+    const d = o.decay ?? 2;
+    const g = v.gain(0);
+    v.hold(perc(g.gain, t, 0.002, vel * 0.07, d));
+    const lp = v.filter('lowpass', Math.min(9000, f * 7), 0.7);
+    sweep(lp.frequency, t, Math.min(11000, f * 10), f * 2.5, d * 0.5);
+    for (const det of [-5, 4]) {
+      const s1 = v.osc('triangle', f, t);
+      s1.detune.value = det + rand(-1, 1);
+      s1.connect(lp);
+    }
+    const sq = v.osc('sawtooth', f, t);
+    const sqg = v.gain(0.25);
+    sq.connect(sqg).connect(lp);
+    lp.connect(g).connect(v.out);
+    // Metallic ring (slightly inharmonic, short).
+    const m = v.gain(0);
+    v.hold(perc(m.gain, t, 0.001, vel * 0.02, d * 0.35));
+    v.osc('sine', f * 3.02, t, t + d * 0.4).connect(m).connect(v.out);
+    v.burst({ type: 'bandpass', freq: Math.min(9000, f * 6), q: 2, peak: vel * 0.04, d: 0.02, at: t });
+  }, o.pan ?? 0);
+}
+
+/**
+ * Piano-like bell: slightly stretched harmonic partials with pitch-dependent decay, a unison-string
+ * beat on the fundamental, a soft bell partial and a felt-hammer thump.
+ */
+export function pianoBell(out: MusicOut, t: number, f: number, vel: number, o: { wet?: number; pan?: number; decay?: number } = {}): void {
+  note(out, t, o.wet ?? 0.8, (v) => {
+    const d = o.decay ?? Math.max(2.5, Math.min(7, 6 - Math.log2(f / 220) * 1.3));
+    const B = 0.0004;
+    [1, 0.42, 0.2, 0.1, 0.05].forEach((a, i) => {
+      const n = i + 1;
+      const fr = f * n * Math.sqrt(1 + B * n * n);
+      if (fr > v.ctx.sampleRate * 0.45) return;
+      const g = v.gain(0);
+      const e = perc(g.gain, t, 0.003, vel * 0.08 * a, d / (1 + 0.7 * i));
+      v.osc('sine', fr, t, e).connect(g).connect(v.out);
+      if (i === 0) {
+        const tw = v.gain(0.45);
+        v.osc('sine', fr + rand(0.25, 0.6), t, e).connect(tw).connect(g);
+      }
+      v.hold(e);
+    });
+    const bg = v.gain(0);
+    v.hold(perc(bg.gain, t, 0.002, vel * 0.012, d * 0.3));
+    v.osc('sine', f * 2.76, t, t + d * 0.35).connect(bg).connect(v.out);
+    v.burst({ color: 'pink', type: 'lowpass', freq: 900, peak: vel * 0.03, d: 0.03, at: t });
+  }, o.pan ?? 0);
+}
+
+/**
+ * Great Bell (music): immense, detuned church-bell partials with slow beating, a downward drift
+ * and a sub bloom an octave under the hum.
+ */
+export function greatBell(out: MusicOut, t: number, prime: number, vel: number,
+  o: { wet?: number; pan?: number; decay?: number; drift?: number; far?: boolean } = {}): void {
+  note(out, t, o.wet ?? 1.2, (v) => {
+    let dest: AudioNode = v.out;
+    if (o.far) {
+      const lp = v.filter('lowpass', 900, 0.5);
+      lp.connect(v.out);
+      dest = lp;
+    }
+    bell(v, {
+      prime, decay: o.decay ?? 14, gain: vel * 0.2, beat: 0.45, strike: 0.2, strikeHardness: 7, brightness: 0.7,
+      detune: 0.012, drift: o.drift ?? 12, partials: CHURCH_PARTIALS, dest,
+    });
+    const sg = v.gain(0);
+    v.hold(swell(sg.gain, t, 0.15, vel * 0.11, 0.5, 6));
+    v.osc('sine', prime * 0.25, t).connect(sg).connect(dest);
+  }, o.pan ?? 0);
+}
+
+/** Sub drone: a sine with a slowly beating twin and a soft octave — felt more than heard. */
+export function subDrone(out: MusicOut, t: number, f: number, dur: number, vel: number,
+  o: { attack?: number; release?: number; wet?: number; beat?: number } = {}): void {
+  note(out, t, o.wet ?? 0.2, (v) => {
+    const g = v.gain(0);
+    v.hold(ar(g.gain, t, o.attack ?? 4, vel * 0.16, dur, o.release ?? 5));
+    v.osc('sine', f, t).connect(g);
+    const tw = v.gain(0.7);
+    v.osc('sine', f + (o.beat ?? 0.33), t).connect(tw).connect(g);
+    const oc = v.gain(0.18);
+    v.osc('triangle', f * 2, t).connect(oc).connect(g);
+    g.connect(v.out);
+  });
+}
+
+/** Sea wash: a wave of filtered noise rising and receding, with a foam hiss at the break. */
+export function wash(out: MusicOut, t: number, dur: number, vel: number, o: { pan?: number; cutoff?: number; wet?: number } = {}): void {
+  note(out, t, o.wet ?? 0.7, (v) => {
+    const c = o.cutoff ?? 1200;
+    const rise = dur * 0.42;
+    const src = v.noise('pink', t);
+    const lp = v.filter('lowpass', c * 0.3, 0.6);
+    lp.frequency.setValueAtTime(c * 0.3, t);
+    lp.frequency.exponentialRampToValueAtTime(c, t + rise);
+    lp.frequency.exponentialRampToValueAtTime(c * 0.25, t + dur);
+    const g = v.gain(0);
+    v.hold(swell(g.gain, t, rise, vel * 0.22, 0.2, dur - rise));
+    src.connect(lp).connect(g).connect(v.out);
+    v.burst({ type: 'bandpass', freq: 3000, q: 0.7, at: t + rise * 0.9, a: 0.3, peak: vel * 0.03, d: dur * 0.5 });
+  }, o.pan ?? 0);
+}
+
+/** A gear ratchet: `n` clockwork ticks accelerating (or decelerating) over `dur`. */
+export function ratchet(out: MusicOut, t: number, n: number, dur: number, vel: number, pitch = 1.2, accel = true): void {
+  for (let i = 0; i < n; i++) {
+    const k = i / Math.max(1, n - 1);
+    const x = accel ? 1 - Math.pow(1 - k, 1.7) : Math.pow(k, 1.7);
+    mechanism(out, t + x * dur, vel * rand(0.7, 1), pitch * rand(0.97, 1.03));
+  }
+}
+
+/** Heavy metal strike (anvil / vault plate) for the treasury's percussion. */
+export function clang(out: MusicOut, t: number, f: number, vel: number, o: { wet?: number; pan?: number } = {}): void {
+  note(out, t, o.wet ?? 0.5, (v) => {
+    metal(v, { f, peak: vel * 0.12, decay: 0.9, at: t, bright: 0.75 });
+    v.burst({ type: 'bandpass', freq: f * 3, q: 1.5, peak: vel * 0.08, d: 0.04, at: t });
+  }, o.pan ?? 0);
 }

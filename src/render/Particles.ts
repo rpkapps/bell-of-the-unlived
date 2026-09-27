@@ -87,9 +87,12 @@ void main() {
     a = smoothstep( 1.0, 0.35, r + ( n - 0.5 ) * 0.8 + ( n2 - 0.5 ) * 0.3 );
     col *= 0.85 + 0.3 * n;
   } else if ( shape == 3 ) {     // flame lick
-    float n = texture2D( uNoise, vec2( vUv.x * 0.5 + vSeed, vUv.y * 0.5 - uTime * 0.6 ) ).g;
-    float heat = clamp( 1.0 - r * ( 0.8 + 0.5 * n ) - vLife * 0.6, 0.0, 1.0 );
-    a = smoothstep( 0.0, 0.4, heat );
+    float n = texture2D( uNoise, vec2( vUv.x * 0.6 + vSeed, vUv.y * 0.45 - uTime * 0.7 ) ).g;
+    float n2 = texture2D( uNoise, vec2( vUv.x * 1.3 - vSeed, vUv.y * 1.1 - uTime * 1.3 ) ).b;
+    vec2 q = p + vec2( ( n2 - 0.5 ) * 0.35, 0.0 );
+    float rr = length( vec2( q.x * 1.5, q.y * 0.85 + 0.12 ) ) * 2.0;
+    float heat = clamp( 1.05 - rr - ( 1.0 - n ) * 0.55 - vLife * 0.55, 0.0, 1.0 );
+    a = smoothstep( 0.0, 0.3, heat );
     col = mix( vec3( 0.9, 0.18, 0.03 ), vec3( 1.0, 0.62, 0.18 ), smoothstep( 0.2, 0.6, heat ) );
     col = mix( col, vec3( 1.0, 0.92, 0.7 ), smoothstep( 0.65, 1.0, heat ) ) * vColor.rgb;
   } else if ( shape == 4 ) {     // twinkling mote

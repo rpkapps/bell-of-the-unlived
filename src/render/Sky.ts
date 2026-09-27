@@ -103,7 +103,7 @@ void main() {
   if ( s.a < 0.5 || uOpacity < 0.01 ) discard;
   // haze thickens toward the silhouettes' feet (height fog) and with distance (far ring)
   float feet = 1.0 - smoothstep( 0.0, 0.55, vUv.y );
-  float haze = clamp( 0.35 + uFar * 0.35 + feet * 0.7 - vUv.y * 0.15, 0.0, 0.97 );
+  float haze = clamp( 0.6 + uFar * 0.22 + feet * 1.2 - vUv.y * 0.25, 0.0, 1.0 );
   vec3 c = mix( uColor, uHaze, haze );
   float flick = 0.8 + 0.2 * sin( uTime * 1.3 + vUv.x * 431.0 );
   c += uWin * s.g * uWindows * ( 1.0 - haze * 0.8 ) * flick;
@@ -169,7 +169,7 @@ function skylineCanvas(seed: number, w: number, h: number, density: number): HTM
   }
   // continuous ground band so there is never a gap under the silhouettes
   ctx.fillStyle = 'rgba(255,0,0,1)';
-  ctx.fillRect(0, base - h * 0.06, w, h);
+  ctx.fillRect(0, base - h * 0.03, w, h);
   return canvas;
 }
 

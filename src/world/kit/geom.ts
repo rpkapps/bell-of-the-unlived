@@ -152,22 +152,32 @@ export function wallGeo(len: number, height: number, t: number, openings: Openin
   return extrudeXY(pts, t, holePts);
 }
 
-/** Jittered low-poly rock (flat shaded look), roughly radius r, squashed by `sy`. */
+const ROCK_CACHE = new Map<string, THREE.BufferGeometry>();
+
+/**
+ * Jittered low-poly rock, roughly radius r, squashed by `sy`. Unit rocks are generated once per
+ * (seed mod 32, detail) and cached; each call returns a scaled clone.
+ */
 export function rock(r: number, seed: number, sy = 0.7, detail = 1) {
-  const rng = new Rng(seed);
-  const g = new THREE.IcosahedronGeometry(r, detail);
-  const p = g.attributes.position as THREE.BufferAttribute;
-  // Deterministic displacement per unique vertex position so shared vertices stay welded.
-  const cache = new Map<string, number>();
-  for (let i = 0; i < p.count; i++) {
-    const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
-    const key = `${x.toFixed(3)},${y.toFixed(3)},${z.toFixed(3)}`;
-    let k = cache.get(key);
-    if (k === undefined) { k = 0.75 + rng.next() * 0.45; cache.set(key, k); }
-    p.setXYZ(i, x * k, y * k * sy, z * k);
+  const key = `${((seed % 32) + 32) % 32}|${detail}`;
+  let base = ROCK_CACHE.get(key);
+  if (!base) {
+    const rng = new Rng(Number(key.split('|')[0]) * 7919 + 13);
+    base = new THREE.IcosahedronGeometry(1, detail);
+    const p = base.attributes.position as THREE.BufferAttribute;
+    // Deterministic displacement per unique vertex position so shared vertices stay welded.
+    const cache = new Map<number, number>();
+    for (let i = 0; i < p.count; i++) {
+      const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+      const h = Math.round(x * 997) * 73856093 ^ Math.round(y * 997) * 19349663 ^ Math.round(z * 997) * 83492791;
+      let k = cache.get(h);
+      if (k === undefined) { k = 0.75 + rng.next() * 0.45; cache.set(h, k); }
+      p.setXYZ(i, x * k, y * k, z * k);
+    }
+    base.computeVertexNormals();
+    ROCK_CACHE.set(key, base);
   }
-  g.computeVertexNormals();
-  return g;
+  return base.clone().scale(r, r * sy, r);
 }
 
 /** Lathe from a [radius, y] profile (bottom to top). */

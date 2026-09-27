@@ -74,14 +74,18 @@ varying float vSeed;
 void main() {
   float y = clamp( vUv.y, 0.0, 1.0 );
   float t = uTime + fract( vSeed ) * 10.0;
-  vec2 q = vec2( vUv.x * 2.0 + fract( vSeed * 3.1 ), y * 0.9 - t * 1.25 );
-  float n = texture2D( uNoise, q * 0.35 ).g * 0.6 + texture2D( uNoise, q * 0.9 + vec2( 0.37, -t * 0.35 ) ).b * 0.4;
-  float heat = clamp( ( 1.0 - y * 1.15 ) * ( 0.45 + 1.1 * n ) + 0.15 * ( 1.0 - y ), 0.0, 1.0 );
-  vec3 col = mix( vec3( 0.9, 0.16, 0.02 ), vec3( 1.0, 0.55, 0.14 ), smoothstep( 0.25, 0.6, heat ) );
-  col = mix( col, vec3( 1.0, 0.9, 0.62 ), smoothstep( 0.72, 0.98, heat ) );
+  float sx = vUv.x * 3.0 + fract( vSeed * 3.1 );
+  // two scrolling noise layers make licking tongues that thin out with height
+  float n1 = texture2D( uNoise, vec2( sx * 0.5, y * 0.55 - t * 0.9 ) ).g;
+  float n2 = texture2D( uNoise, vec2( sx * 1.1 + 0.37, y * 1.2 - t * 1.7 ) ).b;
+  float n = n1 * 0.65 + n2 * 0.35;
+  float heat = ( 1.0 - y ) * 1.35 - ( 1.0 - n ) * 1.05 + 0.08;
+  heat = clamp( heat, 0.0, 1.0 );
+  vec3 col = mix( vec3( 0.75, 0.1, 0.015 ), vec3( 1.0, 0.45, 0.08 ), smoothstep( 0.05, 0.4, heat ) );
+  col = mix( col, vec3( 1.0, 0.82, 0.45 ), smoothstep( 0.45, 0.85, heat ) );
   float facing = abs( dot( normalize( vNrm ), normalize( vView ) ) );
-  float a = smoothstep( 0.18, 0.55, heat ) * smoothstep( 0.05, 0.45, facing );
-  vec3 c = col * a * uIntensity * ( 0.6 + 1.4 * heat );
+  float a = smoothstep( 0.02, 0.3, heat ) * smoothstep( 0.1, 0.6, facing ) * smoothstep( 0.0, 0.06, y );
+  vec3 c = col * a * uIntensity * ( 0.35 + 0.9 * heat );
   #if defined( USE_FOG ) && !defined( FOG_EXP2 )
     c *= 1.0 - ( fogFar < 1000.0 ? smoothstep( fogNear, fogFar, vFogDepth ) : heightFogFactor( vFogWorldPos, fogNear, fogFar ) );
   #endif
@@ -92,7 +96,7 @@ void main() {
 function makeFire(): THREE.ShaderMaterial {
   const m = new THREE.ShaderMaterial({
     name: 'fire',
-    uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { uIntensity: { value: 3.0 } }]),
+    uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { uIntensity: { value: 2.2 } }]),
     vertexShader: FIRE_VERT,
     fragmentShader: FIRE_FRAG,
     transparent: true,
@@ -138,16 +142,16 @@ void main() {
   float t = uTime;
   vec2 p = vec2( vUv.x * 1.6, vUv.y );
   // domain-warped swirls drifting upward
-  vec2 w = vec2( texture2D( uNoise, p * 0.45 + vec2( t * 0.02, -t * 0.05 ) ).r, texture2D( uNoise, p * 0.45 + vec2( 0.5 - t * 0.017, t * 0.03 ) ).g );
-  float s1 = texture2D( uNoise, p * 0.9 + ( w - 0.5 ) * 0.8 + vec2( 0.0, -t * 0.09 ) ).g;
-  float s2 = texture2D( uNoise, p * 2.1 + ( w - 0.5 ) * 1.4 + vec2( t * 0.03, -t * 0.16 ) ).b;
-  float swirl = smoothstep( 0.25, 0.85, s1 * 0.65 + s2 * 0.45 );
+  vec2 w = vec2( texture2D( uNoise, p * 0.22 + vec2( t * 0.012, -t * 0.03 ) ).r, texture2D( uNoise, p * 0.22 + vec2( 0.5 - t * 0.01, t * 0.02 ) ).r );
+  float s1 = texture2D( uNoise, p * 0.3 + ( w - 0.5 ) * 0.9 + vec2( 0.0, -t * 0.06 ) ).r;
+  float s2 = texture2D( uNoise, p * 0.7 + ( w - 0.5 ) * 1.2 + vec2( t * 0.02, -t * 0.11 ) ).g;
+  float swirl = smoothstep( 0.2, 0.9, s1 * 0.7 + s2 * 0.4 );
   float edge = smoothstep( 0.0, 0.14, vUv.x ) * smoothstep( 1.0, 0.86, vUv.x ) * smoothstep( 1.0, 0.72, vUv.y );
   float base = smoothstep( 0.0, 0.08, vUv.y );
   float facing = abs( dot( normalize( vNrm ), normalize( vView ) ) );
   float streaks = texture2D( uNoise, vec2( vUv.x * 3.0 + w.x * 0.2, vUv.y * 0.12 - t * 0.12 ) ).a;
-  float a = uOpacity * edge * base * ( 0.35 + 0.65 * swirl ) * ( 0.7 + 0.3 * facing ) * ( 0.8 + 0.4 * streaks );
-  vec3 c = uColor * ( 0.8 + 0.9 * swirl * swirl + 0.4 * smoothstep( 0.6, 0.9, streaks ) );
+  float a = uOpacity * edge * base * ( 0.12 + 0.88 * swirl * swirl ) * ( 0.7 + 0.3 * facing ) * ( 0.75 + 0.5 * streaks );
+  vec3 c = uColor * ( 0.6 + 0.8 * swirl + 0.5 * smoothstep( 0.65, 0.95, streaks ) );
   gl_FragColor = vec4( c, clamp( a, 0.0, 1.0 ) );
 }
 `;
@@ -155,7 +159,7 @@ void main() {
 function makeFogVeil(): THREE.ShaderMaterial {
   const m = new THREE.ShaderMaterial({
     name: 'fog_veil',
-    uniforms: { uColor: { value: new THREE.Color('#ffe6b8').multiplyScalar(1.6) }, uOpacity: { value: 0.75 } },
+    uniforms: { uColor: { value: new THREE.Color('#ffe2b0').multiplyScalar(1.15) }, uOpacity: { value: 0.5 } },
     vertexShader: VEIL_VERT,
     fragmentShader: VEIL_FRAG,
     transparent: true,
@@ -344,7 +348,7 @@ export function updateMaterials(time: number): void {
   WX_GLOBALS.wxTime.value = time;
   SHARED.uTime.value = time;
   const fire = cache.get('fire') as THREE.ShaderMaterial | undefined;
-  if (fire) fire.uniforms.uIntensity.value = 2.6 + 0.35 * Math.sin(time * 9.1) * Math.sin(time * 3.7 + 1.3);
+  if (fire) fire.uniforms.uIntensity.value = 2.2 + 0.3 * Math.sin(time * 9.1) * Math.sin(time * 3.7 + 1.3);
 }
 
 /** Global wetness 0..1 (environment presets set this; rain could raise it). */

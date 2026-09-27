@@ -163,7 +163,7 @@ export function buildEnemy(rig: Rig, look: EnemyLook, seed: number): BuiltModel 
     }
     case 'greyfordSoldier': {
       b.cracks = 0.3;
-      b.ghost = { color: new THREE.Color(0.5, 0.62, 0.78), min: 0.08 };
+      b.ghost = { color: new THREE.Color(0.32, 0.42, 0.58), min: 0.14 };
       buildLook(b, { head: 'greyford', body: 'greyford', arms: 'greyford', legs: 'greyford', cloak: false }, { unlived: true, variant: seed });
       break;
     }

@@ -128,7 +128,7 @@ const SHOTS: Record<string, { pos: [number, number, number]; target: [number, nu
   walls2: { pos: [13.5, 2.2, 7.2], target: [13.5, 1.6, 0] },
   fresh: { pos: [2.2, 1.7, 3.2], target: [2.2, 1.5, 0] },
   floors: { pos: [7.5, 4.5, 11.5], target: [7.5, 0, 5] },
-  timber: { pos: [21.5, 2.6, 6.5], target: [21.5, 1.8, 0] },
+  timber: { pos: [30, 2.6, 6.5], target: [30, 1.8, 0] },
   metals: { pos: [7.5, 2.4, 14.5], target: [7.5, 1, 10] },
   organics: { pos: [7.5, 2.4, 19.5], target: [7.5, 1, 15] },
   heraldry: { pos: [-5.5, 2.0, 11.5], target: [-5.5, 1.6, 8] },
@@ -146,6 +146,20 @@ async function gallery(): Promise<void> {
   const t0 = performance.now();
   await initMaterials(R.renderer, g.quality);
   const genMs = performance.now() - t0;
+  if (params.has('probe')) {
+    for (const id of ['stone_wall', 'stone_dark', 'stone_fresh', 'stone_trim'] as MaterialId[]) {
+      const ts = getTextureSet(id)!;
+      for (let k = 0; k < 3; k++) {
+        const buf = new Uint8Array(ts.width * ts.height * 4);
+        R.renderer.readRenderTargetPixels(ts.target, 0, 0, ts.width, ts.height, buf, undefined, k);
+        const m = [0, 0, 0, 0];
+        for (let i = 0; i < buf.length; i += 4) for (let c = 0; c < 4; c++) m[c] += buf[i + c];
+        console.log(id, k, m.map((v) => (v / (ts.width * ts.height)).toFixed(0)).join('/'));
+      }
+      const mat = getMaterial(id) as THREE.MeshStandardMaterial;
+      console.log(id, 'color', mat.color.getHexString(), 'rough', mat.roughness, 'metal', mat.metalness, 'map', mat.map?.name, 'orm', mat.roughnessMap?.name, 'ao', mat.aoMap?.name);
+    }
+  }
   const env = (params.get('env') ?? 'ashbridgeDusk') as EnvironmentPreset;
   R.setEnvironment(env, 0);
   const scene = R.scene;
@@ -159,29 +173,31 @@ async function gallery(): Promise<void> {
   ground.castShadow = false;
 
   // --- row 0: architecture walls (z = 0)
-  const walls: MaterialId[] = ['stone_fresh', 'stone_wall', 'stone_dark', 'stone_trim', 'plaster', 'rock_cliff', 'roof_slate', 'rubble'];
+  const walls: MaterialId[] = params.has('swap') ? ['stone_trim', 'stone_dark', 'stone_wall', 'stone_fresh', 'plaster', 'rock_cliff', 'roof_slate', 'rubble'] : ['stone_fresh', 'stone_wall', 'stone_dark', 'stone_trim', 'plaster', 'rock_cliff', 'roof_slate', 'rubble'];
   walls.forEach((id, i) => {
     const x = i * 3 + 0.8;
     add(new THREE.BoxGeometry(2.8, 3.2, 0.6), id, x, 1.6, 0);
     label(id, new THREE.Vector3(x, 3.5, 0.4), scene);
   });
   // variants of stone_wall beside it on top (k = 1, 2)
-  add(new THREE.BoxGeometry(2.8, 0.8, 0.7), getMaterialVariant('stone_wall', 1), 3.8, 3.6, 0);
-  add(new THREE.BoxGeometry(2.8, 0.8, 0.7), getMaterialVariant('stone_wall', 2), 0.8, 3.6, 0);
+  if (!params.has('novar')) {
+    add(new THREE.BoxGeometry(2.8, 0.8, 0.7), getMaterialVariant('stone_wall', 1), 3.8, 3.6, 0);
+    add(new THREE.BoxGeometry(2.8, 0.8, 0.7), getMaterialVariant('stone_wall', 2), 0.8, 3.6, 0);
+  }
 
   // --- timber frame house front (x ~ 21.5): plaster infill, oak posts/beams, planks, slate roof
-  add(new THREE.BoxGeometry(5, 3.4, 0.3), 'plaster', 21.5, 1.7, -0.1);
-  for (const px of [19.15, 21.5, 23.85]) add(new THREE.BoxGeometry(0.28, 3.4, 0.36), 'timber', px, 1.7, 0.08);
-  add(new THREE.BoxGeometry(5.2, 0.3, 0.4), 'timber_dark', 21.5, 3.45, 0.08);
-  add(new THREE.BoxGeometry(5.0, 0.26, 0.36), 'timber', 21.5, 1.2, 0.1);
-  const brace = add(new THREE.BoxGeometry(0.2, 2.4, 0.3), 'timber', 20.3, 2.3, 0.12); brace.rotation.z = 0.7;
-  const roof = add(new THREE.BoxGeometry(5.6, 0.2, 3), 'roof_slate', 21.5, 4.2, -0.7); roof.rotation.x = -0.6;
-  add(new THREE.BoxGeometry(3, 0.12, 2.2), 'planks', 21.5, 0.06, 2.0);
-  add(new THREE.BoxGeometry(1.2, 2.2, 0.12), 'planks', 21.5, 1.1, 0.12).rotation.y = 0;
-  add(new THREE.CylinderGeometry(0.18, 0.2, 2.2, 12), 'timber_burnt', 25.6, 1.1, 0.6);
-  add(new THREE.BoxGeometry(2, 0.3, 0.3), 'timber_burnt', 26.5, 0.15, 1.2);
-  const thatch = add(new THREE.BoxGeometry(2.5, 0.25, 2), 'roof_thatch_burnt', 26.8, 2.2, -0.2); thatch.rotation.x = -0.5;
-  label('timber / planks / slate', new THREE.Vector3(21.5, 5.2, 0.4), scene);
+  add(new THREE.BoxGeometry(5, 3.4, 0.3), 'plaster', 30.0, 1.7, -0.1);
+  for (const px of [27.65, 30, 32.35]) add(new THREE.BoxGeometry(0.28, 3.4, 0.36), 'timber', px, 1.7, 0.08);
+  add(new THREE.BoxGeometry(5.2, 0.3, 0.4), 'timber_dark', 30.0, 3.45, 0.08);
+  add(new THREE.BoxGeometry(5.0, 0.26, 0.36), 'timber', 30.0, 1.2, 0.1);
+  const brace = add(new THREE.BoxGeometry(0.2, 2.4, 0.3), 'timber', 28.8, 2.3, 0.12); brace.rotation.z = 0.7;
+  const roof = add(new THREE.BoxGeometry(5.6, 0.2, 3), 'roof_slate', 30.0, 4.2, -0.7); roof.rotation.x = -0.6;
+  add(new THREE.BoxGeometry(3, 0.12, 2.2), 'planks', 30.0, 0.06, 2.0);
+  add(new THREE.BoxGeometry(1.2, 2.2, 0.12), 'planks', 30.0, 1.1, 0.12).rotation.y = 0;
+  add(new THREE.CylinderGeometry(0.18, 0.2, 2.2, 12), 'timber_burnt', 34.1, 1.1, 0.6);
+  add(new THREE.BoxGeometry(2, 0.3, 0.3), 'timber_burnt', 35.0, 0.15, 1.2);
+  const thatch = add(new THREE.BoxGeometry(2.5, 0.25, 2), 'roof_thatch_burnt', 35.3, 2.2, -0.2); thatch.rotation.x = -0.5;
+  label('timber / planks / slate', new THREE.Vector3(30, 5.2, 0.4), scene);
 
   // --- floors (z = 5)
   const floors: MaterialId[] = ['cobble', 'flagstone', 'dirt', 'mud', 'grass_dead', 'moss', 'water', 'rubble'];
@@ -255,6 +271,11 @@ async function gallery(): Promise<void> {
     const d = m && (m as unknown as { defines?: Record<string, string> }).defines;
     if (d) { for (const k of strip) delete d[k]; m!.needsUpdate = true; }
   });
+  if (params.has('nscale')) scene.traverse((o) => {
+    const m = (o as THREE.Mesh).material as THREE.MeshStandardMaterial | undefined;
+    if (m && m.normalScale) m.normalScale.setScalar(Number(params.get('nscale')));
+    if (m && params.has('noao') && m.aoMap) m.aoMapIntensity = 0;
+  });
   const shot = SHOTS[params.get('shot') ?? 'overview'] ?? SHOTS.overview;
   R.camera.position.set(...shot.pos);
   R.camera.lookAt(new THREE.Vector3(...shot.target));
@@ -288,7 +309,13 @@ async function gallery(): Promise<void> {
     }
   };
   simulate(warm);
-  for (let i = 0; i < frames; i++) { simulate(dt); R.render(dt); }
+  for (let i = 0; i < frames; i++) {
+    simulate(dt);
+    if (params.has('nosun')) R.sun.intensity = 0;
+    if (params.has('norim')) R.rim.intensity = 0;
+    R.render(dt);
+  }
+  console.log('sun pos', R.sun.position.toArray().map((v) => v.toFixed(1)).join(','), 'target', R.sun.target.position.toArray().map((v) => v.toFixed(1)).join(','));
   const st = R.stats();
   hud.textContent = `${env}  q=${g.quality}  textures ${genMs.toFixed(0)} ms  calls ${st.drawCalls}  tris ${st.triangles}`;
   window.__ready = true;

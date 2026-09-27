@@ -292,7 +292,7 @@ function buildReveal(ctx: AreaCtx, C: THREE.Vector3, bf: Battlefield, c: { col: 
   cracks.position.set(C.x, Y + 0.012, C.z);
   root.add(cracks);
   // the shaft's rock walls (inside-facing), visible once open
-  const shaftGeo = insideOut(new THREE.CylinderGeometry(HOLE_R, HOLE_R + 0.6, 14, 28, 4, true));
+  const shaftGeo = insideOut(new THREE.CylinderGeometry(HOLE_R, HOLE_R + 1.2, 7, 28, 3, true));
   const pos = shaftGeo.attributes.position as THREE.BufferAttribute;
   for (let i = 0; i < pos.count; i++) {
     const n = Math.sin(pos.getY(i) * 1.7 + Math.atan2(pos.getX(i), pos.getZ(i)) * 5) * 0.25;
@@ -300,7 +300,7 @@ function buildReveal(ctx: AreaCtx, C: THREE.Vector3, bf: Battlefield, c: { col: 
   }
   shaftGeo.computeVertexNormals();
   const shaft = new THREE.Mesh(shaftGeo, getMaterial('rock_cliff'));
-  shaft.position.set(C.x, Y - 7.05, C.z);
+  shaft.position.set(C.x, Y - 3.55, C.z);
   root.add(shaft);
   // colliders: the solid centre floor (on until it breaks) and a ring barrier around the hole
   let floorCol: Collider | undefined, barrier: Collider | undefined;

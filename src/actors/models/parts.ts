@@ -721,3 +721,68 @@ export const smooth = (a: number, b: number, x: number) => {
   const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
   return t * t * (3 - 2 * t);
 };
+
+/**
+ * A curved plate/board from a star-shaped 2D outline (XY), subdivided as a polar grid so that
+ * bending works across the whole face: front surface at z = surf(x, y), back = front - thick,
+ * with side walls. UVs: planar metric (or 0..1 over the bbox with `unitUV`).
+ */
+export function curvedPlate(outline: [number, number][], thick: number, surf: (x: number, y: number) => number, o: { rings?: number; unitUV?: boolean; centre?: [number, number]; verticalGrain?: boolean } = {}): G {
+  const n = outline.length;
+  const K = o.rings ?? 6;
+  let cx = 0, cy = 0;
+  if (o.centre) [cx, cy] = o.centre;
+  else { for (const [x, y] of outline) { cx += x; cy += y; } cx /= n; cy /= n; }
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (const [x, y] of outline) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+  const uvOf = (x: number, y: number): [number, number] => (o.unitUV ? [(x - x0) / (x1 - x0), (y - y0) / (y1 - y0)] : o.verticalGrain ? [y, x] : [x, y]);
+  const pos: number[] = [], uv: number[] = [], idx: number[] = [];
+  const face = (front: boolean) => {
+    const base = pos.length / 3;
+    pos.push(cx, cy, surf(cx, cy) - (front ? 0 : thick));
+    uv.push(...uvOf(cx, cy));
+    for (let k = 1; k <= K; k++) {
+      const t = k / K;
+      for (let i = 0; i < n; i++) {
+        const x = cx + (outline[i][0] - cx) * t, y = cy + (outline[i][1] - cy) * t;
+        pos.push(x, y, surf(x, y) - (front ? 0 : thick));
+        uv.push(...uvOf(x, y));
+      }
+    }
+    const ring = (k: number, i: number) => base + 1 + (k - 1) * n + (i % n);
+    for (let i = 0; i < n; i++) {
+      const a = base, b = ring(1, i), c = ring(1, i + 1);
+      if (front) idx.push(a, b, c); else idx.push(a, c, b);
+    }
+    for (let k = 1; k < K; k++) {
+      for (let i = 0; i < n; i++) {
+        const a = ring(k, i), b = ring(k + 1, i), c = ring(k + 1, i + 1), d = ring(k, i + 1);
+        if (front) idx.push(a, b, c, a, c, d); else idx.push(a, c, b, a, d, c);
+      }
+    }
+    return (i: number) => ring(K, i);
+  };
+  // orientation: outline must be CCW for front faces to point +Z
+  let area = 0;
+  for (let i = 0; i < n; i++) { const [ax, ay] = outline[i], [bx, by] = outline[(i + 1) % n]; area += ax * by - bx * ay; }
+  const ccw = area > 0;
+  const frontRim = face(ccw);
+  const backRim = face(!ccw);
+  // side walls (separate vertices for crisp normals)
+  const sb = pos.length / 3;
+  for (let i = 0; i <= n; i++) {
+    const fi = frontRim(i % n) * 3, bi = backRim(i % n) * 3;
+    pos.push(pos[fi], pos[fi + 1], pos[fi + 2], pos[bi], pos[bi + 1], pos[bi + 2]);
+    uv.push(i * 0.02, 0, i * 0.02, thick);
+  }
+  for (let i = 0; i < n; i++) {
+    const a = sb + i * 2, b = a + 1, c = a + 2, d = a + 3;
+    if (ccw) idx.push(a, b, c, c, b, d); else idx.push(a, c, b, c, d, b);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}

@@ -27,7 +27,7 @@ const blocked = (x0: number, z0: number, x1: number, z1: number) =>
   KEEP_OUT.some(([a, b, c, d]) => x0 < c && x1 > a && z0 < d && z1 > b);
 
 /** Lay out rows of houses in a block; each row alternates facing ±Z along an implied lane. */
-function fillBlock(k: Kit, rng: Rng, x0: number, z0: number, x1: number, z1: number, y: number, o: { burned?: number; storeys?: [number, number]; detail?: 'high' | 'low' }, chimneys: THREE.Vector3[]) {
+function fillBlock(k: Kit, rng: Rng, x0: number, z0: number, x1: number, z1: number, y: number, o: { burned?: number; storeys?: [number, number]; detail?: 'high' | 'low' | 'far' }, chimneys: THREE.Vector3[]) {
   const rowD = 9, lane = 4;
   let z = z0;
   let row = 0;
@@ -68,7 +68,11 @@ export function buildTown(ctx: AreaCtx): TownBuild {
   // (the ravine x ∈ [-26, -15], z ∈ [-141, -47] must stay open)
   g.bmm('mud', -14, -0.6, -96, 200, -0.04, 110, { cast: false });
   g.bmm('mud', -30, -0.6, -47, -14, -0.04, 110, { cast: false });
-  g.bmm('dirt', -14, -0.6, -300, 200, 2.9, -134, { cast: false });
+  // (leave a shaft open under the arena's centre for the battlefield reveal)
+  g.bmm('dirt', -14, -0.6, -300, 200, 2.9, -176, { cast: false });
+  g.bmm('dirt', -14, -0.6, -156, 200, 2.9, -134, { cast: false });
+  g.bmm('dirt', -14, -0.6, -176, -6, 2.9, -156, { cast: false });
+  g.bmm('dirt', 14, -0.6, -176, 200, 2.9, -156, { cast: false });
   g.bmm('dirt', -60, -0.6, -300, -14, 2.9, -141, { cast: false });
   g.bmm('grass_dead', -300, -8, -500, -44, 6, 300, { cast: false });
   g.finish(ctx.root);
@@ -81,10 +85,10 @@ export function buildTown(ctx: AreaCtx): TownBuild {
   fillBlock(near, rng, -32, -4, 62, 34, 0, { storeys: [2, 3] }, chimneys);  // south of the street
   near.finish(ctx.root);
   const far = newKit(ctx, 'townFar', 92);
-  fillBlock(far, rng, 58, -170, 130, -96, 0, { storeys: [2, 4] }, chimneys);
-  fillBlock(far, rng, 64, -94, 140, 40, 0, { storeys: [2, 4] }, chimneys);
-  fillBlock(far, rng, -30, 36, 140, 90, 0, { storeys: [2, 3] }, chimneys);
-  fillBlock(far, rng, -20, -250, 60, -190, 3, { storeys: [2, 3] }, chimneys);
+  fillBlock(far, rng, 58, -170, 130, -96, 0, { storeys: [2, 4], detail: 'far' }, chimneys);
+  fillBlock(far, rng, 64, -94, 140, 40, 0, { storeys: [2, 4], detail: 'far' }, chimneys);
+  fillBlock(far, rng, -30, 36, 140, 90, 0, { storeys: [2, 3], detail: 'far' }, chimneys);
+  fillBlock(far, rng, -20, -250, 60, -190, 3, { storeys: [2, 3], detail: 'far' }, chimneys);
   // a few taller civic buildings/towers in the mid-ground
   spireTower(far, 88, 0, -60, 6, 22, 16);
   spireTower(far, 70, 0, -128, 5, 18, 12, 'stone_wall');

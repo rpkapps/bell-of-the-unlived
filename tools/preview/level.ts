@@ -27,7 +27,7 @@ declare global { interface Window { __ready?: boolean; __stats?: unknown; __chec
 
 type View = { pos: [number, number, number]; target: [number, number, number]; env?: EnvironmentPreset; open?: string; reveal?: number; fov?: number };
 const VIEWS: Record<string, View> = {
-  overlook: { pos: [-29.9, 16.4, -109.0], target: [0, 4.5, -108], fov: 62 },
+  overlook: { pos: [-29.5, 16.4, -108.6], target: [12, 6, -119.8], fov: 60 },
   overlookWide: { pos: [-37.5, 17.4, -113], target: [10, 2, -95], fov: 70 },
   shrine: { pos: [-29.8, 15.8, -108.6], target: [-26.8, 15.2, -112] },
   street: { pos: [-27, 1.8, -32.5], target: [10, 2.2, -33] },
@@ -39,16 +39,17 @@ const VIEWS: Record<string, View> = {
   undercroft: { pos: [13, -3.3, -59], target: [13, -3.9, -80] },
   cell: { pos: [12.6, -3.4, -80.3], target: [7, -4.6, -84] },
   courtyard: { pos: [-2, 4.8, -98], target: [8, 5, -122] },
-  drawbridge: { pos: [-9.5, 6.5, -101], target: [-22, 4, -111], open: 'drawbridge,lever' },
+  drawbridge: { pos: [-28.2, 5.2, -104.2], target: [-15, 3.5, -110.5], open: 'drawbridge,lever' },
+  drawbridgeRaised: { pos: [-26.8, 16.2, -108.2], target: [-16, 4, -110] },
   ravine: { pos: [-20, 7, -44], target: [-20, -6, -110] },
   hospice: { pos: [24.2, 4.8, -106.5], target: [39, 4, -108], env: 'hospiceInterior' },
   forge: { pos: [30.5, 4.8, -113.5], target: [28, 3.6, -123], env: 'hospiceInterior' },
   yard: { pos: [42, 5.2, -101.5], target: [51, 3.2, -117] },
-  approach: { pos: [4, 5.2, -125], target: [4, 12, -145] },
+  approach: { pos: [4, 4.9, -131.4], target: [4, 10, -148] },
   gatehouse: { pos: [4, 6.5, -110], target: [4, 16, -138] },
   arena: { pos: [4, 10.5, -150.8], target: [4, 9.5, -178], env: 'arena' },
   fog: { pos: [4, 9.6, -143.5], target: [4, 10, -150] },
-  reveal: { pos: [4, 12.8, -155.2], target: [4, -30, -172], env: 'battlefield', reveal: 1, open: 'fog,bell' },
+  reveal: { pos: [4, 11.8, -155.5], target: [4, -45, -186], env: 'battlefield', reveal: 1, open: 'fog,bell' },
   revealMid: { pos: [4, 11.5, -151.5], target: [4, 4, -166], env: 'arena', reveal: 0.35, open: 'fog,bell' },
   top: { pos: [0, 240, -30], target: [0, 0, -95], fov: 55 },
   back: { pos: [60, 45, -10], target: [-10, 0, -100], fov: 60 },
@@ -175,7 +176,7 @@ async function main() {
     if (controls) { controls.update(); r.setFocus(controls.target); }
     r.render(dt);
   };
-  for (let i = 0; i < 3; i++) frame(1 / 30);
+  for (let i = 0; i < 2; i++) frame(1 / 30);
   const st = r.stats();
   window.__stats = { view: viewName, renderer: rendererName, ...st, level: layout.stats, programs: r.renderer.info.programs?.length ?? 0 };
   hud.textContent = `${viewName} (${rendererName})  ·  draw calls ${st.drawCalls}  ·  tris ${(st.triangles / 1000).toFixed(0)}k  ·  level tris ${(layout.stats.triangles / 1000).toFixed(0)}k  ·  lights ${layout.stats.lights}  ·  build ${layout.stats.buildMs.toFixed(0)} ms`;

@@ -64,6 +64,7 @@ export class Game implements Services {
   readonly levelRoot = new THREE.Group();
   private fpsAcc = 0; private fpsFrames = 0;
   private heartbeatT = 0;
+  readonly fill: THREE.PointLight;
   /** Keep 'menu' mode without an open screen until this real time (e.g. between rest and the Stillbell menu). */
   menuHoldUntil = 0;
   get now() { return this.realTime; }
@@ -76,6 +77,11 @@ export class Game implements Services {
       render: (a, dt) => this.render(a, dt),
     });
     deps.renderer.scene.add(this.levelRoot, this.hitboxGroup);
+    // Readability fill: a soft, warm-neutral light riding behind the camera so characters and their
+    // silhouettes never sink into the dusk (no shadows, short range).
+    this.fill = new THREE.PointLight(0xd8d0c4, 2.2, 14, 1.6);
+    this.fill.castShadow = false;
+    deps.renderer.scene.add(this.fill);
     this.projectiles = new Projectiles(deps.renderer.scene, this.world, this.combat);
     this.projectiles.makeMesh = (p) => this.projectileMesh(p);
     this.projectiles.onImpact = (p, pt) => this.projectileImpact(p, pt);
@@ -307,6 +313,9 @@ export class Game implements Services {
       const mv = this.input.move();
       this.cam.update(realDt, this.player, blocked ? { x: 0, y: 0 } : lk, Math.hypot(mv.x, mv.y) > 0.2);
       r.setFocus(this.player.object.position);
+      // fill light: between camera and player, slightly above
+      this.fill.position.copy(r.camera.position).lerp(this.player.object.position, 0.35);
+      this.fill.position.y += 1.2;
       // trails
       for (const [a, t] of this.trailsByActor) {
         if (a.weaponR?.model.trail) {

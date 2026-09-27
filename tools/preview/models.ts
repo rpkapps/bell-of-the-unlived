@@ -197,6 +197,27 @@ function addCharacters(entries: Entry[]) {
   info.textContent = lines.join('\n');
 }
 
+/** Focused view: `only=a,b` shows each weapon large, front and back (rotated 180°) side by side. */
+function addFocus(ids: string[]) {
+  const lines: string[] = [];
+  ids.forEach((id, i) => {
+    for (const back of [0, 1]) {
+      const w = models.buildWeapon(id) as WeaponModelExt;
+      const isShield = /shield|buckler/.test(id);
+      const h = new THREE.Group();
+      h.position.set((i * 2 + back - ids.length + 0.5) * 0.75, isShield ? 1.0 : 0.3, 0);
+      w.object.rotation.y = (isShield ? 0 : Math.PI / 2) + (back ? Math.PI : 0);
+      const keep = qs.get('keep');
+      if (keep) for (const c of [...w.object.children]) if (!keep.split(',').some((k) => c.name.includes(k))) c.removeFromParent();
+      h.add(w.object);
+      scene.add(h);
+      if (!back) lines.push(`${id.padEnd(22)} tris ${w.triangles} hit ${JSON.stringify(w.hit)} offhand ${w.offhandGrip ?? '-'}`);
+    }
+  });
+  span = ids.length * 1.5;
+  info.textContent = lines.join('\n');
+}
+
 function addWeapons() {
   const ids = WEAPON_IDS;
   const cols = 11;
@@ -205,7 +226,7 @@ function addWeapons() {
     const w = models.buildWeapon(id) as WeaponModelExt;
     const c = i % cols, r = Math.floor(i / cols);
     const holder = new THREE.Group();
-    holder.position.set((c - (cols - 1) / 2) * 0.62, 0.25 + (2 - r) * 1.0 + (w.object.name.includes('spear') || w.object.name.includes('halberd') ? 0 : 0), 0);
+    holder.position.set((c - (cols - 1) / 2) * 0.62, 0.25 + (2 - r) * 1.0 + (/shield|buckler/.test(id) ? 0.5 : 0), 0);
     const isShield = /shield|buckler/.test(id);
     // show blade flats to the camera (flats face ±X), shields face-on
     w.object.rotation.y = isShield ? 0 : Math.PI / 2;
@@ -246,7 +267,9 @@ function addHands() {
 
 async function main() {
   await initMaterials(renderer);
-  if (group === 'weapons') addWeapons();
+  if (qs.get('normals')) scene.overrideMaterial = new THREE.MeshNormalMaterial();
+  if (qs.get('only')) addFocus(qs.get('only')!.split(','));
+  else if (group === 'weapons') addWeapons();
   else if (group === 'hands') addHands();
   else addCharacters((GROUPS[group] ?? GROUPS.player)());
   for (const a of actors) {

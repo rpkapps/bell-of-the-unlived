@@ -107,7 +107,7 @@ export function buildApproach(ctx: AreaCtx): ApproachBuild {
     // one holds the gatehouse passage (flat landing, walls either side — no ledges to be knocked off)
     { id: 'ash_gate_inf_1', kind: 'infantry', anchor: anchor(cx + 1.2, 5.5, -139.8, YAW_S), leash: 10, idleAnim: 'stand' },
     // one waits in the forecourt corner beside the fog, joins when the player crests the stair
-    { id: 'ash_gate_inf_2', kind: 'infantry', anchor: anchor(1.3, 8, -148.9, YAW_S + 0.5), leash: 9, idleAnim: 'stand' },
+    { id: 'ash_gate_inf_2', kind: 'infantry', anchor: anchor(6.4, 8, -147.1, YAW_S - 0.5), leash: 9, idleAnim: 'stand' },
   ];
   return { enemies };
 }

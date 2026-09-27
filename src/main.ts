@@ -24,6 +24,7 @@ async function boot() {
   const q = new URLSearchParams(location.search);
   const settings = loadSettings();
   if (q.has('hitboxes')) settings.gameplay.showHitboxes = true;
+  if (q.get('quality')) settings.graphics.quality = q.get('quality') as any;
   const saveSettings = () => { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch { /* ignore */ } };
   const canvas = document.getElementById('view') as HTMLCanvasElement;
   const uiRoot = document.getElementById('ui') as HTMLElement;

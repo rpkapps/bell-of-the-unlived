@@ -46,27 +46,27 @@ const g = (family: GenSpec['family'], kind: number, colors: GenSpec['colors'], p
 export const MATERIAL_DEFS: Record<MaterialId, MatDef> = {
   // ------------------------------------------------------------------ architecture (triplanar)
   stone_wall: {
-    gen: g('masonry', MK.ashlar, ['#77726a', '#5d5a53', '#48443d', '#8d937b'], [6, 3, 0.008, 1.0], [0.5, 0.25, 0.7, 0], 1, 'hero', 1.1),
+    gen: g('masonry', MK.ashlar, ['#948e83', '#7b776e', '#6b665c', '#8d937b'], [6, 3, 0.008, 1.0], [0.5, 0.25, 0.7, 0], 1, 'hero', 1.1, { ao: 1.1 }),
     mapping: 'triplanar', scale: 2.4, weather: [0.85, 0.35, 0.5, 0.25], porosity: 0.7,
   },
   stone_dark: {
-    gen: g('masonry', MK.ashlar, ['#4c4a44', '#3c3a35', '#2b2925', '#6d7560'], [5, 2, 0.011, 1.5], [0.95, 0.7, 0.9, 0], 2, 'hero', 1.2),
+    gen: g('masonry', MK.ashlar, ['#6a675f', '#57544d', '#4a463f', '#6d7560'], [5, 2, 0.011, 1.5], [0.95, 0.45, 0.9, 0], 2, 'hero', 1.2, { ao: 1.1 }),
     mapping: 'triplanar', scale: 2.6, weather: [1.0, 0.7, 0.6, 0.2], porosity: 0.8,
   },
   stone_fresh: {
-    gen: g('masonry', MK.ashlar, ['#d6ccb6', '#c7bca4', '#2c2925', '#8d937b'], [6, 3, 0.009, 0.12], [0.08, 0, 0, 1], 3, 'hero', 0.9),
+    gen: g('masonry', MK.ashlar, ['#d6ccb6', '#c7bca4', '#2c2925', '#8d937b'], [6, 3, 0.009, 0.12], [0.08, 0, 0, 1], 3, 'hero', 0.9, { ao: 1.1 }),
     mapping: 'triplanar', scale: 2.4, weather: [0.12, 0, 0.04, 0.05], porosity: 0.5, variation: 0.35,
   },
   stone_trim: {
-    gen: g('masonry', MK.ashlar, ['#948f82', '#847f73', '#5a564e', '#8d937b'], [2, 1, 0.006, 0.8], [0.75, 0.15, 0.5, 0], 4, 'std', 1),
+    gen: g('masonry', MK.ashlar, ['#948f82', '#847f73', '#5a564e', '#8d937b'], [2, 1, 0.006, 0.8], [0.75, 0.15, 0.5, 0], 4, 'std', 1, { ao: 1.1 }),
     mapping: 'triplanar', scale: 2.0, weather: [0.6, 0.25, 0.55, 0.35], porosity: 0.6,
   },
   cobble: {
-    gen: g('masonry', MK.cobble, ['#5f5c57', '#4b4741', '#2a241d', '#000000'], [9, 9, 0.07, 0.8], [0, 0.25, 0, 0], 5, 'hero', 1.3),
-    mapping: 'triplanar', scale: 2.0, weather: [0.4, 0.15, 0, 0], porosity: 1,
+    gen: g('masonry', MK.cobble, ['#615e58', '#4e4b46', '#282219', '#000000'], [8, 11, 0.06, 0.8], [0, 0.25, 0, 0], 5, 'hero', 1.0),
+    mapping: 'triplanar', scale: 1.7, weather: [0.4, 0.15, 0, 0], porosity: 1,
   },
   flagstone: {
-    gen: g('masonry', MK.flagstone, ['#6b665d', '#59544b', '#2d2a26', '#000000'], [3, 2, 0.009, 0.8], [0.8, 0.12, 0.6, 0], 6, 'hero', 1),
+    gen: g('masonry', MK.flagstone, ['#827b70', '#6d675d', '#322e29', '#000000'], [3, 2, 0.009, 0.8], [0.8, 0.12, 0.6, 0], 6, 'hero', 1, { ao: 1.1 }),
     mapping: 'triplanar', scale: 3.0, weather: [0.35, 0.1, 0, 0.1], porosity: 0.8,
   },
   plaster: {
@@ -90,7 +90,7 @@ export const MATERIAL_DEFS: Record<MaterialId, MatDef> = {
     mapping: 'uvWorld', scale: 1.5, weather: [0.5, 0.25, 0.2, 0.2], porosity: 0.6,
   },
   roof_slate: {
-    gen: g('masonry', MK.slate, ['#3d4047', '#2e3036', '#000000', '#8a8360'], [8, 5, 0.004, 1], [0, 0.3, 0.4, 0], 12, 'std', 1.2),
+    gen: g('masonry', MK.slate, ['#4d4f54', '#3d3f44', '#000000', '#8a8360'], [8, 5, 0.004, 1], [0, 0.3, 0.4, 0], 12, 'std', 1.2),
     mapping: 'triplanar', scale: 2.4, weather: [0.2, 0.4, 0.3, 0], porosity: 1,
   },
   roof_thatch_burnt: {
@@ -98,7 +98,7 @@ export const MATERIAL_DEFS: Record<MaterialId, MatDef> = {
     mapping: 'triplanar', scale: 2.5, weather: [0, 0.2, 0, 0], porosity: 0.2,
   },
   dirt: {
-    gen: g('ground', GK.dirt, ['#4f4134', '#6e6a62', '#2c241c', '#000000'], [0.7, 0.5, 0.6, 0], [0, 0, 0, 0], 14, 'std', 1),
+    gen: g('ground', GK.dirt, ['#4f4134', '#6e6a62', '#2c241c', '#000000'], [0.7, 0.5, 0.6, 0], [0, 0, 0, 0], 14, 'std', 1, { ao: 1.1 }),
     mapping: 'triplanar', scale: 3.0, weather: [0, 0, 0, 0], porosity: 0.8,
   },
   mud: {
@@ -114,11 +114,11 @@ export const MATERIAL_DEFS: Record<MaterialId, MatDef> = {
     mapping: 'triplanar', scale: 1.5, weather: [0, 0, 0, 0], porosity: 0.4,
   },
   rock_cliff: {
-    gen: g('masonry', MK.cliff, ['#56595c', '#46484b', '#000000', '#6b4f36'], [6, 6, 0, 0], [0.6, 0.35, 0, 0], 18, 'hero', 1.3),
-    mapping: 'triplanar', scale: 6.0, weather: [0.3, 0.5, 0.4, 0.15], porosity: 0.7,
+    gen: g('masonry', MK.cliff, ['#75736e', '#5d5b57', '#000000', '#6b4f36'], [5, 7, 0, 0], [0.6, 0.35, 0, 0], 18, 'hero', 1.8),
+    mapping: 'triplanar', scale: 4.5, weather: [0.3, 0.5, 0.4, 0.15], porosity: 0.7,
   },
   rubble: {
-    gen: g('masonry', MK.rubble, ['#6a665e', '#55514a', '#5a534a', '#1a1714'], [6, 22, 0.15, 0], [0, 0, 0, 0], 19, 'std', 1.4),
+    gen: g('masonry', MK.rubble, ['#7e796f', '#67635a', '#6a6358', '#1a1714'], [6, 22, 0.15, 0], [0, 0, 0, 0], 19, 'std', 1.4),
     mapping: 'triplanar', scale: 2.5, weather: [0.3, 0.2, 0, 0.1], porosity: 0.6,
   },
   // ------------------------------------------------------------------ metals (UV)
@@ -131,8 +131,8 @@ export const MATERIAL_DEFS: Record<MaterialId, MatDef> = {
     mapping: 'uv', scale: 1, weather: [0.3, 0, 0.3, 0.3], porosity: 0.4,
   },
   steel_armor: {
-    gen: g('metal', TK.steelArmor, ['#222427', '#1e2533', '#8f9296', '#5a3420'], [0.8, 0.25, 0.8, 0.5], [0, 0, 0, 0], 22, 'std', 0.7),
-    mapping: 'uv', scale: 1, weather: [0, 0, 0, 0.9],
+    gen: g('metal', TK.steelArmor, ['#383b40', '#2d3542', '#a2a5aa', '#5a3420'], [0.8, 0.25, 0.8, 0.5], [0, 0, 0, 0], 22, 'std', 0.7),
+    mapping: 'uv', scale: 1, weather: [0, 0, 0, 0.9], metalness: 0.8,
   },
   steel_bright: {
     gen: g('metal', TK.steelBright, ['#9ea2a6', '#6e6a64', '#c9ccd0', '#6a3e22'], [1, 0.25, 0.8, 0.5], [0, 0, 0, 0], 23, 'std', 0.5),
@@ -182,11 +182,11 @@ export const MATERIAL_DEFS: Record<MaterialId, MatDef> = {
   },
   window_warm: {
     gen: g('special', SK.window, ['#d89040', '#1c1a18', '#6a3a18', '#000000'], [3, 4, 0.02, 0.55], [0, 0, 0, 0], 45, 'small', 0.6),
-    mapping: 'uv', scale: 1, emissive: { color: '#ffa055', intensity: 3.2, anim: [0.12, 1.3, 0, 0] },
+    mapping: 'uv', scale: 1, emissive: { color: '#ff9a48', intensity: 1.3, anim: [0.12, 1.3, 0, 0] },
   },
   bell_light: {
     gen: g('special', SK.bellLight, ['#ffe8b0', '#000000', '#000000', '#000000'], [0, 0, 0, 0], [0, 0, 0, 0], 46, 'small', 0.3),
-    mapping: 'uv', scale: 1, emissive: { color: '#ffd890', intensity: 3.0, anim: [0.05, 0.8, 0.2, 1.1] },
+    mapping: 'uv', scale: 1, emissive: { color: '#ffd890', intensity: 1.5, anim: [0.05, 0.8, 0.2, 1.1] },
   },
   unlived_crack: {
     gen: g('metal', TK.crack, ['#1f1b17', '#ffc860', '#2e2820', '#000000'], [5, 11, 0.05, 0], [0.3, 0, 0, 0], 47, 'std', 1),

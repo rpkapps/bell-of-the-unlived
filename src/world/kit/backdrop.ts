@@ -71,13 +71,13 @@ export function skylineRing(kit: Kit, cx: number, cz: number, r0: number, r1: nu
 /** Jagged mountain cone. */
 export function mountain(kit: Kit, x: number, y: number, z: number, r: number, h: number, seed: number, mat: MaterialId = 'rock_cliff') {
   const rng = new Rng(seed);
-  const g = new THREE.ConeGeometry(r, h, 9, 4, true);
+  const g = new THREE.ConeGeometry(r, h, 11, 5, true);
   const p = g.attributes.position as THREE.BufferAttribute;
   const cache = new Map<string, [number, number, number]>();
   for (let i = 0; i < p.count; i++) {
     const key = `${p.getX(i).toFixed(2)},${p.getY(i).toFixed(2)},${p.getZ(i).toFixed(2)}`;
     let d = cache.get(key);
-    if (!d) { const top = p.getY(i) > h / 2 - 0.01; d = top ? [0, 0, 0] : [rng.range(-0.15, 0.15) * r, rng.range(-0.12, 0.12) * h, rng.range(-0.15, 0.15) * r]; cache.set(key, d); }
+    if (!d) { const top = p.getY(i) > h / 2 - 0.01; d = top ? [rng.range(-0.1, 0.1) * r, -rng.range(0, 0.15) * h, rng.range(-0.1, 0.1) * r] : [rng.range(-0.18, 0.18) * r, rng.range(-0.16, 0.16) * h, rng.range(-0.18, 0.18) * r]; cache.set(key, d); }
     p.setXYZ(i, p.getX(i) + d[0], p.getY(i) + d[1], p.getZ(i) + d[2]);
   }
   g.translate(0, h / 2, 0);
@@ -91,7 +91,10 @@ export function mountainRing(kit: Kit, cx: number, cz: number, r: number, count:
   for (let i = 0; i < count; i++) {
     const a = (i / count) * Math.PI * 2 + rng.range(-0.1, 0.1);
     const rr = r * rng.range(0.9, 1.15);
-    mountain(kit, cx + Math.cos(a) * rr, y, cz - Math.sin(a) * rr, rng.range(120, 220), rng.range(140, 320), seed * 31 + i, rng.chance(0.5) ? 'rock_cliff' : 'stone_dark');
+    mountain(kit, cx + Math.cos(a) * rr, y, cz - Math.sin(a) * rr, rng.range(220, 360), rng.range(110, 230), seed * 31 + i, rng.chance(0.5) ? 'rock_cliff' : 'stone_dark');
+    // a lower shoulder beside each peak breaks the cone silhouette into a ridge
+    const a2 = a + rng.range(0.08, 0.16);
+    mountain(kit, cx + Math.cos(a2) * rr * 0.95, y, cz - Math.sin(a2) * rr * 0.95, rng.range(180, 280), rng.range(70, 140), seed * 57 + i, 'stone_dark');
   }
 }
 

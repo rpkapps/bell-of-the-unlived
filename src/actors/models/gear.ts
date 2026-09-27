@@ -22,7 +22,7 @@ import type { ClothCollider } from './cloth';
 /** Standard shared material keys. */
 export const M = {
   steel: 'steel_armor',
-  steelOld: 'iron_rusted|t=8c8a88',
+  steelOld: 'iron_rusted|t=6c6a68',
   iron: 'iron',
   bronze: 'bronze',
   gold: 'gold_trim',
@@ -650,8 +650,11 @@ export function crest(b: CharBuilder, mat: string, y0: number) {
 }
 
 /** Kettle helm: bowl + sloping brim (infantry). */
-export function kettleHelm(b: CharBuilder, o: HelmOpts & { brim?: number } = {}) {
+export function kettleHelm(b: CharBuilder, o: HelmOpts & { brim?: number; tilt?: number } = {}) {
   const mat = o.mat ?? M.steelOld;
+  // optional tilt: helm pushed back on the head (face visible)
+  const tf = o.tilt ? { r: [-o.tilt, 0, 0] as V3, p: [0, 0.012, -0.018] as V3 } : undefined;
+  const bb = { add: (bone: BoneName, g: G, m: string) => b.add(bone, g, m, tf), crackOn: (bone: BoneName, r: Ring[], l: LoftOpts) => b.crackOn(bone, r, l, tf) };
   const bowl: Ring[] = [
     { y: 0.235, rx: 0.02 }, { y: 0.225, rx: 0.06, rz: 0.066 }, { y: 0.19, rx: 0.092, rz: 0.1 },
     { y: 0.13, rx: 0.1, rz: 0.11, cz: 0.005 }, { y: 0.085, rx: 0.102, rz: 0.112, cz: 0.006 },
@@ -659,18 +662,18 @@ export function kettleHelm(b: CharBuilder, o: HelmOpts & { brim?: number } = {})
   const lo: LoftOpts = { segs: 20, capTop: true, radial: ridge(0, 0.03, 0.2) };
   const g = loft(bowl, lo);
   if (o.dents) dent(g, b.rng, 0.006, o.dents, 0.05);
-  b.add('head', g, mat);
-  b.crackOn('head', bowl, lo);
+  bb.add('head', g, mat);
+  bb.crackOn('head', bowl, lo);
   const w = o.brim ?? 0.075;
   const brim = loft([
     { y: 0.088, rx: 0.1, rz: 0.11, cz: 0.006 }, { y: 0.075, rx: 0.1 + w * 0.5, rz: 0.11 + w * 0.5, cz: 0.006 },
     { y: 0.05, rx: 0.1 + w, rz: 0.11 + w, cz: 0.006 }, { y: 0.043, rx: 0.1 + w + 0.004, rz: 0.11 + w + 0.004, cz: 0.006 },
   ], { segs: 22, radial: (th) => 1 + 0.03 * Math.sin(th * 5 + 1) });
-  b.add('head', brim, mat);
-  b.add('head', inside(loft([{ y: 0.088, rx: 0.098, rz: 0.108, cz: 0.006 }, { y: 0.05, rx: 0.098 + w, rz: 0.108 + w, cz: 0.006 }], { segs: 22 })), M.shadow);
+  bb.add('head', brim, mat);
+  bb.add('head', inside(loft([{ y: 0.088, rx: 0.098, rz: 0.108, cz: 0.006 }, { y: 0.05, rx: 0.098 + w, rz: 0.108 + w, cz: 0.006 }], { segs: 22 })), M.shadow);
   // comb ridge
-  b.add('head', sweep([[0, 0.13, 0.11], [0, 0.23, 0.02], [0, 0.2, -0.08], [0, 0.12, -0.11]], { w: 0.004, h: 0.006, up: [1, 0, 0], sides: 4, segs: 10 }), mat);
-  if (o.trim) b.add('head', loft([{ y: 0.1, rx: 0.103, rz: 0.113, cz: 0.006 }, { y: 0.087, rx: 0.103, rz: 0.113, cz: 0.006 }], { segs: 20 }), o.trim);
+  bb.add('head', sweep([[0, 0.13, 0.11], [0, 0.23, 0.02], [0, 0.2, -0.08], [0, 0.12, -0.11]], { w: 0.004, h: 0.006, up: [1, 0, 0], sides: 4, segs: 10 }), mat);
+  if (o.trim) bb.add('head', loft([{ y: 0.1, rx: 0.103, rz: 0.113, cz: 0.006 }, { y: 0.087, rx: 0.103, rz: 0.113, cz: 0.006 }], { segs: 20 }), o.trim);
 }
 
 /** Old-pattern sallet with eye slit and long tail (Greyford). */

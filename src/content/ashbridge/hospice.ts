@@ -102,7 +102,7 @@ export function buildHospice(ctx: AreaCtx): HospiceBuild {
   k.bmm('stone_trim', 37.2, Y, -111.2, ix1, Y + 0.28, -104.8, { col: true });
   k.bmm('stone_wall', 37.3, Y + 0.28, -111.1, ix1, Y + 0.3, -104.9, { cast: false });
   const shrine = stillbellShrine(k, 38.8, Y + 0.3, -108, YAW_W, 8);
-  shrine.anchor.pos.y = Y; // the resting spot is on the nave floor in front of the dais
+  shrine.anchor.pos.set(36.6, Y, -108); // the resting spot is on the nave floor in front of the dais
   candelabrum(k, 37.6, Y + 0.3, -110.6, 5);
   candelabrum(k, 37.6, Y + 0.3, -105.4, 5);
   wallBanner(k, 39.95, Y + 7.4, -104.5, YAW_W, 1.2, 3.2);

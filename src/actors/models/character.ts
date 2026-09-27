@@ -466,7 +466,7 @@ function roundBag() {
 
 const BELLKEEPER: LookDef = {
   head: (b, c) => {
-    face(b, c, { old: true, style: 'balding', hair: 'grey', beard: 'full', skin: 'skin|t=b0a090', soot: true });
+    face(b, c, { old: true, style: 'balding', hair: 'grey', beard: 'full', skin: 'skin|t=b0a090', soot: true, shade: 0.35 });
     hood(b, { mat: SOOT, trim: null, depth: 1.05, tip: 0.08, open: 1.0 });
   },
   body: (b, c) => {

@@ -92,8 +92,8 @@ const FRAG_EMISSIVE = /* glsl */ `
   totalEmissiveRadiance += uBotuRim * (bR * 1.8 + 0.06) * bP;
   totalEmissiveRadiance += uBotuEdge * botuEdge;
 #ifdef BOTU_GHOST
-  diffuseColor.a *= mix(uBotuGhostMin, 1.0, bR * bR);
-  totalEmissiveRadiance += uBotuGhostColor * (0.1 + bR * 1.6) * (0.85 + 0.15 * sin(uBotuTime * 2.0 + vBotuPos.y * 9.0));
+  diffuseColor.a *= mix(uBotuGhostMin, 0.85, bR * bR);
+  totalEmissiveRadiance += uBotuGhostColor * (0.12 + bR * 0.8) * (0.85 + 0.15 * sin(uBotuTime * 2.0 + vBotuPos.y * 9.0));
 #endif
 }
 `;

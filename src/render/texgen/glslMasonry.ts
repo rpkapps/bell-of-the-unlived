@@ -65,21 +65,27 @@ S ashlarStone(vec2 uv) {
 // uP0 = (cellsX, cellsY, gap, polish)  uP1 = (_, moss, mud, _)
 S cobble(vec2 uv) {
   vec2 tp;
-  vec3 v = voronoiEdge(uv, uP0.xy, 0.8, uSeed, tp);
+  vec3 v = voronoiEdge(uv, uP0.xy, 0.75, uSeed, tp);
   float rnd = v.y;
-  float gap = uP0.z;
   float det = fbm1(uv, 32.0, 4, uSeed + 1.0);
   float fine = gnoise(uv * 128.0, vec2(128.0), uSeed + 2.0);
-  float stoneM = smoothstep(gap, gap + 0.05, v.x + (det - 0.5) * 0.06);
-  float dome = sqrt(smoothstep(gap, gap + 0.4, v.x));
-  float h = mix(0.08 + 0.1 * det, 0.5 + 0.38 * dome + 0.08 * (rnd - 0.5) + 0.05 * (det - 0.5) + 0.01 * fine, stoneM);
-  vec3 st = mix(uC0, uC1, rnd) * (0.78 + 0.44 * det) * (0.93 + 0.14 * fine);
-  st = mix(st, st * 1.18, dome * uP0.w * 0.6); // worn, polished crowns
-  vec3 mud = uC2 * (0.7 + 0.5 * det);
+  float gap = uP0.z;
+  float e = v.x + (det - 0.5) * 0.05;
+  float stoneM = smoothstep(gap, gap + 0.04, e);
+  // rounded shoulders: circular falloff into the joint, slight random tilt per stone
+  float k = clamp((e - gap) / 0.42, 0.0, 1.0);
+  float dome = 1.0 - (1.0 - k) * (1.0 - k);
+  vec2 tdir = vec2(cos(rnd * 17.0), sin(rnd * 17.0));
+  float tilt = dot(-tp, tdir) * 0.12;
+  float h = mix(0.1 + 0.08 * det + 0.02 * fine, 0.42 + 0.34 * dome + 0.12 * (rnd - 0.5) + tilt + 0.05 * (det - 0.5) + 0.012 * fine, stoneM);
+  vec3 st = mix(uC0, uC1, fract(rnd * 7.13)) * (0.8 + 0.4 * det) * (0.94 + 0.12 * fine);
+  st = mix(st, st * 1.15, dome * uP0.w * 0.5);
+  st *= 0.8 + 0.2 * dome;
+  vec3 mud = uC2 * (0.7 + 0.5 * det) * (0.9 + 0.2 * fine);
   float moss = uP1.y * (1.0 - stoneM) * smoothstep(0.45, 0.65, fbm1(uv, 8.0, 3, uSeed + 4.0));
   vec3 alb = mix(mud, st, stoneM);
   alb = mix(alb, vec3(0.03, 0.042, 0.015), moss);
-  float rough = mix(0.28 + 0.2 * det, 0.72 - 0.3 * dome * uP0.w + 0.08 * fine, stoneM);
+  float rough = mix(0.35 + 0.25 * det, 0.74 - 0.3 * dome * uP0.w + 0.08 * fine, stoneM);
   rough = mix(rough, 0.95, moss);
   return mk(alb, h, rough, 0.0);
 }
@@ -163,22 +169,32 @@ S rubble(vec2 uv) {
 // uP0 = (layers, fractureFreq, _, _)  uP1 = (ironStain, moss, _, _)
 S cliff(vec2 uv) {
   float warp = fbm(uv, vec2(2.0, 3.0), 4, uSeed);
-  float y = uv.y * uP0.x + warp * 1.8;
+  float y = uv.y * uP0.x + warp * 1.4;
   float layer = floor(y), band = fract(y);
-  float lr = hf(imodf(layer, uP0.x), uSeed + 2.0);
-  float fr = ridged(uv, vec2(uP0.y, 2.0), 3, uSeed + 3.0);
-  float crack = smoothstep(0.8, 0.95, fr);
-  float det = fbm1(uv, 16.0, 5, uSeed + 4.0);
-  float fine = gnoise(uv * 128.0, vec2(128.0), uSeed + 5.0);
-  float ledge = smoothstep(0.0, 0.1, band);
-  float h = 0.3 + 0.3 * lr + 0.22 * (1.0 - band) * ledge + 0.22 * (det - 0.5) - 0.3 * crack + 0.02 * fine;
-  vec3 c = mix(uC0, uC1, lr) * (0.72 + 0.56 * det) * (0.93 + 0.14 * fine);
-  float streak = smoothstep(0.6, 0.8, fbm(uv, vec2(20.0, 2.0), 3, uSeed + 6.0)) * uP1.x;
-  c = mix(c, uC3 * (0.8 + 0.4 * det), streak * 0.7);
-  c *= 1.0 - 0.6 * crack;
-  float moss = uP1.y * (1.0 - ledge) * smoothstep(0.4, 0.6, det);
+  float lk = imodf(layer, uP0.x);
+  float lr = hf(lk, uSeed + 2.0);
+  // vertical joints, offset per layer, split each stratum into blocks
+  float jf = uP0.y;
+  float jx = uv.x * jf + hf(lk, uSeed + 4.0) * 3.0 + 0.4 * fbm(uv, vec2(3.0, 6.0), 3, uSeed + 5.0);
+  float jfr = fract(jx);
+  float joint = 1.0 - smoothstep(0.0, 0.06, min(jfr, 1.0 - jfr));
+  float bid = h1(ivec2(int(imodf(floor(jx), jf)), int(lk)), uSeed + 6.0);
+  float det = fbm1(uv, 16.0, 5, uSeed + 7.0);
+  float fine = gnoise(uv * 128.0, vec2(128.0), uSeed + 8.0);
+  float fr = ridged(uv, vec2(6.0, 4.0), 3, uSeed + 3.0);
+  float crack = smoothstep(0.84, 0.95, fr);
+  // each block bulges out; the top of each stratum is a ledge, its underside undercut
+  float bulge = sqrt(clamp(min(band, 1.0 - band) * 4.0, 0.0, 1.0));
+  float h = 0.3 + 0.28 * bid + 0.2 * bulge + 0.14 * lr + 0.22 * (det - 0.5) + 0.02 * fine;
+  h -= 0.35 * joint + 0.25 * crack + 0.3 * (1.0 - smoothstep(0.0, 0.07, band));
+  vec3 c = mix(uC0, uC1, lr * 0.6 + bid * 0.4) * (0.7 + 0.6 * det) * (0.93 + 0.14 * fine);
+  float streak = smoothstep(0.6, 0.8, fbm(uv, vec2(20.0, 2.0), 3, uSeed + 9.0)) * uP1.x;
+  c = mix(c, uC3 * (0.8 + 0.4 * det), streak * 0.6);
+  c *= 1.0 - 0.55 * max(joint, crack);
+  float ledgeTop = smoothstep(0.8, 0.95, band);
+  float moss = uP1.y * ledgeTop * smoothstep(0.4, 0.6, det);
   c = mix(c, vec3(0.03, 0.045, 0.016), moss);
-  return mk(c, h, mix(0.86 + 0.08 * det, 1.0, moss), 0.0);
+  return mk(c, h, mix(0.84 + 0.1 * det, 1.0, moss), 0.0);
 }
 
 void main() {

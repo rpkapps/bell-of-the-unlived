@@ -201,7 +201,7 @@ export function brazier(kit: Kit, x: number, y: number, z: number, col = true, s
   kit.push(x, y, z);
   const w = kit.wp(0, 1.12 * s, 0);
   kit.pop();
-  kit.shared.instances.add(FLAME_KEY, flameGeo, 'fire', new THREE.Matrix4().makeScale(3.2 * s, 3.6 * s, 3.2 * s).setPosition(w));
+  kit.shared.instances.add(FLAME_KEY, flameGeo, 'fire', new THREE.Matrix4().makeScale(2.2 * s, 2.4 * s, 2.2 * s).setPosition(w));
   if (col) kit.push(x, y, z).solid(-0.4 * s, 0, -0.4 * s, 0.4 * s, 1.15 * s, 0.4 * s, 'metal').pop();
 }
 
@@ -666,7 +666,7 @@ export function rockFace(kit: Kit, x0: number, z0: number, x1: number, z1: numbe
   kit.push((x0 + x1) / 2 - nx * thick / 2, yBase, (z0 + z1) / 2 - nz * thick / 2, Math.atan2(-dz, dx));
   kit.bmm(mat, -len / 2, 0, -thick / 2, len / 2, H * 0.92, thick / 2, { cast: true });
   kit.pop();
-  const n = Math.max(2, Math.round(len / 2.6));
+  const n = Math.max(2, Math.round(len / Math.max(2.6, rMax * 1.1)));
   for (let i = 0; i <= n; i++) {
     const t = i / n;
     const px = x0 + (x1 - x0) * t, pz = z0 + (z1 - z0) * t;

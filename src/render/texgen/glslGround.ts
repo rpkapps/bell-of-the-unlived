@@ -64,8 +64,10 @@ S grass(vec2 uv) {
 
 // Moss: uP0 = (cushions, tips, _, _)  uC0 green, uC1 bright tip, uC2 dark
 S moss(vec2 uv) {
-  vec4 w = worley(uv, vec2(uP0.x), 0.9, uSeed);
-  float cush = 1.0 - smoothstep(0.0, 0.8, w.x);
+  vec2 wuv = uv + (vec2(fbm1(uv, 6.0, 3, uSeed + 5.0), fbm1(uv, 6.0, 3, uSeed + 6.0)) - 0.5) * 0.12;
+  vec4 w = worley(fract(wuv), vec2(uP0.x), 1.0, uSeed);
+  vec4 w2 = worley(uv, vec2(uP0.x * 2.5), 1.0, uSeed + 7.0);
+  float cush = (1.0 - smoothstep(0.0, 0.9, w.x)) * 0.7 + (1.0 - smoothstep(0.0, 0.8, w2.x)) * 0.3;
   float fuzz = gnoise(uv * 200.0, vec2(200.0), uSeed + 1.0);
   float det = fbm1(uv, 24.0, 4, uSeed + 2.0);
   float tip = smoothstep(0.6, 0.85, fuzz * 0.6 + cush * 0.5) * uP0.y;

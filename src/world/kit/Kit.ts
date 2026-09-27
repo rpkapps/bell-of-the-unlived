@@ -242,10 +242,13 @@ export class Kit {
   }
 
   private bucket(mat: MaterialId, o: DrawOpts): Bucket {
+    // One bucket per material (+variant): shadow flags are OR-ed so small props merged with
+    // architecture don't cost an extra draw call (the few extra shadow triangles are cheap).
     const cast = o.cast ?? true, receive = o.receive ?? true;
-    const key = `${mat}|${o.variant ?? ''}|${cast ? 1 : 0}${receive ? 1 : 0}`;
+    const key = `${mat}|${o.variant ?? ''}`;
     let b = this.buckets.get(key);
     if (!b) this.buckets.set(key, (b = new Bucket(mat, o.variant, cast, receive)));
+    else { b.cast ||= cast; b.receive ||= receive; }
     return b;
   }
 

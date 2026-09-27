@@ -10,7 +10,7 @@ import type { MaterialId } from '../../render/materialIds';
 import { Rng } from '../../core/rng';
 import { Kit } from './Kit';
 import { gableRoof } from './architecture';
-import { cyl } from './geom';
+import { cyl, gablePrism } from './geom';
 
 export interface HouseOpts {
   w: number;
@@ -32,7 +32,8 @@ export interface HouseOpts {
   chimneys?: number;
   /** Add a footprint collider (default false: most streets use explicit bounds). */
   col?: boolean;
-  detail?: 'high' | 'low';
+  /** 'high' (street), 'low' (mid-ground fill), 'far' (distant fill: massing + a few lit windows). */
+  detail?: 'high' | 'low' | 'far';
   seed?: number;
   sign?: boolean;
   plaster?: MaterialId;
@@ -42,6 +43,7 @@ export interface HouseInfo { eaves: number; ridge: number; frontAt: (storey: num
 
 export function house(kit: Kit, x: number, y: number, z: number, yaw: number, o: HouseOpts): HouseInfo {
   const rng = new Rng(o.seed ?? Math.floor(x * 73 + z * 131 + 7));
+  if (o.detail === 'far') return farHouse(kit, rng, x, y, z, yaw, o);
   const hi = (o.detail ?? 'high') === 'high';
   const w = o.w, d = o.d, n = o.storeys;
   const gh = o.groundH ?? 3.0, sh = o.storeyH ?? 2.75;
@@ -79,8 +81,10 @@ export function house(kit: Kit, x: number, y: number, z: number, yaw: number, o:
       }
     } else {
       frameFace(kit, rng, -w / 2, w / 2, y0, h, f, 'front', frameMat, hi, skeleton, k);
-      frameSide(kit, rng, -d, f, y0, h, -w / 2, -1, frameMat, hi, skeleton);
-      frameSide(kit, rng, -d, f, y0, h, w / 2, 1, frameMat, hi, skeleton);
+      if (hi) {
+        frameSide(kit, rng, -d, f, y0, h, -w / 2, -1, frameMat, hi, skeleton);
+        frameSide(kit, rng, -d, f, y0, h, w / 2, 1, frameMat, hi, skeleton);
+      }
     }
     // jetty: bressumer + joist ends
     if (k > 0) {
@@ -95,11 +99,11 @@ export function house(kit: Kit, x: number, y: number, z: number, yaw: number, o:
         const cx = -w / 2 + bw * (b + 0.5);
         if (k === 0) {
           // ground floor: door in one bay, shop window/others
-          if (b === Math.floor(bays / 2) - (bays > 2 && rng.chance(0.5) ? 1 : 0)) door(kit, cx, 0, f, o.burned ?? false);
-          else if (o.shop && !o.burned) shopWindow(kit, rng, cx, f, Math.min(bw - 0.4, 1.8), lit);
-          else if (rng.chance(0.6)) window_(kit, rng, cx, y0 + 1.1, f, 0.8, 1.1, lit * 0.8, o.burned ?? false, stoneStorey);
+          if (b === Math.floor(bays / 2) - (bays > 2 && rng.chance(0.5) ? 1 : 0)) { if (hi) door(kit, cx, 0, f, o.burned ?? false); else kit.box(o.burned ? 'timber_burnt' : 'planks', cx, 1.05, f + 0.02, 1.1, 2.1, 0.08, { cast: false }); }
+          else if (o.shop && !o.burned && hi) shopWindow(kit, rng, cx, f, Math.min(bw - 0.4, 1.8), lit);
+          else if (rng.chance(0.6)) (hi ? window_ : windowLow)(kit, rng, cx, y0 + 1.1, f, 0.8, 1.1, lit * 0.8, o.burned ?? false, stoneStorey);
         } else if (rng.chance(o.burned ? 0.8 : 0.85)) {
-          window_(kit, rng, cx, y0 + 0.95, f, Math.min(bw - 0.5, 1.0), 1.15, lit, o.burned ?? false, stoneStorey);
+          (hi ? window_ : windowLow)(kit, rng, cx, y0 + 0.95, f, Math.min(bw - 0.5, 1.0), 1.15, lit, o.burned ?? false, stoneStorey);
         }
       }
       // a side window or two
@@ -117,10 +121,10 @@ export function house(kit: Kit, x: number, y: number, z: number, yaw: number, o:
   const burnFrac = o.burned ? rng.range(0.0, 0.35) : undefined;
   const pitch = o.pitch ?? ((50 + rng.range(0, 10)) * Math.PI) / 180;
   if (roof === 'front') {
-    ridge += gableRoof(kit, 0, eaves, rcz, 0, w, rd, { pitch, burned: burnFrac, gableMat: o.burned ? null : o.stone ? 'stone_wall' : plaster, mat: 'roof_slate', variant: rng.int(0, 3) });
+    ridge += gableRoof(kit, 0, eaves, rcz, 0, w, rd, { pitch, burned: burnFrac, gableMat: o.burned ? null : o.stone ? 'stone_wall' : plaster, mat: 'roof_slate', variant: rng.int(0, 1) });
     if (!o.burned && !o.stone) gableTimbers(kit, w, (w / 2) * Math.tan(pitch), eaves, fTop + 0.14, frameMat, hi, rng, lit);
   } else {
-    ridge += gableRoof(kit, 0, eaves, rcz, Math.PI / 2, rd, w, { pitch, burned: burnFrac, gableMat: o.burned ? null : o.stone ? 'stone_wall' : plaster, mat: 'roof_slate', variant: rng.int(0, 3) });
+    ridge += gableRoof(kit, 0, eaves, rcz, Math.PI / 2, rd, w, { pitch, burned: burnFrac, gableMat: o.burned ? null : o.stone ? 'stone_wall' : plaster, mat: 'roof_slate', variant: rng.int(0, 1) });
     // dormer-like gablet on long roofs
     if (hi && !o.burned && w > 6 && rng.chance(0.5)) {
       const gw = 1.4, gy = eaves + 0.6;
@@ -281,4 +285,39 @@ function gableTimbers(kit: Kit, w: number, rise: number, y: number, z: number, m
   const Lr = Math.hypot(w / 2 + 0.4, rise + 0.4 * Math.tan(Math.atan2(rise, w / 2)));
   const ar = Math.atan2(rise, w / 2);
   for (const s of [-1, 1]) kit.box(mat, s * (w / 4 + 0.1), y + rise / 2 - 0.12, z + 0.25, Lr, 0.22, 0.08, { rz: -s * ar, cast: false });
+}
+
+/** Mid-ground window: pane + one dark surround (2 boxes). */
+function windowLow(kit: Kit, rng: Rng, cx: number, sillY: number, f: number, w: number, h: number, litP: number, burned: boolean, stone: boolean) {
+  const lit = rng.chance(litP);
+  kit.box(stone ? 'stone_trim' : burned ? 'timber_burnt' : 'timber_dark', cx, sillY + h / 2, f + 0.01, w + 0.24, h + 0.24, 0.06, { cast: false });
+  kit.box(burned ? 'timber_burnt' : lit ? 'window_warm' : 'glass', cx, sillY + h / 2, f + 0.05, w, h, 0.03, { cast: false });
+}
+
+/** Distant fill house: one mass, a gable prism roof, a chimney and a few lit windows (~70 tris). */
+function farHouse(kit: Kit, rng: Rng, x: number, y: number, z: number, yaw: number, o: HouseOpts): HouseInfo {
+  const w = o.w, d = o.d;
+  const h = (o.groundH ?? 3.0) + (o.storeys - 1) * (o.storeyH ?? 2.75);
+  kit.push(x, y, z, yaw);
+  const wall: MaterialId = o.burned ? 'timber_dark' : rng.chance(0.5) ? (o.plaster ?? 'plaster') : rng.chance(0.5) ? 'stone_wall' : 'timber_dark';
+  kit.bmm(wall, -w / 2, 0, -d, w / 2, h, 0, { cast: true });
+  const pitch = ((50 + rng.range(0, 10)) * Math.PI) / 180;
+  const front = (o.roof ?? 'front') === 'front';
+  const span = front ? w : d, len = front ? d : w;
+  const rise = (span / 2) * Math.tan(pitch);
+  if (!o.burned || rng.chance(0.4)) {
+    kit.add('roof_slate', gablePrism(span + 0.6, rise, len + 0.5), { y: h, z: -d / 2, ry: front ? 0 : Math.PI / 2 }, { cast: true });
+  } else {
+    for (let i = 0; i < 4; i++) kit.box('timber_burnt', rng.range(-w / 3, w / 3), h + rise * 0.4, -d / 2, 0.16, rise, 0.16, { rz: rng.range(-0.6, 0.6), cast: true });
+  }
+  if (rng.chance(0.7)) kit.bmm('stone_dark', w * 0.15, h - 0.5, -d * 0.4, w * 0.15 + 0.7, h + rise + 0.6, -d * 0.4 + 0.6, { cast: false });
+  const nWin = Math.max(1, Math.floor(w / 1.8)) * o.storeys;
+  const litP = o.burned ? 0 : (o.lit ?? 0.3);
+  for (let i = 0; i < nWin; i++) {
+    const col = i % Math.max(1, Math.floor(w / 1.8)), row = Math.floor(i / Math.max(1, Math.floor(w / 1.8)));
+    const lit = rng.chance(litP);
+    kit.box(lit ? 'window_warm' : 'timber_dark', -w / 2 + 0.9 + col * 1.8, 1.4 + row * 2.75, 0.03, 0.7, 1.0, 0.05, { cast: false, receive: false });
+  }
+  kit.pop();
+  return { eaves: h, ridge: h + rise, frontAt: () => 0 };
 }

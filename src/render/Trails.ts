@@ -31,8 +31,8 @@ varying float vSide;
 void main() {
   float age = clamp( vAge, 0.0, 1.0 );
   float a = pow( 1.0 - age, 2.2 );
-  a *= smoothstep( 0.0, 0.55, vSide ) * ( 1.0 - 0.35 * smoothstep( 0.9, 1.0, vSide ) );
-  vec3 c = uColor * ( 0.6 + 0.8 * vSide * ( 1.0 - age ) );
+  a *= pow( smoothstep( 0.0, 1.0, vSide ), 1.6 ) * ( 1.0 - 0.5 * smoothstep( 0.93, 1.0, vSide ) );
+  vec3 c = uColor * ( 0.5 + 0.9 * vSide * ( 1.0 - age ) );
   gl_FragColor = vec4( c * a * uOpacity, 1.0 );
 }
 `;
@@ -80,7 +80,7 @@ class Trail implements ITrail {
     this.geo.setDrawRange(0, 0);
     const mat = new THREE.ShaderMaterial({
       name: 'trail',
-      uniforms: { uColor: { value: new THREE.Color(color).multiplyScalar(1.6) }, uOpacity: { value: 0.55 } },
+      uniforms: { uColor: { value: new THREE.Color(color).multiplyScalar(1.1) }, uOpacity: { value: 0.3 } },
       vertexShader: VERT, fragmentShader: FRAG,
       transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
     });

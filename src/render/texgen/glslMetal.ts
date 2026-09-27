@@ -57,7 +57,7 @@ S steelBright(vec2 uv) {
   float det = fbm1(uv, 8.0, 4, uSeed + 1.0);
   float s = max(scratches(uv, vec2(1.0, 0.0), vec2(0.0, 1.0), 2.0, 140.0, 0.14, uSeed + 2.0),
                 scratches(uv, vec2(1.0, 1.0), vec2(-1.0, 1.0), 3.0, 90.0, 0.12, uSeed + 3.0)) * uP0.z;
-  float pits = smoothstep(0.75, 0.86, gnoise(uv * 90.0, vec2(90.0), uSeed + 4.0));
+  float pits = smoothstep(0.86, 0.93, gnoise(uv * 90.0, vec2(90.0), uSeed + 4.0)) * 0.6;
   float stain = smoothstep(0.5, 0.8, fbm1(uv, 4.0, 4, uSeed + 5.0)) * uP0.w;
   float rust = smoothstep(0.85, 0.92, gnoise(uv * 40.0, vec2(40.0), uSeed + 6.0) + pits * 0.2) * uP0.y;
   vec3 c = uC0 * (0.9 + 0.12 * grind * uP0.x + 0.08 * det);

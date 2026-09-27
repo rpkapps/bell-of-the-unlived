@@ -219,8 +219,8 @@ const FRAG_NORMAL = /* glsl */ `
   roughnessFactor = mix( roughnessFactor, 1.0, grime * 0.3 );
   // vertical streaks (soot, rain runs) on walls
   float vert = 1.0 - abs( up );
-  float streakN = texture2D( wxNoise, vec2( wallUv.x * 0.8, wallUv.y * 0.045 ) + wxSeed ).a;
-  float streak = smoothstep( 0.55, 0.85, streakN ) * wxParams.z * vert * ( 0.4 + mA.b );
+  float streakN = texture2D( wxNoise, vec2( wallUv.x * 0.22, wallUv.y * 0.03 ) + wxSeed ).a;
+  float streak = smoothstep( 0.5, 0.9, streakN ) * wxParams.z * vert * ( 0.3 + mA.b ) * smoothstep( 0.35, 0.65, mA.g );
   diffuseColor.rgb *= 1.0 - streak * 0.42;
   // moss: up-facing and in cavities
   float cav = 1.0 - wxOrm.r;

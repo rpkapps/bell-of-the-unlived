@@ -92,7 +92,7 @@ export function runAshbridgeConnectivity(L: AshbridgeLayout, world: CollisionWor
   out.push(walk(world, 'tower top → tower door (spiral stair)', s.clone(), [
     V(-29.5, 14, -110), V(-33, 14, -113.1), V(-35.2, 14, -113.1), V(-37.1, 14, -113.1), V(-37.1, 14, -112.4),
     V(-37.1, 11.25, -107.4), V(-37.1, 11.25, -106.9), V(-30.9, 8.5, -106.9),
-    V(-30.9, 5.75, -112.3), V(-30.9, 5.75, -113.1), V(-35.7, 3, -113.1), V(-37.1, 3, -113.1),
+    V(-30.9, 5.75, -112.3), V(-30.9, 5.75, -113.1), V(-36.7, 3, -113.1), V(-37.1, 3, -113.1),
     V(-37.1, 3, -106.9), V(-30.9, 3, -106.9), V(-30.9, 3, -110), V(-27.4, 3, -110),
   ], K));
   out.push(walk(world, 'ledge → rim path → lower street → square', V(-27.4, 3, -110), [
@@ -132,5 +132,38 @@ export function runAshbridgeConnectivity(L: AshbridgeLayout, world: CollisionWor
   out.push(walk(world, 'reveal: barrier keeps the player out of the hole', V(4, 8, -152), [V(4, 8, -166)], K, true));
   out.push(walk(world, 'reveal: rim stays walkable (to Brannoc)', V(4, 8, -152), [V(L.brannoc.pos.x, 8, L.brannoc.pos.z + 0.3), V(11, 8, -159), V(13.5, 8, -166), V(11, 8, -173), V(4, 8, -176)], K));
   reset();
+  out.push(...spawnSanity(L, world));
   return out;
+}
+
+/**
+ * Every standing anchor (player start, enemies, NPCs, interaction spots) must be on walkable
+ * ground and not inside geometry: a capsule placed there must not be pushed (> 5 cm) and must
+ * find ground within 0.35 m below its feet.
+ */
+export function spawnSanity(L: AshbridgeLayout, world: CollisionWorld): WalkResult[] {
+  const pts: [string, THREE.Vector3, number][] = [
+    ['playerStart', L.playerStart.pos, 0.35],
+    ...L.stillbells.map((b) => ['stillbell:' + b.id, b.anchor.pos, 0.35] as [string, THREE.Vector3, number]),
+    ...L.enemies.map((e) => [e.id, e.anchor.pos, e.kind === 'commander' ? 0.6 : 0.4] as [string, THREE.Vector3, number]),
+    ['oswinCell', L.oswinCell.pos, 0.35], ['oswinHospice', L.oswinHospice.pos, 0.35], ['hesper', L.hesper.pos, 0.35],
+    ['brannoc', L.brannoc.pos, 0.35], ['arenaEntry', L.arenaEntry.pos, 0.35], ['fog.enterTo', L.fogGate.enterTo.pos, 0.35],
+    ['fog.anchor', L.fogGate.anchor.pos, 0.35], ['hatch.anchor', L.hatch.anchor.pos, 0.35], ['chest.anchor', L.chest.anchor.pos, 0.35],
+    ['refugeDoor.anchor', L.refugeDoor.anchor.pos, 0.35], ['lever.anchor', L.drawbridgeLever.anchor.pos, 0.35],
+    ['freshMasonry', L.freshMasonry.pos, 0.35], ['greyfordRelief', L.greyfordRelief.pos, 0.35], ['gearRack', L.gearRack.pos, 0.35],
+    ['forge', L.forge.pos, 0.35],
+    ...L.practicePlaques.map((p) => ['plaque:' + p.topic, p.anchor.pos, 0.35] as [string, THREE.Vector3, number]),
+    ...L.tollPosts.flatMap((t) => t.options.map((o) => [`toll:${t.id}:${o.id}`, o.toward, 0.35] as [string, THREE.Vector3, number])),
+  ];
+  const bad: string[] = [];
+  for (const [name, p, r] of pts) {
+    const q = p.clone().add(new THREE.Vector3(0, 0.02, 0));
+    const before = q.clone();
+    world.resolveCapsule(q, r, 1.8);
+    const push = Math.hypot(q.x - before.x, q.z - before.z);
+    const g = world.groundAt(p.x, p.y + 0.5, p.z, 2);
+    if (push > 0.05) bad.push(`${name} pushed ${push.toFixed(2)} m`);
+    else if (!g || Math.abs(g.y - p.y) > 0.35) bad.push(`${name} no ground (${g ? g.y.toFixed(2) : 'none'} vs ${p.y})`);
+  }
+  return [{ name: `spawn/anchor sanity (${pts.length} points)`, ok: bad.length === 0, reached: pts.length - bad.length, total: pts.length, end: [0, 0, 0], note: bad.join('; ') || 'ok', seconds: 0 }];
 }

@@ -43,10 +43,17 @@ S cloth(vec2 uv) {
   float fade = smoothstep(0.35, 0.85, fbm1(uv, 3.0, 4, uSeed + 3.0)) * uP0.z;
   float bare = smoothstep(0.66, 0.82, fbm1(uv, 5.0, 4, uSeed + 4.0)) * uP0.w;
   float stain = smoothstep(0.55, 0.85, fbm1(uv, 4.0, 4, uSeed + 5.0)) * uP1.y;
-  // darned patches: roundish regions re-woven in a finer, off-colour thread
-  vec4 dw = worley(uv, vec2(3.0), 0.8, uSeed + 6.0);
-  float darn = (1.0 - smoothstep(0.17, 0.2, dw.x)) * step(dw.z, uP1.x);
-  float ring = (smoothstep(0.15, 0.18, dw.x) - smoothstep(0.19, 0.22, dw.x)) * step(dw.z, uP1.x);
+  // darned / patched repairs: a few rectangular patches per tile (3x3 grid, some cells only),
+  // re-woven in a finer, off-colour thread with a stitched border
+  vec2 dg = uv * 3.0; vec2 dcell = floor(dg); vec2 df = fract(dg);
+  ivec2 dci = imod2(ivec2(dcell), ivec2(3));
+  float dOn = step(h1(dci, uSeed + 6.0), uP1.x);
+  vec2 dc = vec2(0.3) + 0.4 * h2(dci, uSeed + 7.0);
+  vec2 dh = vec2(0.08) + vec2(0.18, 0.14) * h2(dci, uSeed + 8.0);
+  vec2 dq = abs(df - dc) - dh;
+  float dbox = max(dq.x, dq.y);
+  float darn = dOn * (1.0 - smoothstep(-0.005, 0.0, dbox));
+  float ring = dOn * (1.0 - smoothstep(0.0, 0.012, abs(dbox + 0.006))) * step(0.5, fract((df.x + df.y) * 60.0));
   vec2 g2 = uv * vec2(N, NV) * 1.6; vec2 f2 = fract(g2);
   float dth = max(1.0 - pow(abs(f2.x - 0.5) * 2.0, 2.0), 1.0 - pow(abs(f2.y - 0.5) * 2.0, 2.0));
   vec3 c = uC0 * (0.82 + 0.3 * tv) * (0.72 + 0.32 * th) * (0.94 + 0.12 * fuzz);
@@ -184,10 +191,12 @@ S plaster(vec2 uv) {
   vec3 v = voronoiEdge(uv, vec2(5.0), 1.0, uSeed + 3.0, tp);
   float crackZone = smoothstep(0.5, 0.7, fbm1(uv, 4.0, 3, uSeed + 4.0));
   float crack = (1.0 - smoothstep(0.0, 0.025, v.x + 0.03 * (det - 0.5))) * crackZone * uP0.x;
-  float flakeN = fbm1(uv, 5.0, 5, uSeed + 5.0);
-  float flake = smoothstep(0.7 - uP0.y * 0.15, 0.72 - uP0.y * 0.15, flakeN);
-  float lip = smoothstep(0.66 - uP0.y * 0.15, 0.7 - uP0.y * 0.15, flakeN) - flake;
-  float streak = smoothstep(0.55, 0.85, fbm(uv, vec2(16.0, 1.0), 3, uSeed + 6.0)) * uP0.z;
+  float flakeN = fbm1(uv, 9.0, 5, uSeed + 5.0) * 0.75 + fbm1(uv, 3.0, 3, uSeed + 11.0) * 0.25;
+  float fth = 0.74 - uP0.y * 0.08;
+  float flake = smoothstep(fth, fth + 0.015, flakeN);
+  float lip = smoothstep(fth - 0.035, fth, flakeN) - flake;
+  float streak = smoothstep(0.58, 0.85, fbm(uv, vec2(5.0, 1.0), 3, uSeed + 6.0)) * uP0.z * 0.6
+               * smoothstep(0.2, 0.7, fbm(uv, vec2(3.0, 2.0), 2, uSeed + 12.0));
   float mildew = smoothstep(0.72, 0.85, fbm1(uv, 20.0, 3, uSeed + 7.0)) * uP0.w;
   vec3 c = mix(uC0, uC1, smoothstep(0.3, 0.8, blotch)) * (0.9 + 0.12 * fine);
   c = mix(c, uC3, streak * 0.55);

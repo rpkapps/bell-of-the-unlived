@@ -11,7 +11,7 @@ import {
   M, tabard, belt, bandolier, robeSkirt, mantle, kettleHelm, cuirass, mailSkirt, pauldrons, armPlates, legPlates, gorget,
   drapeChain, shackle, bellGeom, beads, trunkZ, cloak, bellSleeves,
 } from './gear';
-import { buildLook } from './character';
+import { buildLook, LOOKS } from './character';
 import { loft, sweep, xf, cyl, box, torus, ellipsoid, merge, panel, extrude, type G, type V3, lerp, TAU } from './parts';
 
 const WOOL = 'cloth_brown|t=a08870';
@@ -31,9 +31,16 @@ export function buildNpc(rig: Rig, look: NpcLook): BuiltModel {
 
 /** Oswin Marrow: older, gentle healer in layered hospice robes with satchel and rosary. */
 function oswin(b: CharBuilder) {
-  buildLook(b, { head: 'none', body: 'hospice', arms: 'hospice', legs: 'hospice', cloak: false }, {});
-  // replace the default head with an older face (the look's head slot is 'none' → default face);
-  // buildLook already added a face; add age details on top: grey fringe and beard handled below
+  addNeck(b, 'm', 'skin');
+  addHead(b, { sex: 'm', old: true, style: 'balding', hair: 'grey', beard: 'short' });
+  const c = { sex: 'm' as const, hair: 'grey' as const, unlived: false, faceHidden: false, variant: 0 };
+  LOOKS.hospice.body(b, c);
+  LOOKS.hospice.arms(b, c);
+  LOOKS.hospice.legs(b, c);
+  // hood lowered: a soft cowl bunched around the neck and shoulders
+  b.add('neck', loft([{ y: 0.04, rx: 0.085, rz: 0.09, cz: -0.01 }, { y: -0.03, rx: 0.13, rz: 0.13, cz: -0.02 }, { y: -0.08, rx: 0.18, rz: 0.15, cz: -0.03 }], { segs: 18, radial: (th, v) => 1 + 0.07 * Math.sin(th * 6 + v * 3) }), WOOL, {
+    skin: (p) => { const k = Math.min(1, Math.max(0, (0.03 - p.y) / 0.1)); return [['neck', 1 - k], ['chest', k]]; },
+  });
   beads(b, 'hips', [0.11, 0.06, trunkZ('m', b.shoulder, 0.11, 0.06, 1, 0.07)], 0.05, 0.13, 'timber_dark', 'bronze_bell', trunkSkin);
   // herb bundle tucked in the belt
   b.add('hips', xf(merge([
@@ -91,7 +98,7 @@ function brannoc(b: CharBuilder) {
   const sex = 'm';
   addNeck(b, sex, 'skin_pale|t=b8b0a8');
   addHead(b, { sex, skin: 'skin_pale|t=b8b0a8', hair: 'grey', style: 'cropped', beard: 'full', unlived: true, old: true });
-  kettleHelm(b, { mat: M.steelOld, dents: 5, brim: 0.07 });
+  kettleHelm(b, { mat: M.steelOld, dents: 5, brim: 0.07, tilt: 0.35 });
   addTrunk(b, sex, 'cloth_linen|t=6a645a', { y0: -0.16, y1: 0.56, inflate: 0.014, radial: quilted(24, 16, 0.035), crack: 1 });
   addShoulders(b, sex, 'cloth_linen|t=6a645a', 0.014);
   mailSkirt(b, sex, { y0: 0.12, y1: -0.32, crack: 1 });

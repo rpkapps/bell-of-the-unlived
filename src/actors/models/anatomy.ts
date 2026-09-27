@@ -340,7 +340,7 @@ export function addHead(b: CharBuilder, o: HeadOpts) {
   const lipMat = f ? 'skin|t=d8a098' : 'skin|t=d0a8a0';
   b.add('head', xf(ellipsoid(f ? 0.019 : 0.02, f ? 0.0045 : 0.0035, 0.006, { segs: 10, rows: 5 }), { p: [m.x, m.y + 0.0035, m.z - 0.002] }), o.shade ? skin : lipMat);
   b.add('head', xf(ellipsoid(f ? 0.017 : 0.018, f ? 0.005 : 0.004, 0.0065, { segs: 10, rows: 5 }), { p: [m.x, m.y - 0.004, m.z - 0.0025] }), o.shade ? skin : lipMat);
-  if (o.soot) b.add('head', shell(ur, lo, 0.45, 0.95, () => 0.05, () => 0.012, () => 0.0009, 5, 3), 'cloth_black|t=4a4440|r=1');
+  if (o.soot) b.add('head', shell(ur, lo, 0.62, 0.95, (th) => 0.03 - (th - 0.62) * 0.02, () => 0.008, () => 0.0007, 4, 2), 'skin|t=8a7c74');
   if (o.unlived) {
     const seam: V3[] = [];
     for (let i = 0; i <= 6; i++) { const p = at(-0.55 - i * 0.04, 0.09 - i * 0.02, 0.001).p; seam.push([p.x, p.y, p.z]); }

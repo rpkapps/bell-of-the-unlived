@@ -18,7 +18,7 @@ import type { WeaponModel } from './contract';
 import { weaponMaterial } from './charMaterials';
 import { getMaterial } from '../../render/materials';
 import {
-  loft, sweep, ellipsoid, extrude, bendX, box, rivet, scatter, torus, chain, merge, xf, cyl, dent, norm,
+  loft, sweep, ellipsoid, extrude, curvedPlate, box, rivet, scatter, torus, chain, merge, xf, cyl, dent, norm,
   type Ring, type G, type V3, lerp, TAU, triCount,
 } from './parts';
 import { bellGeom, inside, ridge } from './gear';
@@ -236,21 +236,14 @@ interface ShieldOpts {
 
 /** Board + rim + rivets + optional decal/boss/bands; back grip, brackets, arm strap and pad. */
 function shield(wb: WB, o: ShieldOpts) {
-  const board = extrude(o.outline, o.thick, 0.003, 2);
-  // face at z = 0 at the centre
-  board.translate(0, 0, -o.thick / 2 - 0.003);
-  bendX(board, o.bend);
+  const zf0 = (x: number) => -o.bend * x * x;
+  // board: face at z = 0 in the centre, curving back toward the edges
+  const board = curvedPlate(o.outline, o.thick, (x) => zf0(x), { rings: 7, unitUV: !!o.unitUV, verticalGrain: true });
   const box3 = new THREE.Box3().setFromBufferAttribute(board.attributes.position as THREE.BufferAttribute);
-  const p = board.attributes.position, uv = board.attributes.uv;
-  if (o.unitUV) {
-    for (let i = 0; i < p.count; i++) uv.setXY(i, (p.getX(i) - box3.min.x) / (box3.max.x - box3.min.x), (p.getY(i) - box3.min.y) / (box3.max.y - box3.min.y));
-  }
-  if (o.rng) dent(board, o.rng, 0.004, 5, 0.08);
+  if (o.rng) dent(board, o.rng, 0.003, 5, 0.08);
   wb.add(o.face, board);
   // back boards (a thin inner skin in a different material so the back reads as bare planks)
-  const backB = extrude(o.outline.map(([x, y]) => [x * 0.97, y * 0.97] as [number, number]), 0.002, 0, 2);
-  backB.translate(0, 0, -o.thick - 0.006);
-  bendX(backB, o.bend);
+  const backB = curvedPlate(o.outline.map(([x, y]) => [x * 0.96, y * 0.96] as [number, number]), 0.002, (x) => zf0(x) - o.thick - 0.0005, { rings: 5, verticalGrain: true });
   wb.add(o.back, backB);
   const zf = (x: number) => -o.bend * x * x;
   // plank seams on the face
@@ -306,7 +299,7 @@ function shield(wb: WB, o: ShieldOpts) {
   }
   // --- back: vertical fist grip, brackets, strap across the forearm, pad
   const gx = -0.13, gz = -0.08;
-  const backZ = (x: number) => zf(x) - o.thick - 0.006;
+  const backZ = (x: number) => zf(x) - o.thick - 0.0025;
   wb.add('leather', xf(grip(-0.06, 0.06, 0.016), { p: [gx, 0, gz] }));
   for (const s of [1, -1]) {
     const bz0 = backZ(gx), bz1 = gz;
@@ -673,7 +666,7 @@ const BUILDERS: Record<string, Build> = {
     const wb = new WB();
     shield(wb, {
       outline: circleOutline(0.3, 32), bend: 0.5, thick: 0.022, face: 'planks|t=8a8070', back: 'planks', rim: 'iron', rimW: 0.012,
-      rivets: 'iron', planks: 5, decal: { key: 'cloth_linen|t=c8b89a|a=cath|po', x0: -0.18, x1: 0.18, y0: -0.18, y1: 0.18 }, boss: 'iron', bossR: 0.065, rng: new Rng(5),
+      rivets: 'iron', planks: 5, decal: { key: 'cloth_linen|t=d8c8a8|a=cath|po', x0: -0.2, x1: 0.2, y0: -0.2, y1: 0.2 }, boss: null, rng: new Rng(5),
     });
     return finish(wb, 'pilgrim_roundshield', { hit: { from: -0.3, to: 0.3, radius: 0.28 }, trail: undefined });
   },
@@ -693,15 +686,15 @@ function towerShield(name: string, battered: boolean): WeaponModelExt {
   for (let i = 0; i <= 8; i++) add(-w, lerp(bot + 0.06, top - 0.06, i / 8));
   for (let i = 0; i <= 8; i++) { const t = i / 8; add(lerp(-w, w, t) * 0.97, top - 0.06 + Math.sin(t * Math.PI) * 0.06); }
   shield(wb, {
-    outline, bend: 0.75, thick: 0.03, face: battered ? 'planks|t=6a6a70' : 'planks|t=5a5048', back: 'planks', rim: 'iron_rusted', rimW: 0.018,
-    rivets: 'iron', planks: 6, bands: 'iron_rusted',
+    outline, bend: 0.75, thick: 0.03, face: battered ? 'planks|t=6a6a70' : 'planks|t=5a5048', back: 'planks', rim: 'iron_rusted|t=707070', rimW: 0.018,
+    rivets: 'iron', planks: 6, bands: 'iron_rusted|t=707070',
     decal: { key: battered ? 'cloth_linen|t=8a9aa8|a=army|po' : 'cloth_red|t=d0a090|a=army|po', x0: -0.2, x1: 0.2, y0: -0.18, y1: 0.22 },
-    boss: 'iron_rusted', bossR: 0.07, rng,
+    boss: 'iron_rusted|t=707070', bossR: 0.07, rng,
   });
   // vertical spine ridge
   const pts: V3[] = [];
   for (let i = 0; i <= 8; i++) pts.push([0, lerp(top - 0.05, bot + 0.04, i / 8), 0.004]);
-  wb.add('iron_rusted', sweep(pts, { w: 0.018, h: 0.006, up: [1, 0, 0], sides: 6, p: 4, segs: 10 }));
+  wb.add('iron_rusted|t=707070', sweep(pts, { w: 0.018, h: 0.006, up: [1, 0, 0], sides: 6, p: 4, segs: 10 }));
   if (battered) {
     const cr: V3[] = [[0.12, 0.45, 0.004], [0.08, 0.3, 0.006], [0.1, 0.12, 0.004], [0.05, -0.05, 0.005]];
     wb.add('unlived_crack', sweep(cr.map(([x, y, z]) => [x, y, z - 0.75 * x * x + 0.001] as V3), { w: 0.003, h: 0.0008, up: [0, 0, 1], sides: 4, segs: 10 }));

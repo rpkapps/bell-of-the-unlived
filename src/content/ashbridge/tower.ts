@@ -106,7 +106,7 @@ export function buildTower(ctx: AreaCtx): TowerBuild {
   floor(k, 'flagstone', cX1 - pt - 0.05, bz0, bx1, bz1, topY, 0.5);
   k.bmm('stone_wall', cX1, topY - 1.3, bz0, bx1, topY - 0.5, bz1, { receive: false });
   for (let i = 0; i < 4; i++) k.box('stone_trim', cX1 + 0.3 + i * 0.5, topY - 1.3 - (3 - i) * 0.35, T.z, 0.5, 0.35 + (3 - i) * 0.1, bz1 - bz0 - 0.4, { cast: false });
-  parapet(k, 'stone_wall', bx1 - 0.2, bz0, bx1 - 0.2, bz1, topY, 0.4, 1.0);
+  parapet(k, 'stone_wall', bx1 - 0.2, bz0, bx1 - 0.2, bz1, topY, 0.4, 0.85);
   parapet(k, 'stone_wall', cX1 - pt, bz0 + 0.2, bx1, bz0 + 0.2, topY, 0.4, 1.0);
   parapet(k, 'stone_wall', cX1 - pt, bz1 - 0.2, bx1, bz1 - 0.2, topY, 0.4, 1.0);
   // caphouse over the stair head (NW): walls, east door, pyramid roof
@@ -204,7 +204,8 @@ export function buildTower(ctx: AreaCtx): TowerBuild {
   fallenBeam(k, [RV.x0 + 4, RV.floor + 0.3, -70], [RV.x0 + 8, RV.floor + 1.2, -73], 0.3, 'timber_dark');
 
   // start on the balcony, looking east over the ravine, the raised drawbridge and the town
-  return { playerStart: anchor(cX1 + 1.1, topY, T.z + 0.6, YAW_E), shrine };
+  // (facing east-north-east: courtyard, hospice and the gatehouse ahead, burned district and town to the right)
+  return { playerStart: anchor(cX1 + 1.1, topY, T.z + 0.6, YAW_E + 0.26), shrine };
 }
 
 export const TOWER_ZONE = new THREE.Box3(new THREE.Vector3(-41, -3, -118), new THREE.Vector3(-24.5, 24, -100));

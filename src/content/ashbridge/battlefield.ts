@@ -51,7 +51,7 @@ export function buildBattlefield(shared: KitShared, parent: THREE.Object3D, cent
     p.setY(i, (hills * Math.min(1, Math.max(0, (r - 60) / 140))) + riverBed + (r > 330 ? (r - 330) * 0.25 : 0));
   }
   plain.computeVertexNormals();
-  const plainMesh = new THREE.Mesh(plain, getMaterial('mud'));
+  const plainMesh = new THREE.Mesh(plain, getMaterial('dirt'));
   plainMesh.position.set(center.x, floorY, center.z);
   plainMesh.receiveShadow = true;
   group.add(plainMesh);
@@ -68,15 +68,16 @@ export function buildBattlefield(shared: KitShared, parent: THREE.Object3D, cent
   // ---------------------------------------------------------------- formations of the Unlived
   const soldiers: THREE.Matrix4[] = [], spears: THREE.Matrix4[] = [], banners: THREE.Matrix4[] = [];
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), s = new THREE.Vector3(1, 1, 1), v = new THREE.Vector3();
-  const nForm = Math.round(34 * d);
+  const nForm = Math.round(30 * d);
   for (let f = 0; f < nForm; f++) {
-    const ring = f < 8 ? 0 : f < 20 ? 1 : 2;
+    const ring = f < 14 ? 0 : f < 28 ? 1 : 2;
     const ang = rng.range(0, Math.PI * 2);
-    const dist = [18, 55, 120][ring] + rng.range(0, [30, 60, 120][ring]);
+    // dense ranks right under the hole (what the player sees first), thinning into the distance
+    const dist = [44, 60, 110][ring] + rng.range(0, [20, 50, 130][ring]);
     const fx = Math.cos(ang) * dist, fz = Math.sin(ang) * dist;
     if (Math.abs(fx - riverX(fz)) < 18) continue; // keep the ford clear
     const yaw = Math.atan2(-fx, -fz) + rng.range(-0.15, 0.15); // face the centre (the hole above)
-    const rows = rng.int(3, 6), cols = rng.int(6, 12);
+    const rows = ring === 0 ? rng.int(5, 8) : rng.int(3, 6), cols = ring === 0 ? rng.int(10, 16) : rng.int(6, 12);
     const cyaw = Math.cos(yaw), syaw = Math.sin(yaw);
     for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
       if (rng.chance(0.08)) continue;
@@ -101,6 +102,31 @@ export function buildBattlefield(shared: KitShared, parent: THREE.Object3D, cent
     m.compose(v.set(center.x + bx, floorY + groundAt(bx, bz), center.z + bz), q, s.setScalar(1));
     banners.push(m.clone());
   }
+  // the central muster directly beneath the hole: ranked blocks with aisles, all facing north
+  // (toward the ford), so the first look down is a sea of helmets
+  const span = Math.round(30 * Math.sqrt(d));
+  for (let gx = -span; gx <= span; gx += 1.3) {
+    for (let gz = -span; gz <= span; gz += 1.6) {
+      const bx = Math.floor((gx + 100) / 11), bz = Math.floor((gz + 100) / 12);
+      if ((((gx + 100) % 11) + 11) % 11 < 2 || (((gz + 100) % 12) + 12) % 12 < 2.2) continue; // aisles
+      if ((bx + bz) % 5 === 0 || rng.chance(0.06)) continue;
+      const x = gx + rng.range(-0.12, 0.12), z = gz + rng.range(-0.12, 0.12);
+      q.setFromEuler(e.set(0, Math.PI + rng.range(-0.08, 0.08), rng.range(-0.03, 0.03)));
+      m.compose(v.set(center.x + x, floorY + groundAt(x, z), center.z + z), q, s.setScalar(rng.range(0.95, 1.08)));
+      soldiers.push(m.clone());
+      if (rng.chance(0.5)) {
+        q.setFromEuler(e.set(rng.range(-0.1, 0.05), Math.PI, 0));
+        m.compose(v.set(center.x + x - 0.3, floorY + groundAt(x, z) + 0.3, center.z + z), q, s);
+        spears.push(m.clone());
+      }
+    }
+  }
+  for (let bx = -span; bx <= span; bx += 11) for (let bz = -span; bz <= span; bz += 12) {
+    q.setFromEuler(e.set(0, Math.PI, rng.range(-0.08, 0.08)));
+    m.compose(v.set(center.x + bx + 1, floorY + groundAt(bx, bz), center.z + bz + 1), q, s.setScalar(1));
+    banners.push(m.clone());
+  }
+
   const mk = (geo: THREE.BufferGeometry, mat: THREE.Material, list: THREE.Matrix4[], name: string) => {
     const im = new THREE.InstancedMesh(geo, mat, Math.max(1, list.length));
     list.forEach((mm, i) => im.setMatrixAt(i, mm));
@@ -158,7 +184,7 @@ export function buildBattlefield(shared: KitShared, parent: THREE.Object3D, cent
     const x = center.x + Math.cos(a) * r, z = center.z + Math.sin(a) * r;
     cols.push({ pos: new THREE.Vector3(x, Y + groundAt(x - center.x, z - center.z) + 1, z), height: rng.range(6, 16), size0: 18, size1: 46, count: 3, life: 40, drift: new THREE.Vector3(rng.range(-8, 8), 0, rng.range(-8, 8)), spread: 12 });
   }
-  const haze = new PuffField(cols, { color: 0xffe2a8, baseColor: 0xd8b070, opacity: 0.16, additive: true }, 77);
+  const haze = new PuffField(cols, { color: 0xffe2a8, baseColor: 0xd8b070, opacity: 0.12, additive: true }, 77);
   group.add(haze.mesh);
   const shaftMat = new THREE.MeshBasicMaterial({ color: 0xffdf9a, transparent: true, opacity: 0.07, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: true });
   const shaft = new THREE.Mesh(new THREE.CylinderGeometry(8, 22, 8 - floorY, 24, 1, true), shaftMat);

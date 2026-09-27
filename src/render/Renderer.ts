@@ -184,6 +184,7 @@ export class GameRenderer implements IRenderer {
     (this.motion.uniforms as Record<string, THREE.IUniform>).uStrength.value = 0.25 + 0.75 * s.motionBlurStrength;
     this.smaa.enabled = q === 'high' || q === 'ultra';
     this.fxaa.enabled = !this.smaa.enabled;
+    this.pushEnv();
     this.resize();
   }
 

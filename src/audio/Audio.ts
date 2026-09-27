@@ -43,7 +43,7 @@ type Volumes = Parameters<IAudio['setVolumes']>[0];
 type CaptionFn = (text: string, dir: CaptionDir | null) => void;
 
 /** Ambience beds: which loops (and at what level) make up each zone. */
-const BEDS: Record<AmbienceId, ReadonlyArray<readonly [AnyLoopId, number]>> = {
+const BEDS: Partial<Record<AmbienceId, ReadonlyArray<readonly [AnyLoopId, number]>>> = {
   outdoor: [['amb_wind', 0.8], ['embers_far', 0.5], ['far_tolls', 1]],
   interior: [['amb_interior', 1]],
   undercroft: [['amb_undercroft', 1], ['amb_wind', 0.12]],
@@ -487,7 +487,7 @@ export class Audio implements IAudio, LoopHost {
   }
 
   private applyAmbience(id: AmbienceId, fade: number): void {
-    const layers = new Map(BEDS[id]);
+    const layers = new Map(BEDS[id] ?? BEDS.outdoor);
     for (const [lid, h] of this.bed) {
       const vol = layers.get(lid);
       if (vol === undefined || !h.active) {

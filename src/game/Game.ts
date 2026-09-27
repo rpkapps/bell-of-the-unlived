@@ -185,9 +185,13 @@ export class Game implements Services {
     p.updateStance();
   }
 
-  spawnEnemy(kind: string, pos: THREE.Vector3, yaw: number, opts: { id?: string; leash?: number; patrol?: THREE.Vector3[]; idle?: Enemy['idleAnim']; seed?: number } = {}) {
+  spawnEnemy(kind: string, pos: THREE.Vector3, yaw: number, opts: { id?: string; leash?: number; patrol?: THREE.Vector3[]; idle?: Enemy['idleAnim']; seed?: number } = {}): Enemy {
     const def = ENEMY_DEFS[kind];
-    if (!def) throw new Error('unknown enemy ' + kind);
+    if (!def) {
+      // Content still being built (or a typo in a level): place nothing rather than crash.
+      console.warn('unknown enemy kind', kind, '— spawn skipped');
+      return this.spawnEnemy('infantry', pos, yaw, { ...opts, id: (opts.id ?? kind) + ':fallback' });
+    }
     const e = new Enemy(def, this, opts.seed ?? this.enemies.length + 7);
     e.spawnId = opts.id ?? kind + this.enemies.length;
     e.home.copy(pos); e.homeYaw = yaw;

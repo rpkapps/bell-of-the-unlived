@@ -12,6 +12,7 @@ import { models } from './actors/models';
 import { Audio } from './audio/Audio';
 import { UI } from './ui/UI';
 import { Session } from './game/Session';
+import './content/meta';
 import type { OriginId } from './game/types';
 
 const SETTINGS_KEY = 'botu.settings.v1';
@@ -89,7 +90,8 @@ async function boot() {
 
   ui.loading(0.6, 'Raising Ashbridge');
   const { bootRegion } = await import('./game/regions/boot');
-  (window as any).__region = await bootRegion(game, session);
+  await bootRegion(game, session);
+  Object.defineProperty(window, '__region', { get: () => session.region, configurable: true });
   ui.loading(null);
   game.start();
   if (q.has('skipintro') || q.has('newgame')) {

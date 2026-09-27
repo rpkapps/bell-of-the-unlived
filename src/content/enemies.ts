@@ -76,3 +76,6 @@ export const ENEMY_DEFS: Record<string, EnemyDef> = {
     keepDistance: [5, 16], recover: [0.8, 1.6], aggression: 0.65,
   },
 };
+
+/** Regions add enemy definitions here. */
+export function registerEnemyDefs(d: Record<string, EnemyDef>) { Object.assign(ENEMY_DEFS, d); }

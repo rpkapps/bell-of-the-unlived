@@ -132,3 +132,6 @@ export const LEADS: Record<string, LeadDef> = {
     },
   },
 };
+
+/** Regions add their Forememory leads here. */
+export function registerLeads(l: Record<string, LeadDef>) { Object.assign(LEADS, l); }

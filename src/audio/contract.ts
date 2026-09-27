@@ -49,8 +49,15 @@ export const CUE_CAPTIONS: Partial<Record<CueId, string>> = {
 };
 
 export type LoopCueId = 'amb_wind' | 'amb_fire' | 'amb_interior' | 'amb_hospice' | 'amb_battlefield' | 'amb_undercroft' | 'stillbell_hum' | 'fog_hum' | 'forge' | 'brazier';
-export type MusicState = 'none' | 'title' | 'intro' | 'ashbridge' | 'hospice' | 'boss1' | 'boss2' | 'victory' | 'battlefield';
-export type AmbienceId = 'outdoor' | 'interior' | 'undercroft' | 'hospice' | 'arena' | 'battlefield' | 'none';
+export type MusicState =
+  | 'none' | 'title' | 'intro' | 'ashbridge' | 'hospice' | 'boss1' | 'boss2' | 'victory' | 'battlefield'
+  // Phase 2 region exploration themes
+  | 'army' | 'academy' | 'cathedral' | 'treasury' | 'household' | 'belfry' | 'ending'
+  /** Procedural boss themes: `boss:<bossId>:<phase>` (phase 1..3). Each boss id seeds its own leitmotif;
+   *  later phases bring in competing versions of the same melody. */
+  | `boss:${string}:${number}`;
+export type AmbienceId = 'outdoor' | 'interior' | 'undercroft' | 'hospice' | 'arena' | 'battlefield' | 'none'
+  | 'snow' | 'sea' | 'nave' | 'vault' | 'garden' | 'belfry';
 
 export interface PlayOpts {
   /** World position for 3D panning/attenuation. Omit for 2D (UI, player-centric). */

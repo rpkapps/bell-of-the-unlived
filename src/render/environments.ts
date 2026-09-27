@@ -29,7 +29,7 @@ export interface EnvDef {
   storm: number;
 }
 
-export const ENVIRONMENTS: Record<EnvironmentPreset, EnvDef> = {
+export const ENVIRONMENTS: Record<string, EnvDef> = {
   // Ashbridge at dusk: pale overcast glow low on the horizon, cold blue-grey fog, distant spires,
   // warm windows and fires (point lights / emissives) against a cool moonlit key.
   ashbridgeDusk: {
@@ -196,3 +196,6 @@ export function lerpEnv(out: EnvState, a: EnvState, b: EnvState, t: number): Env
   }
   return out;
 }
+
+/** Regions add environment presets here (id → full EnvDef; copy a base preset and override). */
+export function registerEnvironment(id: string, def: EnvDef) { ENVIRONMENTS[id] = def; }

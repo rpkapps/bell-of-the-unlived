@@ -726,3 +726,9 @@ export const SHOP_STOCK: Record<string, { itemId: string; stock: number | null; 
 
 /** Default counts for stackable items in origin kits (anything unlisted = 1). */
 export const KIT_COUNTS: Record<string, number> = { throwing_knife: 8, bone_arrow: 40, iron_bolt: 20, ember_resin: 2 };
+
+/** Regions add items/techniques here. */
+export function registerItems(items: ItemDef[], techniques: Record<string, TechniqueDef> = {}) {
+  for (const i of items) (ITEMS as Record<string, ItemDef>)[i.id] = i;
+  Object.assign(TECHNIQUES, techniques);
+}

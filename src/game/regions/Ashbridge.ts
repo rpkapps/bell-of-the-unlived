@@ -20,6 +20,7 @@ import type { HudState } from '../types';
 import { ORIGINS } from '../../content/origins';
 import { ITEMS } from '../../content/items';
 import { angleDiff, yawOf } from '../../core/math';
+import { HOSPICE_GUESTS, type HospiceGuest } from './hub';
 import type { AmbienceId, MusicState } from '../../audio/contract';
 import type { EnvironmentPreset } from '../../render/contract';
 
@@ -149,6 +150,47 @@ export class AshbridgeRegion implements Region {
     else if (fate === 'rescued') this.spawnNpc('oswin', this.L.oswinHospice, 'standPray');
     this.spawnNpc('hesper', this.L.hesper, 'forge');
     if (this.flag(F.reveal)) this.spawnNpc('brannoc', this.L.brannoc, null);
+    this.placeGuests();
+  }
+
+  /** Allies rescued elsewhere gather in the hospice nave (slots around Oswin's corner). */
+  private placeGuests() {
+    const base = this.L.oswinHospice.pos;
+    let slot = 0;
+    for (const g of HOSPICE_GUESTS) {
+      this.removeGuest(g.id);
+      if (!g.present(this.ws)) continue;
+      const a = slot++;
+      const pos = base.clone().add(new THREE.Vector3(1.6 + (a % 3) * 1.7, 0, -1.8 - Math.floor(a / 3) * 2.2));
+      const ground = this.game.world.groundAt(pos.x, pos.y + 1.5, pos.z, 3);
+      if (ground) pos.y = ground.y;
+      const n = new Npc(g.id);
+      n.name = g.name;
+      if (this.game.deps.models) n.model = this.game.deps.models.buildNpc(n.rig, g.look);
+      n.object.traverse((c) => { if ((c as THREE.Mesh).isMesh) c.castShadow = true; });
+      this.game.scene.add(n.object);
+      n.teleport(pos, Math.PI * 0.5);
+      n.setIdle(g.idle);
+      this.game.extras.push(n);
+      this.npcs.set('guest:' + g.id, n);
+      this.inter.add({ id: 'guest:' + g.id, pos, radius: 2.4, facing: false, prompt: () => `Speak with ${g.name}`, action: () => this.talkGuest(g) });
+    }
+  }
+  private removeGuest(id: string) { this.removeNpc('guest:' + id); this.inter.remove('guest:' + id); }
+
+  private async talkGuest(g: HospiceGuest) {
+    const firstKey = 'hospice.' + g.id + '.met';
+    if (!this.flag(firstKey)) {
+      await this.talk(g.greet);
+      this.setFlag(firstKey);
+      for (const s of g.teaches ?? []) if (!this.pd.knownSpells.includes(s)) { this.pd.knownSpells.push(s); this.game.deps.ui?.toast('Learned: ' + s.replace(/_/g, ' '), 'item'); }
+      for (const i of g.gifts ?? []) this.session.grantItem(i);
+      this.session.save();
+    } else if (g.idlePool) {
+      const pool = DIALOGUE[g.idlePool] ?? [];
+      if (pool.length) await this.dialogue([pool[Math.floor(Math.random() * pool.length)]]);
+    }
+    if (g.shop) { this.game.mode = 'menu'; this.game.input.setPointerLock(false); this.game.deps.ui?.showShop(g.shop); }
   }
 
   private spawnNpc(id: 'oswin' | 'hesper' | 'brannoc', a: Anchor, idle: string | null) {

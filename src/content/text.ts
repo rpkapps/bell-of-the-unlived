@@ -173,16 +173,16 @@ export const STILLBELL_NAMES: Record<string, string> = {
   hospice: 'Hospice Stillbell',
 };
 
-export const BOSS = {
+export const BOSS: Record<string, { name: string; title: string }> & { corvane: { name: string; title: string } } = {
   corvane: { name: 'Ser Corvane Aldmoor', title: 'Bell-Appointed Commander of Ashbridge' },
-} as const;
+};
 
 /** Boss phase names (for captions or the boss bar, optional). */
 export const BOSS_PHASES = {
   corvane: ['The Appointed Commander', 'The Measure'],
 } as const;
 
-export const WARNINGS = {
+export const WARNINGS: Record<string, { title: string; body: string; yes?: string; no?: string }> & { arenaWithPrisoner: { title: string; body: string; yes: string; no: string }; arenaPlain: { title: string; body: string; yes: string; no: string } } = {
   arenaWithPrisoner: {
     title: 'Ser Corvane Waits',
     body: 'Beyond this veil, Ser Corvane waits. Once you cross it, the Commander\'s men will move anyone still imprisoned below the mint. Cross now?',
@@ -195,7 +195,7 @@ export const WARNINGS = {
     yes: 'Cross',
     no: 'Not yet',
   },
-} as const;
+};
 
 export const DEATH_TEXT = 'THE BELL RECALLS YOU';
 export const STILLBELL_LIT_TEXT = 'STILLBELL KINDLED';
@@ -338,3 +338,22 @@ export const ACQUISITION: Record<string, string> = {
   'spell:knell_of_rest': 'Origin: Funeral Priest. Later: Cathedral.',
   'spell:toll_of_warding': 'Later: Cathedral.',
 };
+
+/** Regions add inspectables, hints, area, Stillbell and boss names here. */
+export function registerText(t: {
+  inspect?: Record<string, { title: string; lines: string[] }>;
+  hints?: Record<string, string>;
+  areas?: Record<string, string>;
+  stillbells?: Record<string, string>;
+  bosses?: Record<string, { name: string; title: string }>;
+  memoryRewards?: Record<string, MemoryReward[]>;
+  warnings?: Record<string, { title: string; body: string; yes?: string; no?: string }>;
+}) {
+  if (t.inspect) Object.assign(INSPECT, t.inspect);
+  if (t.hints) Object.assign(HINTS, t.hints);
+  if (t.areas) Object.assign(AREA_NAMES, t.areas);
+  if (t.stillbells) Object.assign(STILLBELL_NAMES, t.stillbells);
+  if (t.bosses) Object.assign(BOSS, t.bosses);
+  if (t.memoryRewards) Object.assign(MEMORY_REWARDS, t.memoryRewards);
+  if (t.warnings) Object.assign(WARNINGS, t.warnings);
+}

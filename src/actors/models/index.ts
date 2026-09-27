@@ -24,6 +24,19 @@ export { setClothWind, clothWind } from './cloth';
 export type { CharacterLookExt, BuiltModel, WeaponModelExt };
 export { WEAPON_IDS };
 
+/**
+ * Extension points for later regions: register builders for new enemy/NPC looks and weapons.
+ * Builders receive a CharBuilder (same toolkit the built-in looks use) or build their own model.
+ */
+export type LookBuilder = (rig: import('../Rig').Rig, seed: number) => CharacterModel;
+const EXTRA_ENEMY: Record<string, LookBuilder> = {};
+const EXTRA_NPC: Record<string, LookBuilder> = {};
+const EXTRA_WEAPON: Record<string, () => WeaponModelExt> = {};
+export function registerEnemyLook(look: string, build: LookBuilder) { EXTRA_ENEMY[look] = build; }
+export function registerNpcLook(look: string, build: LookBuilder) { EXTRA_NPC[look] = build; }
+export function registerWeaponModel(id: string, build: () => WeaponModelExt) { EXTRA_WEAPON[id] = build; }
+export { CharBuilder };
+
 export const models: ModelFactory = {
   buildCharacter(rig, look): CharacterModel {
     const b = new CharBuilder(rig, 'player', 1);
@@ -31,13 +44,16 @@ export const models: ModelFactory = {
     return b.build();
   },
   buildEnemy(rig, look, seed): CharacterModel {
-    return buildEnemy(rig, look, seed);
+    const x = EXTRA_ENEMY[look as string];
+    return x ? x(rig, seed) : buildEnemy(rig, look, seed);
   },
   buildNpc(rig, look): CharacterModel {
-    return buildNpc(rig, look);
+    const x = EXTRA_NPC[look as string];
+    return x ? x(rig, 1) : buildNpc(rig, look);
   },
   buildWeapon(itemId: string): WeaponModelExt {
-    return buildWeapon(itemId);
+    const x = EXTRA_WEAPON[itemId];
+    return x ? x() : buildWeapon(itemId);
   },
 };
 

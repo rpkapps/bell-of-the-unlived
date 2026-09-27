@@ -27,7 +27,7 @@ export interface DynamicPiece {
   set(t: number): void;
 }
 
-export type EnemyKind = 'infantry' | 'sentry' | 'shieldBearer' | 'archer' | 'commander';
+export type EnemyKind = 'infantry' | 'sentry' | 'shieldBearer' | 'archer' | 'commander' | (string & {});
 
 export interface EnemySpawn {
   id: string;             // unique and stable (used by saves)
@@ -45,8 +45,10 @@ export interface Zone {
   id: string;
   name: string;            // shown as an area title the first time the player enters
   box: THREE.Box3;
-  ambience: 'outdoor' | 'interior' | 'undercroft' | 'hospice' | 'arena' | 'battlefield';
-  music?: 'ashbridge' | 'hospice' | 'none';
+  ambience: 'outdoor' | 'interior' | 'undercroft' | 'hospice' | 'arena' | 'battlefield' | (string & {});
+  music?: string;
+  /** Environment preset for this zone (defaults by ambience). */
+  environment?: string;
 }
 
 export interface Trigger { id: string; box: THREE.Box3 }
@@ -105,5 +107,43 @@ export interface AshbridgeLayout {
   /** Below this Y the player has fallen to death. */
   killY: number;
   /** Animate flames, banners, water... `time` = seconds since start. */
+  update(dt: number, time: number, camera: THREE.Camera): void;
+}
+
+// ====================================================================== Phase 2: generic regions
+
+/** A boss arena: fog gate, where the boss waits, and where the Last Breath goes if you die inside. */
+export interface ArenaLayout {
+  /** Boss id registered in src/content/bosses (e.g. 'varr'). Flag `boss.<id>` is set when defeated. */
+  bossId: string;
+  center: THREE.Vector3;
+  radius: number;
+  fogGate: DynamicPiece & { anchor: Anchor; enterTo: Anchor };
+  /** Outside the veil (Last Breath / retry position). */
+  entry: Anchor;
+  /** Where the boss stands when the fight begins. */
+  spawn: Anchor;
+  /** Optional pieces animated to t=1 when the boss dies (anchor shatter, doors opening, bridges). */
+  onDefeat?: DynamicPiece[];
+}
+
+/**
+ * What every region builder (except Ashbridge, which predates it) returns. Region-specific quest
+ * logic addresses anchors and pieces by name.
+ */
+export interface RegionLayout {
+  playerStart: Anchor;
+  stillbells: { id: string; name: string; anchor: Anchor; bell: THREE.Object3D; light: THREE.PointLight }[];
+  enemies: EnemySpawn[];
+  zones: Zone[];
+  tollPosts: { id: string; pos: THREE.Vector3; radius: number; options: { id: string; toward: THREE.Vector3 }[] }[];
+  arenas: ArenaLayout[];
+  /** Named standing points (NPCs, inspectables, pickups, triggers' focus). */
+  anchors: Record<string, Anchor>;
+  /** Named animated pieces (doors, levers, lifts, bridges, chests, shortcut gates). */
+  pieces: Record<string, DynamicPiece & { anchor?: Anchor }>;
+  /** Named trigger volumes (memories, ambushes, area events). */
+  triggers: Record<string, THREE.Box3>;
+  killY: number;
   update(dt: number, time: number, camera: THREE.Camera): void;
 }

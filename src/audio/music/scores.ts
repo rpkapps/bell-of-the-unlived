@@ -488,5 +488,7 @@ export function createScore(state: Exclude<MusicState, 'none'>, out: MusicOut, f
     case 'boss2': return new Boss2Score(out, from === 'boss1');
     case 'victory': return new VictoryScore(out);
     case 'battlefield': return new BattlefieldScore(out);
+    // Phase 2 states fall back to existing scores until their own are written.
+    default: return state.startsWith('boss:') ? (state.endsWith(':1') ? new Boss1Score(out) : new Boss2Score(out, true)) : new AshbridgeScore(out);
   }
 }

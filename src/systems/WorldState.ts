@@ -12,7 +12,7 @@ export interface WorldState {
   pickups: Record<string, true>;
   stillbells: Record<string, true>;
   lastStillbell: string;
-  lastBreath: { pos: [number, number, number]; hours: number } | null;
+  lastBreath: { pos: [number, number, number]; hours: number; region?: string } | null;
   journal: Record<string, { lead: string; time: number }>;
   hints: string[];
   areas: string[];

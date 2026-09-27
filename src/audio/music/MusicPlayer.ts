@@ -11,7 +11,7 @@ import { Sequencer } from './sequencer';
  * Per-state output trims from the offline level check, so every state sits at a consistent
  * loudness (integrated RMS ≈ -24 dBFS for underscore, ≈ -20 for boss fights, sparse states lower).
  */
-const STATE_GAIN: Record<Exclude<MusicState, 'none'>, number> = {
+const STATE_GAIN: Partial<Record<Exclude<MusicState, 'none'>, number>> = {
   title: 0.75, intro: 0.67, ashbridge: 1.6, hospice: 0.84, boss1: 0.63, boss2: 0.56, victory: 0.73, battlefield: 0.59,
 };
 
@@ -66,7 +66,7 @@ export class MusicPlayer {
     dry.connect(this.dryIn);
     wet.connect(this.wetIn);
     const inFade = phaseChange ? 0.02 : Math.max(0.05, fade * 0.6);
-    const level = STATE_GAIN[state];
+    const level = STATE_GAIN[state as Exclude<MusicState, 'none'>] ?? (state.startsWith('boss:') ? 0.6 : 0.8);
     for (const g of [dry.gain, wet.gain]) {
       g.setValueAtTime(0, now);
       g.linearRampToValueAtTime(level, now + inFade);

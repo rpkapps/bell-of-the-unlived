@@ -61,61 +61,103 @@ export const CORVANE: EnemyDef = {
 
 registerMoves({ boss_flinch: M({ id: 'boss_flinch', clip: 'hurtLight', dur: 0.35, fade: 0.03 }) });
 
-const PHASE2_AT = 0.55;
+/**
+ * Boss registry. Every boss (mid-bosses, keepers, Aldren) is a BossSpec; regions spawn them by id
+ * from their ArenaLayout. Phase changes are hp thresholds that neither damage nor criticals can skip.
+ */
+export interface BossSpec {
+  id: string;
+  def: EnemyDef;
+  /** HP fractions where each new phase begins, e.g. [0.55] (two phases) or [0.66, 0.33] (three). */
+  phases: number[];
+  /** Transition move per phase change (index 0 → entering phase 2). It should emit custom 'phase'. */
+  transitions?: string[];
+  /** Model look per phase (index 0 = phase 1). Missing entries keep the previous look. */
+  looks?: import('../actors/models/contract').EnemyLook[];
+  weaponR?: string; weaponL?: string; shield?: string;
+  /** Final Memory item granted on defeat (exchanged at a Stillbell). */
+  memory?: string;
+  /** Custom subclass (for bespoke mechanics). */
+  cls?: new (spec: BossSpec, svc: Services, seed: number) => Boss;
+  /** Seed for the procedural leitmotif (defaults to the id). */
+  music?: string;
+}
 
-/** Boss with phases. Phase transitions can't be skipped by damage or criticals. */
+export const BOSSES: Record<string, BossSpec> = {};
+export function registerBoss(spec: BossSpec) { BOSSES[spec.id] = spec; }
+
+/** Boss with N phases. Phase transitions can't be skipped by damage or criticals. */
 export class Boss extends Enemy {
   onPhase: (phase: number) => void = () => {};
   onMeasure: () => void = () => {};
   onShockwave: (pos: THREE.Vector3) => void = () => {};
   onFireTrail: (from: THREE.Vector3, to: THREE.Vector3) => void = () => {};
-  private transitioned = false;
+  /** Region hook for bespoke custom events (`custom` move events not handled here). */
+  onEvent: (id: string, b: Boss) => void = () => {};
+  private transitioning = false;
   engaged = false;
+  readonly spec: BossSpec;
 
-  constructor(def: EnemyDef, svc: Services, seed = 3) { super(def, svc, seed); }
+  constructor(specOrDef: BossSpec | EnemyDef, svc: Services, seed = 3) {
+    const spec: BossSpec = 'def' in specOrDef ? specOrDef : { id: 'corvane', def: specOrDef, phases: [0.55], transitions: ['cmd_transition'] };
+    super(spec.def, svc, seed);
+    this.spec = spec;
+  }
 
-  get threshold() { return this.hpMax * PHASE2_AT; }
+  /** HP at which the next phase begins (0 when in the last phase). */
+  get threshold() { const f = this.spec.phases[this.phase - 1]; return f === undefined ? 0 : this.hpMax * f; }
+  get lastPhase() { return this.phase > this.spec.phases.length; }
 
-  capCriticalDamage(dmg: number) { return this.phase === 1 ? Math.min(dmg, Math.max(0, this.hp - this.threshold)) : dmg; }
+  capCriticalDamage(dmg: number) { return this.lastPhase ? dmg : Math.min(dmg, Math.max(0, this.hp - this.threshold)); }
 
   override think(dt: number, player: Actor) {
     if (!this.engaged) { this.wish.set(0, 0, 0); return; }
-    if (this.phase === 1 && !this.dead && this.hp <= this.threshold && !this.transitioned) {
+    if (!this.lastPhase && !this.dead && this.hp <= this.threshold && !this.transitioning) {
       this.hp = Math.max(this.hp, this.threshold);
-      if (!this.move || !this.move.def.id.startsWith('victim')) { this.transitioned = true; this.startMove(MOVES.cmd_transition); this.svc.trail(this, false); }
+      if (!this.move || !this.move.def.id.startsWith('victim')) {
+        const tr = this.spec.transitions?.[this.phase - 1];
+        this.svc.trail(this, false);
+        if (tr && MOVES[tr]) { this.transitioning = true; this.startMove(MOVES[tr]); }
+        else this.advancePhase();
+      }
     }
     super.think(dt, player);
   }
 
-  /** Clamp damage during phase 1 so the phase can never be skipped. */
+  private advancePhase() {
+    this.transitioning = false;
+    this.phase++;
+    this.posture = 0;
+    this.poise = Math.round(this.def.poise * 1.2);
+    this.onPhase(this.phase);
+  }
+
+  /** Clamp damage before the last phase so a phase can never be skipped. */
   clampPhase() {
-    if (this.phase === 1 && this.hp < this.threshold) { this.hp = this.threshold; if (this.dead) this.dead = false; }
+    if (!this.lastPhase && this.hp < this.threshold) { this.hp = this.threshold; if (this.dead) this.dead = false; }
   }
 
   override react(kind: Parameters<Enemy['react']>[0], from: THREE.Vector3) {
-    if (kind === 'death' && this.phase === 1) { this.clampPhase(); return; }
-    // Bosses flinch only from heavy hits and not during windups (poise already handles most).
+    if (kind === 'death' && !this.lastPhase) { this.clampPhase(); return; }
+    if (this.transitioning && kind !== 'death') return; // transitions are uninterruptible
     super.react(kind, from);
   }
 
   protected override onCustom(id: string, m: MoveInstance) {
     switch (id) {
-      case 'phase2':
-        this.phase = 2;
-        this.posture = 0;
-        this.poise = 85;
-        this.onPhase(2);
-        break;
+      case 'phase': case 'phase2': case 'phase3': this.advancePhase(); break;
       case 'measure': this.onMeasure(); break;
-      case 'shockwave': this.onShockwave(new THREE.Vector3(0, 0, 1.4 * 1.12).applyMatrix4(this.rig.root.matrixWorld)); break;
+      case 'shockwave': this.onShockwave(new THREE.Vector3(0, 0, 1.4 * this.rig.proportions.height).applyMatrix4(this.rig.root.matrixWorld)); break;
       case 'ignite': this.svc.fx('embers', new THREE.Vector3().setFromMatrixPosition(this.rig.sockets.weaponR.matrixWorld), { count: 30 }); break;
       case 'fireTrail': {
         const a = new THREE.Vector3(-1.5, 0, 1.2).applyMatrix4(this.rig.root.matrixWorld), b = new THREE.Vector3(1.5, 0, 1.2).applyMatrix4(this.rig.root.matrixWorld);
         this.onFireTrail(a, b);
         break;
       }
-      default: super.onCustom(id, m);
+      case 'shoot': super.onCustom(id, m); break;
+      default: this.onEvent(id, this);
     }
   }
-
 }
+
+registerBoss({ id: 'corvane', def: CORVANE, phases: [0.55], transitions: ['cmd_transition'], looks: ['commander', 'commander2'], weaponR: 'corvane_sword', memory: 'memory_corvane' });

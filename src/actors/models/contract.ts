@@ -49,8 +49,8 @@ export interface CharacterModel {
   dispose(): void;
 }
 
-export type EnemyLook = 'infantry' | 'sentry' | 'shieldBearer' | 'archer' | 'commander' | 'commander2' | 'greyfordSoldier';
-export type NpcLook = 'oswin' | 'hesper' | 'brannoc' | 'dummy' | 'bellkeeper' | 'aldren_memory';
+export type EnemyLook = 'infantry' | 'sentry' | 'shieldBearer' | 'archer' | 'commander' | 'commander2' | 'greyfordSoldier' | (string & {});
+export type NpcLook = 'oswin' | 'hesper' | 'brannoc' | 'dummy' | 'bellkeeper' | 'aldren_memory' | (string & {});
 
 /**
  * Weapon/shield/catalyst visual. Local frame: grip centre at origin, blade/shaft along +Y,

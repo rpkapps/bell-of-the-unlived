@@ -174,3 +174,6 @@ export const SLICE_END_CARDS: CinematicCard[] = [
   { text: 'Who has the right to decide which lives continue?', style: 'memory', duration: 4.5 },
   { text: 'THE ASHBRIDGE CHRONICLE IS RECORDED', style: 'title', duration: 5 },
 ];
+
+/** Regions add dialogue here. */
+export function registerDialogue(d: Record<string, DialogueLine[]>) { Object.assign(DIALOGUE, d); }

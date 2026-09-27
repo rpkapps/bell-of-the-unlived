@@ -4,7 +4,7 @@
 import type * as THREE from 'three';
 import type { Settings } from '../game/settings';
 
-export type EnvironmentPreset = 'ashbridgeDusk' | 'undercroft' | 'hospiceInterior' | 'arena' | 'battlefield' | 'title';
+export type EnvironmentPreset = 'ashbridgeDusk' | 'undercroft' | 'hospiceInterior' | 'arena' | 'battlefield' | 'title' | (string & {});
 
 export interface IRenderer {
   readonly renderer: THREE.WebGLRenderer;

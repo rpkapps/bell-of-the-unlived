@@ -145,3 +145,6 @@ export function updateLights(time: number, cameraPos: THREE.Vector3): void {
 export function lightStats(): { registered: number; budget: number; active: number } {
   return { registered: entries.length, budget, active: slotOwner.slice(0, budget).filter((o) => o).length };
 }
+
+/** All currently registered lights (used to release a region's lights when it unloads). */
+export function registeredLights(): THREE.PointLight[] { return entries.map((e) => e.light); }

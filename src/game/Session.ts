@@ -20,6 +20,8 @@ import { PRACTICE_TOPICS } from '../content/practice';
 import { MEMORY_REWARDS, DEATH_TEXT, formatActions } from '../content/text';
 import { levelCost, levelOf, levelRangeCost, attackRating } from '../combat/stats';
 import { INTRO_CARDS } from '../content/dialogue';
+import { REGIONS, regionOfBell } from './regions/catalog';
+import { STILLBELL_NAMES } from '../content/text';
 
 export interface Region {
   readonly id: string;
@@ -100,6 +102,10 @@ export class Session implements UIHost {
       await this.ui.cinematic(INTRO_CARDS);
       await this.ui.fade(1, 0.01);
     }
+    if (!this.region || this.region.id !== (this.ws.region || 'ashbridge')) {
+      const { loadRegion } = await import('./regions/boot');
+      await loadRegion(this.game, this, this.ws.region || 'ashbridge');
+    }
     const r = this.region!;
     r.applyState();
     const bell = r.stillbells().find((b) => b.id === this.ws.lastStillbell) ?? r.stillbells()[0];
@@ -113,7 +119,7 @@ export class Session implements UIHost {
     this.playing = true;
     this.ui.setHudVisible(true);
     this.input.setPointerLock(true);
-    this.audio?.setMusic('ashbridge', 3);
+    this.audio?.setMusic((r as any).defaultMusic ?? 'ashbridge', 3);
     if (fresh) {
       p.startMove({ id: 'rise', clip: 'rise', dur: 1.4, speed: 0.6 });
       // He wakes knowing what he came to prevent.
@@ -154,7 +160,7 @@ export class Session implements UIHost {
     if (this.autosaveT > 60 && this.game.mode === 'play' && !this.game.player.dead && !this.game.player.move) { this.autosaveT = 0; this.save(); }
     // Last Breath recovery
     const lb = this.ws.lastBreath;
-    if (lb && !this.game.player.dead) {
+    if (lb && (lb.region ?? 'ashbridge') === this.region?.id && !this.game.player.dead) {
       const d = this.game.player.pos.distanceTo(new THREE.Vector3(...lb.pos));
       if (d < 1.3) {
         this.pd.hours += lb.hours;
@@ -172,7 +178,7 @@ export class Session implements UIHost {
     this.lastBreathFx?.stop(); this.lastBreathFx = null;
     if (this.lastBreathObj) { this.game.scene.remove(this.lastBreathObj); this.lastBreathObj = null; }
     const lb = this.ws.lastBreath;
-    if (!lb) return;
+    if (!lb || (lb.region ?? 'ashbridge') !== this.region?.id) return;
     const pos = new THREE.Vector3(...lb.pos);
     const grp = new THREE.Group();
     grp.position.copy(pos);
@@ -197,7 +203,7 @@ export class Session implements UIHost {
     // Last Breath: unspent Hours stay where he fell; a previous unrecovered Breath is lost.
     if (this.pd.hours > 0) {
       const at = this.region!.lastBreathPos(p.pos.clone());
-      this.ws.lastBreath = { pos: [at.x, at.y, at.z], hours: this.pd.hours };
+      this.ws.lastBreath = { pos: [at.x, at.y, at.z], hours: this.pd.hours, region: this.region!.id };
     } else this.ws.lastBreath = null;
     this.pd.hours = 0;
     this.respawnAtBell(this.ws.lastStillbell, true);
@@ -263,12 +269,33 @@ export class Session implements UIHost {
     refillFlasks(this.pd);
   }
   destinations(): TravelDestination[] {
-    return (this.region?.stillbells() ?? []).map((b) => ({ id: b.id, name: b.name, region: this.region!.name, unlocked: !!this.ws.stillbells[b.id], current: this.atBell?.id === b.id }));
+    const out: TravelDestination[] = [];
+    for (const r of REGIONS) {
+      const open = r.unlocked(this.ws);
+      r.bells.forEach((b, i) => {
+        const lit = !!this.ws.stillbells[b.id];
+        if (!open && !lit) return;
+        out.push({ id: b.id, name: STILLBELL_NAMES[b.id] ?? b.name, region: r.name, unlocked: lit || (open && i === 0), current: this.atBell?.id === b.id });
+      });
+    }
+    return out;
   }
   async travel(id: string) {
-    if (!this.ws.stillbells[id]) return;
+    const dest = this.destinations().find((d) => d.id === id);
+    if (!dest?.unlocked) return;
+    const target = regionOfBell(id);
     this.ui.closeAll();
     await this.ui.fade(1, 0.8);
+    if (target && target.id !== this.region?.id) {
+      this.save();
+      const { loadRegion } = await import('./regions/boot');
+      this.ui.loading(0.5, target.name);
+      await loadRegion(this.game, this, target.id);
+      this.ui.loading(null);
+      this.region!.applyState();
+      this.audio?.setMusic((this.region as any).defaultMusic ?? 'ashbridge', 3);
+    }
+    this.ws.stillbells[id] = true;
     this.ws.lastStillbell = id;
     this.respawnAtBell(id, false);
     const bell = this.region!.stillbells().find((b) => b.id === id)!;

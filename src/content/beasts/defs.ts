@@ -39,7 +39,7 @@ export function beastStance(d: QuadDims, clips: Record<string, import('../../act
 }
 
 const bite = (d: QuadDims, start: number, end: number, dmg: number, poise: number, o: Partial<HitSpec> = {}): HitSpec => ({
-  start, end, source: 'sphere', sphere: { bone: 'head', offset: [0, 0.2 * d.s, 0.05 * d.s], radius: 0.26 * d.s }, dmg, posture: 0, poise, kind: 'thrust', knock: 1.5, ...o,
+  start, end, source: 'sphere', sphere: { bone: 'head', offset: [0, 0.2 * d.s, 0.05 * d.s], radius: 0.26 * d.s }, dmg, posture: 0, poise, kind: 'thrust', knock: 1.5, parryable: true, ...o,
 });
 
 /** Shared hound moveset (per breed ids), scaled by `k` damage and `reach` metres. */

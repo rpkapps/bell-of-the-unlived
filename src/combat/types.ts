@@ -23,6 +23,8 @@ export interface HitSpec {
   kind: DamageKind;
   guardBreak?: boolean;
   unparryable?: boolean;
+  /** Sphere hits are unparryable by default (bodies, AoE); set for bites, fists and other parryable limbs. */
+  parryable?: boolean;
   unblockable?: boolean;
   /** Knockback impulse (m/s) on a clean hit. */
   knock?: number;

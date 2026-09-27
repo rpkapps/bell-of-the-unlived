@@ -6,7 +6,7 @@
  *   kinds = warHound,huntingHound,carrionStag     (lineup; default all three)
  *   clip  = bite | lunge | … (clip suffix, per kind prefix)   ts = 0,0.45,0.6   (frames side by side)
  *   speed = m/s gait preview (with ts = sim seconds per frame)  dir = fwd|side|back   turn = rad/s
- *   sim   = 1  live AI: each beast fights a passive target; hitboxes = 1 draws hurt capsules
+ *   sim   = 1  live AI: each beast fights a passive target (steps = sim steps per frame); hitboxes = 1 draws hurt capsules
  *   angle = camera yaw (deg)  y = camera height  d = distance  fov
  * Sets window.__ready (after a few frames) and window.__stats (triangles / meshes per look).
  */
@@ -161,7 +161,7 @@ async function main() {
     const dt = Math.min(0.05, clock.getDelta());
     if (sim) {
       const all = [...actors, ...dummies];
-      const steps = Math.max(1, Math.round(dt / (1 / 60)));
+      const steps = Number(qs.get('steps') ?? Math.max(1, Math.round(dt / (1 / 60))));
       for (let k = 0; k < steps; k++) {
         const h = 1 / 60; svc.t += h;
         for (let i = 0; i < actors.length; i++) actors[i].think(h, dummies[i]);

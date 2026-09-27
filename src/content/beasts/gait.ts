@@ -23,6 +23,8 @@ const OFF_WALK = [0, 0.25, 0.5, 0.75];
 const OFF_TROT = [0, 0.56, 0.5, 1.06];
 const OFF_GALLOP = [0, 0.52, 0.1, 1.42];
 const NO_FK: PoseSpec['fk'] = {};
+/** Deterministic per-instance idle offset (so a pack does not pant in unison). */
+let instances = 0;
 
 export class QuadGait implements GaitLike {
   phase = 0;
@@ -38,7 +40,7 @@ export class QuadGait implements GaitLike {
   private readonly tmp: V3 = [0, 0, 0];
   private readonly seed: number;
 
-  constructor(readonly d: QuadDims) { this.seed = Math.random() * 20; }
+  constructor(readonly d: QuadDims) { this.seed = (instances++ * 3.7) % 11; }
 
   update(dt: number, inp: LocoInput) {
     if (dt <= 0) return;

@@ -121,7 +121,7 @@ export class Combat {
 
     const facing = Math.abs(tgt.angleTo(att.pos));
     // Parry: melee, parryable, facing the attacker.
-    if (tgt.parrying && !h.unparryable && !h.unblockable && slot !== 'X' && facing < Math.PI * 0.55) {
+    if (tgt.parrying && !h.unparryable && !h.unblockable && (slot !== 'X' || h.parryable) && facing < Math.PI * 0.55) {
       res.outcome = 'parried';
       att.react('parried', tgt.pos);
       tgt.hitstop = 0.06;

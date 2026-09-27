@@ -54,12 +54,14 @@ export function whoosh(v: Voice, o: {
   const g = v.gain(0);
   const pan = v.pan(o.panFrom ?? -0.25);
   const peakT = at + o.dur * 0.45;
+  // Band-limited pink noise is quiet: this makeup keeps `peak` roughly comparable to other layers.
+  const peak = o.peak * 3.5;
   bp.frequency.setValueAtTime(o.f0, at);
   bp.frequency.exponentialRampToValueAtTime(o.f1, peakT);
   bp.frequency.exponentialRampToValueAtTime(o.f0 * 0.8, at + o.dur);
   g.gain.setValueAtTime(0, at);
-  g.gain.linearRampToValueAtTime(o.peak * 0.35, at + o.dur * 0.25);
-  g.gain.linearRampToValueAtTime(o.peak, peakT);
+  g.gain.linearRampToValueAtTime(peak * 0.35, at + o.dur * 0.25);
+  g.gain.linearRampToValueAtTime(peak, peakT);
   g.gain.setTargetAtTime(0, peakT, o.dur * 0.18);
   pan.pan.setValueAtTime(o.panFrom ?? -0.25, at);
   pan.pan.linearRampToValueAtTime(o.panTo ?? 0.25, at + o.dur);
@@ -152,7 +154,7 @@ export const clothRustle: Synth = (v, p) => {
   for (let i = 0; i < n; i++) {
     v.burst({
       color: 'pink', type: 'bandpass', freq: rand(1800, 3800) * p.rate, q: 0.9,
-      at: v.t + i * rand(0.03, 0.05), a: 0.015, peak: rand(0.06, 0.12), d: rand(0.05, 0.1),
+      at: v.t + i * rand(0.03, 0.05), a: 0.015, peak: rand(0.2, 0.36), d: rand(0.05, 0.1),
     });
   }
 };

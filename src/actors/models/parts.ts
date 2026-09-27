@@ -582,7 +582,7 @@ export function cracks(rings: Ring[], o: LoftOpts, rng: Rng, count: number, opts
  * tattered: every column gets its own length (ragged teeth, deep notches), and the panel is made
  * double-sided by duplicating the sheet with reversed winding, `thick` metres behind.
  */
-export function panel(f: (u: number, v: number) => V3, cols: number, rows: number, o: { rng?: Rng; tatter?: number; teeth?: number; thick?: number; single?: boolean; uvScale?: [number, number] } = {}): G {
+export function panel(f: (u: number, v: number) => V3, cols: number, rows: number, o: { rng?: Rng; tatter?: number; teeth?: number; thick?: number; single?: boolean; uvScale?: [number, number]; unitUV?: boolean } = {}): G {
   const tat = o.tatter ?? 0;
   const lens: number[] = [];
   for (let j = 0; j <= cols; j++) {
@@ -603,7 +603,7 @@ export function panel(f: (u: number, v: number) => V3, cols: number, rows: numbe
       const v = (i / rows) * lens[j];
       const p = f(u, v);
       pos.push(p[0], p[1], p[2]);
-      uv.push(u * su, -v * sv);
+      if (o.unitUV) uv.push(u, 1 - v); else uv.push(u * su, -v * sv);
     }
   }
   const c1 = cols + 1;

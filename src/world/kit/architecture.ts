@@ -264,19 +264,18 @@ export function gableRoof(kit: Kit, cx: number, y: number, cz: number, yaw: numb
     // slope from eave (s*(w/2+oh), -oh*tan p) to ridge (0, rise)
     const ex = s * (w / 2 + oh), ey = -oh * Math.tan(p);
     const mx = ex / 2, my = (ey + rise) / 2;
-    const nx = -s * Math.sin(p) * -1, ny = Math.cos(p); // outward normal (x sign = s)
-    const ox = s * Math.sin(p) * th / 2, oy = ny * th / 2;
-    void nx;
+    // offset outward by half the thickness so the underside lies on the rafter line
+    const ox = s * Math.sin(p) * th / 2, oy = Math.cos(p) * th / 2;
     if (o.burned === undefined) {
       kit.box(mat, mx + ox, my + oy, 0, L, th, D, { ...o, rz: -s * p });
     } else {
-      // rafters + a partial slab
+      // charred rafters (some missing, some snapped short) + a partial slate slab
       const nRaf = Math.max(3, Math.round(D / 0.9));
       for (let i = 0; i <= nRaf; i++) {
         if (kit.rng.chance(0.25)) continue;
         const zz = -D / 2 + (D * i) / nRaf;
-        const cut = kit.rng.range(0.4, 1);
-        kit.box('timber_burnt', mx * (2 - cut) + ox, my - (rise - ey) * (1 - cut) / 2 + oy, zz, L * cut, 0.16, 0.14, { rz: -s * p, cast: true });
+        const cut = kit.rng.range(0.45, 1);
+        kit.box('timber_burnt', ex + (0 - ex) * cut / 2 + ox, ey + (rise - ey) * cut / 2, zz, L * cut, 0.16, 0.14, { rz: -s * p, cast: true });
       }
       if (o.burned > 0) {
         const f = o.burned;
@@ -379,4 +378,4 @@ export function stringCourse(kit: Kit, x0: number, z0: number, x1: number, z1: n
 }
 
 export const deg = (d: number) => (d * Math.PI) / 180;
-export { THREE };
+

@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>UI preview — Bells of the Unlived</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #070605; overflow: hidden; }
+      #app { position: fixed; inset: 0; }
+      /* Stand-in for the WebGL view: concept art behind the transparent UI. */
+      #view { position: absolute; inset: 0; background: #0b0a09 center / cover no-repeat; }
+      #dev { position: fixed; left: 8px; bottom: 6px; z-index: 99; font: 11px monospace; color: #6d6557; pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <div id="app"><div id="view"></div><div id="ui"></div></div>
+    <div id="dev"></div>
+    <script type="module" src="./ui.ts"></script>
+  </body>
+</html>

@@ -1,66 +1,25 @@
 /**
- * Input glyphs for prompts. Gameplay actions use `IInput.glyph()`; UI navigation uses the table
- * below so every screen shows consistent labels for the current device and pad style.
+ * Input glyphs for prompts. Gameplay actions use `IInput.glyph()`; UI navigation events and the
+ * remap screen use the input module's label helpers (`uiNavLabel`, `bindingLabel`) so prompts
+ * always match the real keys/buttons for the current device and pad style.
  */
-import type { ActionId, Device, IInput, KeyBinding, PadBinding, PadStyle, UiNavEvent } from '../input/actions';
-import type { Settings } from '../game/settings';
+import type { ActionId, Device, IInput, KeyBinding, PadBinding, UiNavEvent } from '../input/actions';
+import { bindingLabel, uiNavLabel, type KeyLayout } from '../input/glyphs';
 import { h } from './dom';
 
-/** UI navigation glyphs per device / pad style. Keyboard labels match GDD §3 menu rules. */
-export const NAV_GLYPHS: Record<'kbm' | PadStyle, Record<UiNavEvent, string>> = {
-  kbm: {
-    up: '↑', down: '↓', left: '←', right: '→', confirm: 'Enter', back: 'Esc',
-    tabPrev: 'Q', tabNext: 'E', pause: 'Esc', journal: 'J', details: 'Tab',
-  },
-  xbox: {
-    up: 'D↑', down: 'D↓', left: 'D←', right: 'D→', confirm: 'A', back: 'B',
-    tabPrev: 'LB', tabNext: 'RB', pause: 'Menu', journal: 'View', details: 'Y',
-  },
-  playstation: {
-    up: 'D↑', down: 'D↓', left: 'D←', right: 'D→', confirm: '✕', back: '○',
-    tabPrev: 'L1', tabNext: 'R1', pause: 'Options', journal: 'Touchpad', details: '△',
-  },
-};
-
-/** W3C standard-mapping button names. */
-const PAD_BUTTONS: Record<PadStyle, string[]> = {
-  xbox: ['A', 'B', 'X', 'Y', 'LB', 'RB', 'LT', 'RT', 'View', 'Menu', 'LS', 'RS', 'D↑', 'D↓', 'D←', 'D→', 'Guide'],
-  playstation: ['✕', '○', '□', '△', 'L1', 'R1', 'L2', 'R2', 'Create', 'Options', 'L3', 'R3', 'D↑', 'D↓', 'D←', 'D→', 'PS'],
-};
-
-/** Human label for a pad binding. */
-export function padLabel(b: PadBinding | null | undefined, style: PadStyle): string {
-  if (!b) return '—';
-  return PAD_BUTTONS[style][b.button] ?? `Button ${b.button}`;
+/** Keyboard layout map if the concrete Input exposes one (Chromium `getLayoutMap`). */
+function layoutOf(input: IInput): KeyLayout | null {
+  return (input as IInput & { keyboardLayout?: KeyLayout | null }).keyboardLayout ?? null;
 }
 
-const KEY_NAMES: Record<string, string> = {
-  Mouse0: 'LMB', Mouse1: 'MMB', Mouse2: 'RMB', Mouse3: 'Mouse 4', Mouse4: 'Mouse 5',
-  WheelUp: 'Wheel ↑', WheelDown: 'Wheel ↓',
-  Space: 'Space', Escape: 'Esc', Enter: 'Enter', Tab: 'Tab', Backspace: 'Backspace',
-  ShiftLeft: 'L Shift', ShiftRight: 'R Shift', ControlLeft: 'L Ctrl', ControlRight: 'R Ctrl',
-  AltLeft: 'L Alt', AltRight: 'R Alt', ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→',
-  CapsLock: 'Caps', Backquote: '`', Minus: '-', Equal: '=', BracketLeft: '[', BracketRight: ']',
-  Semicolon: ';', Quote: "'", Comma: ',', Period: '.', Slash: '/', Backslash: '\\',
-};
-
-/** Human label for a keyboard/mouse binding ("Shift+LMB", "F", "L Alt"). */
-export function keyLabel(b: KeyBinding | null | undefined): string {
-  if (!b) return '—';
-  let k = KEY_NAMES[b.code];
-  if (!k) {
-    if (b.code.startsWith('Key')) k = b.code.slice(3);
-    else if (b.code.startsWith('Digit')) k = b.code.slice(5);
-    else if (b.code.startsWith('Numpad')) k = 'Num ' + b.code.slice(6);
-    else k = b.code;
-  }
-  return b.mod ? `${b.mod === 'Control' ? 'Ctrl' : b.mod}+${k}` : k;
+/** Label for a UI navigation event on the current device. */
+export function navLabel(input: IInput, ev: UiNavEvent): string {
+  return uiNavLabel(ev, input.device, input.padStyle, layoutOf(input));
 }
 
-/** Which pad style glyphs to use: the settings override, else what the input detected. */
-export function effectivePadStyle(input: IInput, settings: Settings | null): PadStyle {
-  const pref = settings?.controls.padLayout ?? 'auto';
-  return pref === 'auto' ? input.padStyle : pref;
+/** Label for a stored binding on the remap screen. */
+export function bindLabel(input: IInput, b: KeyBinding | PadBinding | null | undefined, device: Device): string {
+  return bindingLabel(b, device, input.padStyle, layoutOf(input));
 }
 
 /**
@@ -69,14 +28,13 @@ export function effectivePadStyle(input: IInput, settings: Settings | null): Pad
  */
 export function glyphBadge(label: string, device: Device): HTMLElement {
   const wrap = h('span.glyph-group');
-  const parts = label.split('+').filter(Boolean);
+  const parts = label === '+' ? ['+'] : label.split('+').filter(Boolean);
   parts.forEach((p, i) => {
     if (i > 0) wrap.appendChild(h('span.glyph-plus', null, '+'));
     const round = device === 'pad' && /^(A|B|X|Y|✕|○|□|△)$/.test(p);
     const mouse = /^(LMB|RMB|MMB)$/.test(p);
-    const cls = round ? 'glyph glyph-round' : mouse ? 'glyph glyph-mouse' : 'glyph glyph-key';
-    const el = h('span', { class: cls }, p);
-    if (p === '○' || p === '□' || p === '△' || p === '✕') el.classList.add('glyph-ps');
+    const el = h('span', { class: round ? 'glyph glyph-round' : mouse ? 'glyph glyph-mouse' : 'glyph glyph-key' }, p);
+    if (/^(✕|○|□|△)$/.test(p)) el.classList.add('glyph-ps');
     wrap.appendChild(el);
   });
   return wrap;
@@ -95,13 +53,10 @@ export interface PromptDef {
   onClick?: () => void;
 }
 
-/** Resolve a prompt's glyph text for the current device. */
-export function promptGlyph(p: PromptDef, input: IInput, settings: Settings | null): string {
-  if (p.glyph) return p.glyph;
-  if (p.action) return input.glyph(p.action);
-  if (p.nav) {
-    const table = input.device === 'kbm' ? NAV_GLYPHS.kbm : NAV_GLYPHS[effectivePadStyle(input, settings)];
-    return table[p.nav];
-  }
+/** Resolve a glyph spec to label text for the current device. */
+export function glyphText(input: IInput, g: { nav?: UiNavEvent; action?: ActionId; text?: string }): string {
+  if (g.text) return g.text;
+  if (g.action) return input.glyph(g.action);
+  if (g.nav) return navLabel(input, g.nav);
   return '';
 }

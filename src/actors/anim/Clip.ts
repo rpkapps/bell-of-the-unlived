@@ -38,9 +38,15 @@ function locate(times: number[], t: number): number {
 
 function sampleV3(tr: Track<V3>, t: number, loopDur: number | null, out: V3): V3 {
   const n = tr.t.length;
-  if (n === 1) { out[0] = tr.v[0][0]; out[1] = tr.v[0][1]; out[2] = tr.v[0][2]; return out; }
+  if (n === 1 && (tr.t[0] <= 1e-6 || t >= tr.t[0] || loopDur !== null)) { out[0] = tr.v[0][0]; out[1] = tr.v[0][1]; out[2] = tr.v[0][2]; return out; }
   const i = locate(tr.t, t);
-  if (i < 0) { const v = tr.v[0]; out[0] = v[0]; out[1] = v[1]; out[2] = v[2]; return out; }
+  if (i < 0) {
+    // Before the channel's first key: ease in from the incoming (base) value already in `out`.
+    const v = tr.v[0];
+    const f = tr.t[0] > 1e-6 && loopDur === null ? ease(tr.e[0], Math.min(Math.max(t / tr.t[0], 0), 1)) : 1;
+    out[0] += (v[0] - out[0]) * f; out[1] += (v[1] - out[1]) * f; out[2] += (v[2] - out[2]) * f;
+    return out;
+  }
   if (i >= n - 1 && loopDur === null) { const v = tr.v[n - 1]; out[0] = v[0]; out[1] = v[1]; out[2] = v[2]; return out; }
   const i1 = i, i2 = i + 1 < n ? i + 1 : 0;
   const t1 = tr.t[i1], t2 = i + 1 < n ? tr.t[i2] : loopDur!;
@@ -55,11 +61,11 @@ function sampleV3(tr: Track<V3>, t: number, loopDur: number | null, out: V3): V3
   return out;
 }
 
-function sampleScalar(tr: Track<number>, t: number, loopDur: number | null): number {
+function sampleScalar(tr: Track<number>, t: number, loopDur: number | null, base = 0): number {
   const n = tr.t.length;
-  if (n === 1) return tr.v[0];
+  if (n === 1 && (tr.t[0] <= 1e-6 || t >= tr.t[0])) return tr.v[0];
   const i = locate(tr.t, t);
-  if (i < 0) return tr.v[0];
+  if (i < 0) return tr.t[0] > 1e-6 && loopDur === null ? base + (tr.v[0] - base) * ease(tr.e[0], Math.min(Math.max(t / tr.t[0], 0), 1)) : tr.v[0];
   if (i >= n - 1 && loopDur === null) return tr.v[n - 1];
   const i2 = i + 1 < n ? i + 1 : 0;
   const t1 = tr.t[i], t2 = i + 1 < n ? tr.t[i2] : loopDur!;
@@ -133,8 +139,8 @@ export class Clip {
     if (this.hipsPos) sampleV3(this.hipsPos, t, ld, out.hipsPos);
     if (this.feet.L) sampleV3(this.feet.L, t, ld, out.footL);
     if (this.feet.R) sampleV3(this.feet.R, t, ld, out.footR);
-    if (this.footPitch.L) out.footPitchL = sampleScalar(this.footPitch.L, t, ld);
-    if (this.footPitch.R) out.footPitchR = sampleScalar(this.footPitch.R, t, ld);
+    if (this.footPitch.L) out.footPitchL = sampleScalar(this.footPitch.L, t, ld, out.footPitchL);
+    if (this.footPitch.R) out.footPitchR = sampleScalar(this.footPitch.R, t, ld, out.footPitchR);
     for (const side of ['R', 'L'] as const) {
       const ht = this.hands[side];
       if (!ht) continue;
@@ -157,7 +163,7 @@ export class Clip {
     }
     for (const b of Object.keys(this.fk) as BoneName[]) {
       const tr = this.fk[b]!;
-      const v = out.fk[b] ?? (out.fk[b] = [0, 0, 0]);
+      const v = out.fk[b] ?? (out.fk[b] = [...tr.v[0]] as V3);
       sampleV3(tr, t, ld, v);
     }
     return out;

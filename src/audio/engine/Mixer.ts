@@ -127,10 +127,14 @@ export class Mixer {
     uiBus.wet.connect(uiVerb).connect(this.master);
   }
 
-  /** Apply user volumes (0..1 each). SFX volume drives both sfx and combat buses. */
-  setVolumes(v: { master: number; music: number; sfx: number; ambience: number; voice: number; ui: number; mono: boolean }): void {
+  /** Apply user volumes (0..1 each). SFX volume drives both sfx and combat buses. `immediate` skips the ramp. */
+  setVolumes(v: { master: number; music: number; sfx: number; ambience: number; voice: number; ui: number; mono: boolean }, immediate = false): void {
     const now = this.ctx.currentTime;
-    const set = (p: AudioParam, x: number) => p.setTargetAtTime(Math.max(0, Math.min(2, x)), now, TC);
+    const set = (p: AudioParam, x: number) => {
+      const val = Math.max(0, Math.min(2, x));
+      if (immediate) p.setValueAtTime(val, now);
+      else p.setTargetAtTime(val, now, TC);
+    };
     // Perceptual taper: squared slider gives a more even loudness curve.
     const taper = (x: number) => x * x;
     set(this.master.gain, taper(v.master));

@@ -4,6 +4,7 @@
  */
 import type { ActionId, UiNavEvent } from '../input/actions';
 import type { Settings } from '../game/settings';
+import type { OriginId } from '../game/types';
 import type { ToastKind, UIHost } from './contract';
 import { h } from './dom';
 import type { PromptDef } from './glyphs';
@@ -24,6 +25,8 @@ export interface UICtx {
   pop(s?: Screen): void;
   closeAll(): void;
   confirm(title: string, body: string, yes?: string, no?: string): Promise<boolean>;
+  /** Open origin selection (resolves the chosen origin, or null on back). */
+  originSelect(): Promise<OriginId | null>;
   toast(text: string, kind?: ToastKind, icon?: string): void;
   sound(cue: UiCue): void;
   /** A live glyph badge that re-renders when the device or pad style changes. */
@@ -59,9 +62,11 @@ export abstract class Screen {
   /** Called when pushed or revealed again after the screen above closes. */
   show(first: boolean): void {
     if (first) this.render();
-    else this.refresh();
+    else this.reveal();
     this.nav.ensure();
   }
+  /** Revealed again after a screen above closed (default: rebuild with fresh data). */
+  protected reveal(): void { this.refresh(); }
   /** Rebuild keeping focus (by `data-key`) — used when data may have changed. */
   refresh(): void {
     const key = this.nav.focused?.getAttribute('data-key') ?? null;

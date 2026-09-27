@@ -3,7 +3,7 @@
  * sounds (heartbeat, breath). A voice is a sawtooth "glottis" (+ breath noise) through three
  * parallel bandpass formant filters whose centre frequencies glide between vowels.
  */
-import { perc, rand, sweep, vary, type Voice } from '../engine/Voice';
+import { rand, sweep, vary, type Voice } from '../engine/Voice';
 import { metal, thump, whoosh } from './impacts';
 import { bell, SMALL_PARTIALS } from './bells';
 import type { Synth } from './types';

@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Render preview — Bells of the Unlived</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #0d0e10; color: #cbbf9f; font: 13px/1.4 Georgia, serif; overflow: hidden; }
+    #c { display: block; width: 100vw; height: 100vh; }
+    #hud { position: fixed; left: 10px; top: 8px; pointer-events: none; text-shadow: 0 1px 2px #000; white-space: pre; }
+    #board { position: fixed; inset: 0; overflow: auto; display: none; background: #111; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <div id="board"></div>
+  <div id="hud"></div>
+  <script type="module" src="./render.ts"></script>
+</body>
+</html>

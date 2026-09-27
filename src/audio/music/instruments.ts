@@ -171,10 +171,10 @@ export function timpani(out: MusicOut, t: number, f: number, vel: number, o: { w
       o2.frequency.setValueAtTime(f * r * 1.025, t);
       o2.frequency.exponentialRampToValueAtTime(f * r, t + 0.12);
       const g = v.gain(0);
-      v.hold(perc(g.gain, t, 0.003, vel * 0.32 * a, d * dd));
+      v.hold(perc(g.gain, t, 0.003, vel * 0.16 * a, d * dd));
       o2.connect(g).connect(v.out);
     }
-    v.burst({ color: 'pink', type: 'lowpass', freq: 900, peak: vel * 0.25, d: 0.12 });
+    v.burst({ color: 'pink', type: 'lowpass', freq: 900, peak: vel * 0.12, d: 0.12 });
   });
 }
 
@@ -194,19 +194,19 @@ export function taiko(out: MusicOut, t: number, vel: number, o: { f?: number; we
     const s = v.osc('sine', f * 2.2, t);
     sweep(s.frequency, t, f * 2.2, f, 0.12);
     const g = v.gain(0);
-    v.hold(perc(g.gain, t, 0.002, vel * 0.8, 0.7));
+    v.hold(perc(g.gain, t, 0.002, vel * 0.32, 0.7));
     s.connect(g).connect(v.out);
-    v.burst({ color: 'pink', type: 'lowpass', freq: 1400, peak: vel * 0.35, d: 0.09 });
-    v.burst({ type: 'bandpass', freq: 250, q: 1.5, peak: vel * 0.2, d: 0.2 });
+    v.burst({ color: 'pink', type: 'lowpass', freq: 1400, peak: vel * 0.16, d: 0.09 });
+    v.burst({ type: 'bandpass', freq: 250, q: 1.5, peak: vel * 0.1, d: 0.2 });
   });
 }
 
 /** Field snare (martial): tight noise + body. */
 export function snare(out: MusicOut, t: number, vel: number, o: { wet?: number; tone?: number } = {}): void {
   note(out, t, o.wet ?? 0.3, (v) => {
-    v.burst({ type: 'bandpass', freq: 2200 * (o.tone ?? 1), q: 0.7, peak: vel * 0.35, d: 0.16 });
-    v.burst({ type: 'highpass', freq: 5000, peak: vel * 0.12, d: 0.08 });
-    v.tone({ freq: 190, bendTo: 160, bendDur: 0.05, peak: vel * 0.2, d: 0.09 });
+    v.burst({ type: 'bandpass', freq: 2200 * (o.tone ?? 1), q: 0.7, peak: vel * 0.2, d: 0.16 });
+    v.burst({ type: 'highpass', freq: 5000, peak: vel * 0.07, d: 0.08 });
+    v.tone({ freq: 190, bendTo: 160, bendDur: 0.05, peak: vel * 0.1, d: 0.09 });
   });
 }
 

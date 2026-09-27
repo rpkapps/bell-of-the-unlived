@@ -205,3 +205,27 @@ export function bellMask(): THREE.DataTexture {
     return 0;
   });
 }
+
+/** Cathedral mark: a gothic pointed arch on posts with a bell inside (128 × 128). */
+export function cathedralMask(amount = 0.28): THREE.DataTexture {
+  return make(`cathedral:${amount}`, 128, 128, (u, v) => {
+    const x = u * 256, y = (1 - v) * 256;
+    // lintel + posts
+    let on = inRect(x, y, 40, 40, 216, 58) || inRect(x, y, 52, 58, 84, 226) || inRect(x, y, 172, 58, 204, 226) || inRect(x, y, 40, 222, 96, 236) || inRect(x, y, 160, 222, 216, 236);
+    // pointed arch ring between the posts (two circle arcs meeting at the apex)
+    const inArch = (r: number) => {
+      const a = Math.hypot(x - 172, y - 150) <= r && x <= 128;
+      const b = Math.hypot(x - 84, y - 150) <= r && x > 128;
+      return (a || b) && y <= 150;
+    };
+    if (inArch(88) && !inArch(72)) on = true;
+    if (y > 150 && y < 226 && ((x >= 84 && x <= 100) || (x >= 156 && x <= 172))) on = true;
+    // bell
+    if (y >= 132 && y <= 200) {
+      const t = (y - 132) / 68;
+      if (Math.abs(x - 128) <= 10 + 12 * t + 14 * t * t * t) on = true;
+    }
+    if (inCircle(x, y, 128, 126, 7) || inCircle(x, y, 128, 208, 6)) on = true;
+    return on ? wear(u, v, 21, amount) : 0;
+  });
+}

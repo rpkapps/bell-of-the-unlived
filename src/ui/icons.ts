@@ -418,6 +418,12 @@ const ICONS: Record<string, () => string> = {
     p('M14 12H46V52H14Z', 'f') + p('M14 12H46V52H14Z') + p('M10 12A4 4 0 0 1 18 12M42 52A4 4 0 0 0 50 52', '') +
     p('M20 22H40M20 28H40M20 34H32', 't') + c(40, 44, 7, 'hlf') + c(40, 44, 7) + diamond(40, 44, 3, 's'),
   kind_imprint: () => ICONS.imprint_scroll(),
+  vow_pursuit: () => g('translate(-2 4) scale(0.85)', ICONS.oath_estoc()) + p('M40 40L54 40M44 46L56 46M36 34L50 34', 't hl'),
+  stilled_breath: () => ICONS.huntsman_bow() + p('M46 14Q52 18 50 24M50 10Q58 16 55 26', 't hl'),
+  ember_resin: () =>
+    p('M22 20H42L46 26V52C46 55 18 55 18 52V26Z', 'f') + p('M22 20H42L46 26V52C46 55 18 55 18 52V26Z') + p('M24 14H40V20H24Z') +
+    p('M32 30C36 36 38 38 38 42C38 46 35 48 32 48C29 48 26 46 26 42C26 39 28 37 29 35C30 38 31 39 33 39C34 36 33 33 32 30Z', 'hl'),
+  bone_arrow: () => ICONS.kind_ammo(),
   // ---------------------------------------------------------------- small UI glyphs
   warning: () => p('M32 6L60 56H4Z', 'f') + p('M32 6L60 56H4Z') + p('M32 22V40', '') + c(32, 47, 2, 's'),
   lock: () => p('M20 28V20C20 8 44 8 44 20V28', '') + p('M14 28H50V56H14Z', 'f') + p('M14 28H50V56H14Z') + c(32, 40, 3, 's') + l(32, 42, 32, 49),
@@ -467,7 +473,7 @@ function sealD(broken: boolean): string {
 /** Explicit aliases for ids used by other modules. */
 const ALIASES: Record<string, string> = {
   hospice_stillbell: 'stillbell', stillbell_icon: 'stillbell', flask_health: 'flask_health', recall_flask_focus: 'flask_focus',
-  cinder_bolt_grimoire: 'cinder_bolt', grimoire_cinder_bolt: 'cinder_bolt', household_knight: 'origin_householdKnight',
+  household_knight: 'origin_householdKnight',
   court_mage: 'origin_courtMage', measured_cut_memory: 'measured_cut', hp: 'stat_hp', focus: 'stat_focus', stamina: 'stat_stamina',
   load: 'stat_load', poise: 'stat_poise', attack: 'stat_attack', spellpower: 'stat_spell', iframes: 'stat_iframes',
   physical: 'def_physical', magic: 'def_magic', fire: 'def_fire', key: 'kind_key', burning: 'burn', warded: 'ward',
@@ -475,7 +481,7 @@ const ALIASES: Record<string, string> = {
 
 /** Keyword heuristics for ids we have not drawn explicitly (e.g. new armour pieces). */
 const KEYWORDS: [RegExp, string][] = [
-  [/^imprint_|scroll/, 'imprint_scroll'], [/greatsword|claymore/, 'bellwarden_greatsword'], [/sabre|saber|scimitar/, 'greyford_sabre'],
+  [/^(grimoire|prayer|psalter|tome)_/, 'kind_spellbook'], [/^imprint_|scroll/, 'imprint_scroll'], [/greatsword|claymore/, 'bellwarden_greatsword'], [/sabre|saber|scimitar/, 'greyford_sabre'],
   [/halberd|glaive|poleaxe/, 'gatewarden_halberd'], [/spear|pike|lance$/, 'garrison_spear'], [/axe/, 'woodsman_axe'],
   [/arbalest|crossbow/, 'garrison_arbalest'], [/censer|thurible/, 'pilgrim_censer'], [/tower_shield|pavise/, 'greyford_tower_shield'],
   [/buckler/, 'mint_buckler'], [/roundshield/, 'pilgrim_roundshield'],

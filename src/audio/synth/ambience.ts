@@ -381,16 +381,16 @@ export function createLoop(id: AnyLoopId, ctx: BaseAudioContext, bank: NoiseBank
 
 /** Per-loop defaults: output trim, reverb send, and 3D distance behaviour. */
 export const LOOP_DEFS: Record<AnyLoopId, { gain: number; wet: number; ref: number; rolloff: number }> = {
-  amb_wind: { gain: 1, wet: 0.05, ref: 8, rolloff: 1 },
-  amb_fire: { gain: 1, wet: 0.15, ref: 2, rolloff: 1.2 },
+  amb_wind: { gain: 0.34, wet: 0.05, ref: 8, rolloff: 1 },
+  amb_fire: { gain: 0.72, wet: 0.15, ref: 2, rolloff: 1.2 },
   brazier: { gain: 1, wet: 0.2, ref: 1.5, rolloff: 1.2 },
-  amb_interior: { gain: 1, wet: 0.1, ref: 6, rolloff: 1 },
-  amb_hospice: { gain: 1, wet: 0.1, ref: 6, rolloff: 1 },
-  amb_battlefield: { gain: 1, wet: 0.25, ref: 20, rolloff: 1 },
-  amb_undercroft: { gain: 1, wet: 0.2, ref: 6, rolloff: 1 },
-  stillbell_hum: { gain: 1, wet: 0.35, ref: 1.5, rolloff: 1.3 },
-  fog_hum: { gain: 1, wet: 0.2, ref: 3, rolloff: 1.2 },
-  forge: { gain: 1, wet: 0.2, ref: 3, rolloff: 1.2 },
+  amb_interior: { gain: 0.22, wet: 0.1, ref: 6, rolloff: 1 },
+  amb_hospice: { gain: 0.28, wet: 0.1, ref: 6, rolloff: 1 },
+  amb_battlefield: { gain: 0.39, wet: 0.25, ref: 20, rolloff: 1 },
+  amb_undercroft: { gain: 0.3, wet: 0.2, ref: 6, rolloff: 1 },
+  stillbell_hum: { gain: 0.7, wet: 0.35, ref: 1.5, rolloff: 1.3 },
+  fog_hum: { gain: 0.45, wet: 0.2, ref: 3, rolloff: 1.2 },
+  forge: { gain: 0.48, wet: 0.2, ref: 3, rolloff: 1.2 },
   far_tolls: { gain: 1, wet: 0, ref: 10, rolloff: 1 },
   embers_far: { gain: 1, wet: 0.2, ref: 6, rolloff: 1 },
 };

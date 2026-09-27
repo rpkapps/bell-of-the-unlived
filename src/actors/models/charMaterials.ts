@@ -12,7 +12,7 @@
  *   c=RRGGBB   replace the base colour
  *   ds         double-sided
  *   po         polygon offset (decals lying on another surface)
- *   a=arms|arms2|army|emb|bell   alpha-tested decal mask (see textures.ts); ar=N repeats along U
+ *   a=arms|arms2|army|emb|bell|cath   alpha-tested decal mask (see textures.ts); ar=N repeats along U
  *   tat=seed:depth:holes          tattered-hem alpha mask (cloth sims)
  *   r=0.5 / m=0.8                 roughness / metalness override
  *   e=RRGGBB, ei=2                emissive colour and intensity
@@ -20,7 +20,7 @@
 import * as THREE from 'three';
 import { getMaterial } from '../../render/materials';
 import type { MaterialId } from '../../render/materialIds';
-import { armyInsigniaMask, bellMask, embroideryMask, royalArmsMask, tatterMask } from './textures';
+import { armyInsigniaMask, bellMask, cathedralMask, embroideryMask, royalArmsMask, tatterMask } from './textures';
 
 /** Shared uniform block of one character (all its cloned materials reference the same objects). */
 export interface FxUniforms {
@@ -134,6 +134,7 @@ function alphaFor(name: string, rep: number): THREE.Texture | null {
     case 'army': t = armyInsigniaMask(0.32); break;
     case 'emb': t = embroideryMask(); break;
     case 'bell': t = bellMask(); break;
+    case 'cath': t = cathedralMask(); break;
   }
   if (t && rep !== 1) {
     // own transform per repeat count (the base texture stays shared)

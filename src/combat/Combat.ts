@@ -107,8 +107,12 @@ export class Combat {
     }
   }
 
-  /** Apply a hit (also used by projectiles and spells with slot 'X'). */
   resolve(att: Combatant, tgt: Combatant, h: HitSpec, move: MoveDef, slot: 'R' | 'L' | 'S' | 'X', point: THREE.Vector3): HitResult {
+    return this.resolveWith(att, tgt, h, move, point, undefined, undefined, slot);
+  }
+
+  /** Apply a hit. Projectiles/spells pass a precomputed packet and posture damage. */
+  resolveWith(att: Combatant, tgt: Combatant, h: HitSpec, move: MoveDef, point: THREE.Vector3, packetOverride?: DamagePacket, postureOverride?: number, slot: 'R' | 'L' | 'S' | 'X' = 'X'): HitResult {
     const dir = new THREE.Vector3(tgt.pos.x - att.pos.x, 0, tgt.pos.z - att.pos.z);
     if (dir.lengthSq() < 1e-6) dir.set(Math.sin(att.yaw), 0, Math.cos(att.yaw)); else dir.normalize();
     const res: HitResult = { attacker: att, target: tgt, spec: h, move, outcome: 'hit', damage: 0, point, dir, flinch: 'none', postureBroken: false };
@@ -124,7 +128,8 @@ export class Combat {
       this.onResult(res); att.onDealtHit?.(res);
       return res;
     }
-    const packet = att.attackPacket(h, move, slot);
+    const packet = packetOverride ?? att.attackPacket(h, move, slot);
+    const postureDmg = postureOverride ?? att.postureDamage(h, move);
     const guard = tgt.guarding ? tgt.guardInfo() : null;
     if (guard && !h.unblockable && facing < tgt.guardArc) {
       const raw = packet.physical + packet.magic + packet.fire;
@@ -133,7 +138,7 @@ export class Combat {
       tgt.spendStamina(stCost);
       if (chip > 0.5) { tgt.hp = Math.max(0, tgt.hp - Math.round(chip)); res.damage = Math.round(chip); }
       // guard pressure also builds posture on enemies
-      tgt.posture += att.postureDamage(h, move) * 0.6;
+      tgt.posture += postureDmg * 0.6;
       tgt.postureDelay = 2.2;
       if (tgt.stamina <= 0) {
         res.outcome = 'guardBroken';
@@ -157,8 +162,7 @@ export class Combat {
     res.damage = dmg;
     tgt.flash = 1;
     // posture
-    const pd = att.postureDamage(h, move);
-    tgt.posture += pd;
+    tgt.posture += postureDmg;
     tgt.postureDelay = 2.2;
     tgt.aware = true;
     const stopT = Math.min(0.11, 0.05 + dmg / 3000);

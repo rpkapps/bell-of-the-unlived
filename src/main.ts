@@ -43,7 +43,7 @@ async function boot() {
   const game = new Game({
     canvas, renderer, input, settings, saveSettings, audio, ui,
     models: q.has('mannequin') ? null : models,
-    particles: extras.particles, trails: extras.trails, onFrame: extras.onFrame,
+    particles: extras.particles, trails: extras.trails, onFrame: extras.onFrame, noRender: q.has('norender'),
   });
   (window as any).__game = game;
   (window as any).THREE = THREE;

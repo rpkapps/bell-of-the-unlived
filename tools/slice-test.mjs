@@ -3,8 +3,9 @@
 import { chromium } from 'playwright-core';
 const base = process.argv[2] ?? 'http://127.0.0.1:5190/';
 const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
-const ctx = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+const ctx = await browser.newContext({ viewport: { width: 960, height: 540 } });
 const page = await ctx.newPage();
+page.setDefaultTimeout(300000);
 const errs = [];
 page.on('pageerror', (e) => errs.push(e.message));
 page.on('console', (m) => { if (m.type() === 'error' && !m.text().includes('404')) errs.push(m.text()); });
@@ -13,7 +14,7 @@ const check = (name, ok, info = '') => { console.log(`${ok ? 'PASS' : 'FAIL'}  $
 const ev = (f) => page.evaluate(f);
 const wait = (ms) => page.waitForTimeout(ms);
 
-await page.goto(base + '?skipintro&origin=courtMage');
+await page.goto(base + '?skipintro&origin=courtMage&quality=low&norender');
 await page.waitForFunction(() => window.__ready && window.__game.mode === 'play', null, { timeout: 180000 });
 await wait(2500);
 // helper installed in page: teleport near an interactable and trigger it
@@ -107,7 +108,7 @@ check('Brannoc recognises him (journal)', j.includes('conf_brannoc'));
 
 // Persistence across reload
 await ev(() => window.__session.save());
-await page.goto(base);
+await page.goto(base + '?quality=low&norender');
 await page.waitForFunction(() => window.__ready, null, { timeout: 180000 });
 await wait(1500);
 await ev(() => window.__session.continueGame());

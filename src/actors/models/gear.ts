@@ -957,12 +957,15 @@ export function cloak(b: CharBuilder, style: CloakStyle, o: { mat?: string; pad?
   const matKey = `${o.mat ?? P.mat}|ds|tat=${seed % 16}:${P.tat}:${P.holes}`;
   const top = 0.23;
   const rest = (u: number, v: number): V3 => {
+    const sgn = (u - 0.5) * 2; // −1 right … +1 left
     const R = lerp(P.w0 + pad, P.w1 + pad, Math.pow(v, 0.7));
-    const a = lerp(-1, 1, u) * lerp(P.a0, P.a1, v);
+    const a = sgn * lerp(P.a0, P.a1, v);
     const zk = lerp(0.55, 0.62, v);
-    const y = top - v * P.len;
+    // top edge follows the shoulder slope (high at the nape, dropping over the shoulders)
+    const slope = (0.075 - pad * 0.5) * sgn * sgn * (1 - sm(0.0, 0.35, v));
+    const y = top + 0.025 - slope - v * P.len;
     // vertical folds grow below the shoulder blades (bend constraints keep them alive)
-    const fold = 0.028 * Math.sin(u * Math.PI * 7 + 0.6) * sm(0.08, 0.5, v) * (1 - Math.abs(u - 0.5));
+    const fold = 0.036 * Math.sin(u * Math.PI * 9 + 0.6) * sm(0.12, 0.55, v) * (1 - 0.6 * Math.abs(sgn));
     return [Math.sin(a) * R * 1.05, y, -Math.cos(a) * R * zk - 0.05 - pad * 0.6 - v * 0.04 + fold];
   };
   b.addCloth({
@@ -970,7 +973,7 @@ export function cloak(b: CharBuilder, style: CloakStyle, o: { mat?: string; pad?
     colliders: bodyColliders(pad),
     mat: matKey,
     decal: o.heraldry ? { mat: 'gold_trim|a=arms2|po', rect: [0.3, 0.12, 0.7, 0.44] } : undefined,
-    stiffness: 1, bend: style === 'heavy' ? 0.45 : 0.25, damping: style === 'heavy' ? 0.982 : 0.986,
+    stiffness: 1, bend: style === 'heavy' ? 0.55 : 0.4, damping: style === 'heavy' ? 0.982 : 0.986,
     windScale: style === 'heavy' ? 0.6 : 1,
   });
   // clasp + collar roll where the cloth is pinned
@@ -988,11 +991,14 @@ export function cloak(b: CharBuilder, style: CloakStyle, o: { mat?: string; pad?
     drapeChain(b, 'chest', [[l[0] * 0.97, l[1], l[2] + 0.03], [0, 0.18, 0.14 + pad], [r[0] * 0.97, r[1], r[2] + 0.03]], M.bronze, 0.022);
   }
   if (o.fur) {
-    const fur = (th: number, v: number) => 1 + 0.16 * Math.abs(Math.sin(th * 19 + v * 5)) * Math.abs(Math.sin(th * 7));
+    // shaggy fur mantle: tufts in several tiers, longer at the back
+    const fur = (th: number, v: number) => 1 + (0.1 + 0.14 * v) * Math.abs(Math.sin(th * 17 + v * 7)) * (0.6 + 0.4 * Math.abs(Math.sin(th * 5 + 1)))
+      + 0.06 * Math.sin(th * 41);
     b.add('chest', loft([
-      { y: 0.33, rx: 0.11, rz: 0.1, cz: -0.02 }, { y: 0.3, rx: 0.19 + pad, rz: 0.15 + pad, cz: -0.03 },
-      { y: 0.23, rx: 0.25 + pad, rz: 0.18 + pad, cz: -0.04 }, { y: 0.17, rx: 0.24 + pad, rz: 0.17 + pad, cz: -0.05 },
-    ], { segs: 28, radial: fur, phi0: 0.55, phiLen: TAU - 1.1 }), M.fur, {
+      { y: 0.34, rx: 0.1, rz: 0.095, cz: -0.02 }, { y: 0.31, rx: 0.17 + pad, rz: 0.14 + pad, cz: -0.03 },
+      { y: 0.26, rx: 0.24 + pad, rz: 0.18 + pad, cz: -0.04 }, { y: 0.2, rx: 0.26 + pad, rz: 0.19 + pad, cz: -0.05, back: 1.1 },
+      { y: 0.13, rx: 0.22 + pad, rz: 0.17 + pad, cz: -0.06, back: 1.15 },
+    ], { segs: 40, radial: fur, phi0: 0.6, phiLen: TAU - 1.2 }), M.fur, {
       skin: (p) => { const s = p.x > 0 ? 'shoulderL' : 'shoulderR'; const k = Math.min(0.4, Math.max(0, (Math.abs(p.x) - 0.1) * 3)); return [['chest', 1 - k], [s, k]]; },
     });
   }

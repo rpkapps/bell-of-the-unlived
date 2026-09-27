@@ -156,7 +156,7 @@ export function buildHospice(ctx: AreaCtx): HospiceBuild {
   const practicePlaques = plaqueSpots.map(([topic, x, z, yaw]) => {
     plaque(k, x, Y, z, yaw);
     // player stands 1.4 m in front of the board, facing it
-    return { topic, anchor: anchor(x + Math.sin(yaw) * 1.4, Y, z + Math.cos(yaw) * 1.4, yaw + Math.PI) };
+    return { topic, anchor: anchor(x + Math.sin(yaw) * 1.4, Y, z + Math.cos(yaw) * 1.4, Math.atan2(-Math.sin(yaw), -Math.cos(yaw))) };
   });
 
   return {

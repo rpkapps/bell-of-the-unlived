@@ -39,6 +39,8 @@ export interface GameDeps {
   trails?: ITrails | null;
   /** Per-frame hooks for renderer extras (materials time, light manager). */
   onFrame?: (time: number, camera: THREE.Camera) => void;
+  /** Tests: simulate without drawing (headless logic runs). */
+  noRender?: boolean;
 }
 
 export type Mode = 'title' | 'play' | 'menu' | 'dialogue' | 'cinematic' | 'dead' | 'loading';
@@ -336,7 +338,7 @@ export class Game implements Services {
     this.deps.particles?.update(realDt, r.camera);
     this.deps.onFrame?.(this.realTime, r.camera);
     this.deps.ui?.update(realDt);
-    r.render(realDt);
+    if (!this.deps.noRender) r.render(realDt);
     // fps
     this.fpsAcc += realDt; this.fpsFrames++;
     if (this.fpsAcc > 0.5) { this.deps.ui?.fps(this.settings.graphics.showFps ? Math.round(this.fpsFrames / this.fpsAcc) : null); this.fpsAcc = 0; this.fpsFrames = 0; }
